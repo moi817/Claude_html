@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entraîneur d'Échecs - Apprendre les Échecs</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 30px;
+            max-width: 1400px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .board-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .chessboard {
+            display: grid;
+            grid-template-columns: repeat(8, 70px);
+            grid-template-rows: repeat(8, 70px);
+            border: 3px solid #333;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .square {
+            width: 70px;
+            height: 70px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 50px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .square.light {
+            background-color: #f0d9b5;
+        }
+
+        .square.dark {
+            background-color: #b58863;
+        }
+
+        .square.selected {
+            background-color: #baca44 !important;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .square.possible-move {
+            background-color: #9fc551 !important;
+        }
+
+        .square.possible-move::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .square.last-move {
+            background-color: #cdd26a !important;
+        }
+
+        .square:hover {
+            opacity: 0.9;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+            transform: translateY(-2px);
+        }
+
+        .difficulty-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .difficulty-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .difficulty-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .difficulty-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .status {
+            padding: 15px;
+            background: white;
+            border-left: 4px solid #667eea;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .feedback {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            margin-top: 10px;
+            min-height: 60px;
+            border-left: 4px solid #28a745;
+        }
+
+        .feedback.error {
+            border-left-color: #dc3545;
+        }
+
+        .feedback.warning {
+            border-left-color: #ffc107;
+        }
+
+        .feedback.info {
+            border-left-color: #17a2b8;
+        }
+
+        .move-history {
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .move-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .move-number {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .hint-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .hint-box.visible {
+            display: block;
+        }
+
+        .score {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .chessboard {
+                grid-template-columns: repeat(8, 60px);
+                grid-template-rows: repeat(8, 60px);
+            }
+
+            .square {
+                width: 60px;
+                height: 60px;
+                font-size: 45px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .chessboard {
+                grid-template-columns: repeat(8, 45px);
+                grid-template-rows: repeat(8, 45px);
+            }
+
+            .square {
+                width: 45px;
+                height: 45px;
+                font-size: 35px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <h1>🎓 Entraîneur d'Échecs</h1>
+
+            <div class="board-container">
+                <div id="chessboard" class="chessboard"></div>
+            </div>
+
+            <div class="panel-section">
+                <h2>Difficulté de l'entraîneur</h2>
+                <div class="difficulty-selector">
+                    <button class="difficulty-btn active" data-level="1">Débutant</button>
+                    <button class="difficulty-btn" data-level="2">Intermédiaire</button>
+                    <button class="difficulty-btn" data-level="3">Avancé</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h2>Contrôles</h2>
+                <div class="controls">
+                    <button class="btn-primary" onclick="newGame()">Nouvelle partie</button>
+                    <button class="btn-secondary" onclick="undoMove()">Annuler le coup</button>
+                    <button class="btn-success" onclick="getHint()">Demander un indice</button>
+                    <button class="btn-warning" onclick="toggleAutoHint()">Aide auto: <span id="auto-hint-status">OFF</span></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="panel-section">
+                <h2>État de la partie</h2>
+                <div class="status" id="game-status">Votre tour - Jouez avec les blancs</div>
+                <div class="score">Score: <span id="score">0</span> points</div>
+            </div>
+
+            <div class="panel-section">
+                <h2>Feedback de l'entraîneur</h2>
+                <div class="feedback info" id="feedback">
+                    Bienvenue ! Commencez en déplaçant une pièce. Je vous guiderai pour améliorer votre jeu.
+                </div>
+                <div class="hint-box" id="hint-box"></div>
+            </div>
+
+            <div class="panel-section">
+                <h2>Historique des coups</h2>
+                <div class="move-history" id="move-history">
+                    <em>Aucun coup joué</em>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h2>Conseils pédagogiques</h2>
+                <div id="educational-tips" style="padding: 15px; background: white; border-radius: 8px;">
+                    <p><strong>💡 Conseil :</strong> Contrôlez le centre de l'échiquier avec vos pions et vos pièces.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialisation du jeu
+        let game = new Chess();
+        let selectedSquare = null;
+        let playerColor = 'w';
+        let difficulty = 1;
+        let autoHint = false;
+        let score = 0;
+        let moveHistory = [];
+        let lastMove = null;
+
+        // Symboles des pièces Unicode
+        const pieceSymbols = {
+            'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
+            'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔'
+        };
+
+        // Conseils pédagogiques
+        const educationalTips = [
+            "💡 Développez vos pièces (cavaliers et fous) avant de sortir la dame.",
+            "💡 Roquez tôt pour mettre votre roi en sécurité.",
+            "💡 Contrôlez le centre (cases e4, d4, e5, d5) avec vos pions.",
+            "💡 Évitez de déplacer la même pièce plusieurs fois en ouverture.",
+            "💡 Protégez vos pièces ! Ne laissez aucune pièce sans défense.",
+            "💡 Pensez aux menaces de votre adversaire avant de jouer.",
+            "💡 Les cavaliers sont très efficaces au centre de l'échiquier.",
+            "💡 Essayez de contrôler les colonnes ouvertes avec vos tours.",
+            "💡 Ne sous-estimez pas la valeur des pions - ils peuvent devenir des dames !",
+            "💡 Cherchez toujours les tactiques : fourchettes, clouages, enfilades."
+        ];
+
+        // Initialiser l'échiquier
+        function initBoard() {
+            const board = document.getElementById('chessboard');
+            board.innerHTML = '';
+
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.createElement('div');
+                    const isLight = (row + col) % 2 === 0;
+                    square.className = `square ${isLight ? 'light' : 'dark'}`;
+
+                    const squareName = String.fromCharCode(97 + col) + (8 - row);
+                    square.dataset.square = squareName;
+                    square.onclick = () => handleSquareClick(squareName);
+
+                    board.appendChild(square);
+                }
+            }
+
+            updateBoard();
+        }
+
+        // Mettre à jour l'affichage de l'échiquier
+        function updateBoard() {
+            const squares = document.querySelectorAll('.square');
+
+            squares.forEach(square => {
+                const squareName = square.dataset.square;
+                const piece = game.get(squareName);
+
+                // Réinitialiser les classes
+                square.className = `square ${isLightSquare(squareName) ? 'light' : 'dark'}`;
+
+                // Ajouter la classe pour le dernier coup
+                if (lastMove && (lastMove.from === squareName || lastMove.to === squareName)) {
+                    square.classList.add('last-move');
+                }
+
+                // Afficher la pièce
+                square.textContent = piece ? pieceSymbols[piece.type.toUpperCase() === piece.type ? piece.type.toUpperCase() : piece.type] : '';
+
+                // Ajuster la couleur selon la couleur de la pièce
+                if (piece) {
+                    square.style.color = piece.color === 'w' ? '#fff' : '#000';
+                    square.style.textShadow = piece.color === 'w' ?
+                        '0 0 3px #000, 0 0 5px #000' :
+                        '0 0 3px #fff, 0 0 5px #fff';
+                }
+            });
+        }
+
+        // Vérifier si une case est claire
+        function isLightSquare(square) {
+            const col = square.charCodeAt(0) - 97;
+            const row = 8 - parseInt(square[1]);
+            return (row + col) % 2 === 0;
+        }
+
+        // Gérer le clic sur une case
+        function handleSquareClick(square) {
+            if (game.turn() !== playerColor) {
+                return; // Ce n'est pas le tour du joueur
+            }
+
+            const piece = game.get(square);
+
+            // Si aucune case n'est sélectionnée
+            if (!selectedSquare) {
+                // Vérifier si le joueur clique sur sa propre pièce
+                if (piece && piece.color === playerColor) {
+                    selectedSquare = square;
+                    highlightSquare(square);
+                    showPossibleMoves(square);
+                }
+            } else {
+                // Essayer de déplacer la pièce
+                const move = game.move({
+                    from: selectedSquare,
+                    to: square,
+                    promotion: 'q' // Toujours promouvoir en dame pour simplifier
+                });
+
+                if (move) {
+                    lastMove = move;
+                    analyzeMove(move);
+                    updateBoard();
+                    updateMoveHistory();
+                    selectedSquare = null;
+
+                    // Vérifier l'état du jeu
+                    if (checkGameOver()) {
+                        return;
+                    }
+
+                    // Tour de l'entraîneur
+                    setTimeout(makeTrainerMove, 500);
+                } else {
+                    // Si le coup n'est pas valide, essayer de sélectionner une autre pièce
+                    if (piece && piece.color === playerColor) {
+                        clearHighlights();
+                        selectedSquare = square;
+                        highlightSquare(square);
+                        showPossibleMoves(square);
+                    } else {
+                        clearHighlights();
+                        selectedSquare = null;
+                    }
+                }
+            }
+        }
+
+        // Mettre en surbrillance une case
+        function highlightSquare(square) {
+            const element = document.querySelector(`[data-square="${square}"]`);
+            if (element) {
+                element.classList.add('selected');
+            }
+        }
+
+        // Afficher les coups possibles
+        function showPossibleMoves(square) {
+            const moves = game.moves({ square: square, verbose: true });
+            moves.forEach(move => {
+                const element = document.querySelector(`[data-square="${move.to}"]`);
+                if (element) {
+                    element.classList.add('possible-move');
+                }
+            });
+        }
+
+        // Effacer les surbrillances
+        function clearHighlights() {
+            document.querySelectorAll('.square').forEach(square => {
+                square.classList.remove('selected', 'possible-move');
+            });
+        }
+
+        // Analyser le coup du joueur
+        function analyzeMove(move) {
+            const feedback = document.getElementById('feedback');
+            let message = '';
+            let className = 'info';
+            let points = 0;
+
+            // Analyser différents aspects du coup
+            if (move.captured) {
+                points += 10;
+                message = `Excellent ! Vous avez capturé ${getPieceName(move.captured)}. `;
+                className = 'success';
+            }
+
+            if (game.in_check()) {
+                points += 15;
+                message += 'Échec au roi ! ';
+                className = 'success';
+            }
+
+            // Vérifier le contrôle du centre
+            const centerSquares = ['e4', 'd4', 'e5', 'd5'];
+            if (centerSquares.includes(move.to)) {
+                points += 5;
+                message += 'Bon contrôle du centre ! ';
+            }
+
+            // Développement des pièces en ouverture
+            if (game.history().length < 10 && (move.piece === 'n' || move.piece === 'b')) {
+                points += 5;
+                message += 'Bon développement de vos pièces ! ';
+            }
+
+            // Roque
+            if (move.flags.includes('k') || move.flags.includes('q')) {
+                points += 20;
+                message = 'Excellent ! Le roque met votre roi en sécurité. ';
+                className = 'success';
+            }
+
+            if (message === '') {
+                message = 'Coup correct. Continuez à réfléchir à votre stratégie.';
+                points += 2;
+            }
+
+            score += points;
+            document.getElementById('score').textContent = score;
+
+            feedback.className = `feedback ${className}`;
+            feedback.textContent = message;
+
+            // Afficher un conseil pédagogique aléatoire
+            if (game.history().length % 5 === 0) {
+                const randomTip = educationalTips[Math.floor(Math.random() * educationalTips.length)];
+                document.getElementById('educational-tips').innerHTML = `<p><strong>${randomTip}</strong></p>`;
+            }
+
+            // Vérifier si l'aide automatique est activée
+            if (autoHint && game.history().length % 3 === 0) {
+                setTimeout(() => getHint(), 1000);
+            }
+        }
+
+        // Obtenir le nom d'une pièce
+        function getPieceName(piece) {
+            const names = {
+                'p': 'un pion',
+                'r': 'une tour',
+                'n': 'un cavalier',
+                'b': 'un fou',
+                'q': 'la dame',
+                'k': 'le roi'
+            };
+            return names[piece.toLowerCase()] || 'une pièce';
+        }
+
+        // Coup de l'entraîneur
+        function makeTrainerMove() {
+            if (game.game_over()) return;
+
+            document.getElementById('game-status').textContent = "L'entraîneur réfléchit...";
+
+            const possibleMoves = game.moves({ verbose: true });
+            let chosenMove;
+
+            // Stratégie selon le niveau de difficulté
+            if (difficulty === 1) {
+                // Débutant : coups aléatoires avec préférence pour les captures
+                const captures = possibleMoves.filter(m => m.captured);
+                if (captures.length > 0 && Math.random() > 0.5) {
+                    chosenMove = captures[Math.floor(Math.random() * captures.length)];
+                } else {
+                    chosenMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                }
+            } else if (difficulty === 2) {
+                // Intermédiaire : préfère les captures et les échecs
+                const captures = possibleMoves.filter(m => m.captured);
+                const checks = possibleMoves.filter(m => {
+                    game.move(m);
+                    const inCheck = game.in_check();
+                    game.undo();
+                    return inCheck;
+                });
+
+                if (checks.length > 0 && Math.random() > 0.6) {
+                    chosenMove = checks[Math.floor(Math.random() * checks.length)];
+                } else if (captures.length > 0 && Math.random() > 0.4) {
+                    chosenMove = captures[Math.floor(Math.random() * captures.length)];
+                } else {
+                    chosenMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                }
+            } else {
+                // Avancé : meilleur coup basé sur l'évaluation simple
+                chosenMove = getBestMove(possibleMoves);
+            }
+
+            game.move(chosenMove);
+            lastMove = chosenMove;
+            updateBoard();
+            updateMoveHistory();
+
+            // Feedback de l'entraîneur
+            const feedback = document.getElementById('feedback');
+            let trainerMessage = `L'entraîneur a joué ${chosenMove.san}. `;
+
+            if (chosenMove.captured) {
+                trainerMessage += `J'ai capturé ${getPieceName(chosenMove.captured)}. `;
+            }
+
+            if (game.in_check()) {
+                trainerMessage += 'Échec ! Protégez votre roi. ';
+                feedback.className = 'feedback warning';
+            } else {
+                feedback.className = 'feedback info';
+            }
+
+            feedback.textContent = trainerMessage;
+
+            document.getElementById('game-status').textContent = 'Votre tour';
+
+            checkGameOver();
+        }
+
+        // Obtenir le meilleur coup (évaluation simple)
+        function getBestMove(moves) {
+            const pieceValues = {
+                'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9, 'k': 0
+            };
+
+            let bestMove = null;
+            let bestValue = -Infinity;
+
+            moves.forEach(move => {
+                let value = Math.random() * 0.5; // Ajouter un peu de randomisation
+
+                // Valoriser les captures
+                if (move.captured) {
+                    value += pieceValues[move.captured];
+                }
+
+                // Valoriser le contrôle du centre
+                const centerSquares = ['e4', 'd4', 'e5', 'd5'];
+                if (centerSquares.includes(move.to)) {
+                    value += 0.5;
+                }
+
+                // Valoriser les échecs
+                game.move(move);
+                if (game.in_check()) {
+                    value += 1.5;
+                }
+                if (game.in_checkmate()) {
+                    value += 1000;
+                }
+                game.undo();
+
+                // Pénaliser les coups qui laissent des pièces en prise
+                game.move(move);
+                const opponentMoves = game.moves({ verbose: true });
+                const canBeCaptured = opponentMoves.some(m => m.to === move.to);
+                if (canBeCaptured) {
+                    value -= pieceValues[move.piece] * 0.5;
+                }
+                game.undo();
+
+                if (value > bestValue) {
+                    bestValue = value;
+                    bestMove = move;
+                }
+            });
+
+            return bestMove || moves[Math.floor(Math.random() * moves.length)];
+        }
+
+        // Obtenir un indice
+        function getHint() {
+            if (game.turn() !== playerColor) {
+                document.getElementById('feedback').textContent = "Attendez votre tour pour demander un indice.";
+                return;
+            }
+
+            const possibleMoves = game.moves({ verbose: true });
+            if (possibleMoves.length === 0) return;
+
+            // Trouver un bon coup à suggérer
+            const captures = possibleMoves.filter(m => m.captured);
+            const checks = possibleMoves.filter(m => {
+                game.move(m);
+                const inCheck = game.in_check();
+                game.undo();
+                return inCheck;
+            });
+
+            let hintMove;
+            let hintText = '';
+
+            if (checks.length > 0) {
+                hintMove = checks[0];
+                hintText = `💡 Vous pouvez mettre le roi en échec avec ${hintMove.san}`;
+            } else if (captures.length > 0) {
+                hintMove = captures[0];
+                hintText = `💡 Vous pouvez capturer ${getPieceName(hintMove.captured)} en jouant ${hintMove.san}`;
+            } else {
+                hintMove = getBestMove(possibleMoves);
+                hintText = `💡 Essayez de jouer ${hintMove.san} pour améliorer votre position`;
+            }
+
+            const hintBox = document.getElementById('hint-box');
+            hintBox.textContent = hintText;
+            hintBox.classList.add('visible');
+
+            // Cacher l'indice après 5 secondes
+            setTimeout(() => {
+                hintBox.classList.remove('visible');
+            }, 5000);
+
+            // Surligner la case de départ et d'arrivée
+            setTimeout(() => {
+                const fromSquare = document.querySelector(`[data-square="${hintMove.from}"]`);
+                const toSquare = document.querySelector(`[data-square="${hintMove.to}"]`);
+
+                fromSquare.style.background = '#f5576c';
+                toSquare.style.background = '#f093fb';
+
+                setTimeout(() => {
+                    updateBoard();
+                }, 3000);
+            }, 100);
+        }
+
+        // Basculer l'aide automatique
+        function toggleAutoHint() {
+            autoHint = !autoHint;
+            document.getElementById('auto-hint-status').textContent = autoHint ? 'ON' : 'OFF';
+
+            const feedback = document.getElementById('feedback');
+            feedback.className = 'feedback info';
+            feedback.textContent = autoHint ?
+                'Aide automatique activée : vous recevrez des conseils régulièrement.' :
+                'Aide automatique désactivée.';
+        }
+
+        // Annuler le coup
+        function undoMove() {
+            if (game.history().length < 2) {
+                document.getElementById('feedback').textContent = "Pas de coup à annuler.";
+                return;
+            }
+
+            // Annuler le coup de l'entraîneur et du joueur
+            game.undo();
+            game.undo();
+            lastMove = null;
+
+            updateBoard();
+            updateMoveHistory();
+            clearHighlights();
+            selectedSquare = null;
+
+            document.getElementById('feedback').className = 'feedback info';
+            document.getElementById('feedback').textContent = 'Les deux derniers coups ont été annulés.';
+        }
+
+        // Nouvelle partie
+        function newGame() {
+            game = new Chess();
+            selectedSquare = null;
+            lastMove = null;
+            score = 0;
+            moveHistory = [];
+
+            document.getElementById('score').textContent = '0';
+            document.getElementById('game-status').textContent = 'Votre tour - Jouez avec les blancs';
+            document.getElementById('feedback').className = 'feedback info';
+            document.getElementById('feedback').textContent = 'Nouvelle partie commencée ! Bonne chance !';
+            document.getElementById('move-history').innerHTML = '<em>Aucun coup joué</em>';
+
+            updateBoard();
+            clearHighlights();
+        }
+
+        // Mettre à jour l'historique des coups
+        function updateMoveHistory() {
+            const history = game.history();
+            const historyDiv = document.getElementById('move-history');
+
+            if (history.length === 0) {
+                historyDiv.innerHTML = '<em>Aucun coup joué</em>';
+                return;
+            }
+
+            let html = '';
+            for (let i = 0; i < history.length; i += 2) {
+                const moveNum = Math.floor(i / 2) + 1;
+                const whiteMove = history[i];
+                const blackMove = history[i + 1] || '';
+
+                html += `
+                    <div class="move-item">
+                        <span class="move-number">${moveNum}.</span>
+                        <span>${whiteMove}</span>
+                        <span>${blackMove}</span>
+                    </div>
+                `;
+            }
+
+            historyDiv.innerHTML = html;
+            historyDiv.scrollTop = historyDiv.scrollHeight;
+        }
+
+        // Vérifier la fin de partie
+        function checkGameOver() {
+            if (game.in_checkmate()) {
+                const winner = game.turn() === 'w' ? 'Les noirs' : 'Les blancs';
+                document.getElementById('game-status').textContent = `Échec et mat ! ${winner} gagnent !`;
+                document.getElementById('feedback').className = 'feedback success';
+                document.getElementById('feedback').textContent =
+                    winner === 'Les blancs' ?
+                    '🎉 Félicitations ! Vous avez gagné ! Excellente partie !' :
+                    '😔 Dommage ! L\'entraîneur a gagné. Analysez vos coups et réessayez !';
+                return true;
+            }
+
+            if (game.in_stalemate()) {
+                document.getElementById('game-status').textContent = 'Pat ! Partie nulle.';
+                document.getElementById('feedback').className = 'feedback warning';
+                document.getElementById('feedback').textContent = 'La partie se termine par un pat (match nul).';
+                return true;
+            }
+
+            if (game.in_draw()) {
+                document.getElementById('game-status').textContent = 'Partie nulle !';
+                document.getElementById('feedback').className = 'feedback warning';
+                document.getElementById('feedback').textContent = 'La partie se termine par une nulle.';
+                return true;
+            }
+
+            return false;
+        }
+
+        // Gérer les boutons de difficulté
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                difficulty = parseInt(this.dataset.level);
+
+                const levels = ['Débutant', 'Intermédiaire', 'Avancé'];
+                document.getElementById('feedback').className = 'feedback info';
+                document.getElementById('feedback').textContent =
+                    `Difficulté changée : ${levels[difficulty - 1]}. Nouvelle partie recommandée.`;
+            });
+        });
+
+        // Initialiser le jeu au chargement
+        initBoard();
+        updateBoard();
+    </script>
+</body>
+</html>
