@@ -2,7 +2,16 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0907">
+<meta name="description" content="Tableau de bord Star Citizen : flotte, CCU, minage, salvage, raffinage, marché.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="SC//OS">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>SC//OS – Star Citizen</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -179,6 +188,30 @@ tr:hover td{background:rgba(255,176,0,.035)}
 #palList li b{color:var(--text);font-weight:500}
 #palList li.sel{background:rgba(255,176,0,.12);color:var(--accent)}#palList li.sel b{color:var(--accent)}
 #palFoot{border-top:1px solid var(--line);padding:7px 16px;font-size:11px;color:var(--muted)}
+#tip{position:fixed;z-index:400;pointer-events:none;background:#0a0907;border:1px solid var(--accent);padding:6px 10px;font-size:11.5px;display:none;max-width:260px;white-space:pre-line}
+.hb{display:grid;grid-template-columns:minmax(90px,170px) 1fr auto;gap:4px 12px;align-items:center;padding:5px 0}
+.hb .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+.hb .t{height:10px;background:var(--line2)}
+.hb .t i{display:block;height:100%;background:var(--accent);width:var(--w)}
+.hb .v{font-variant-numeric:tabular-nums;color:var(--accent);font-size:12px;text-align:right}
+.hb:hover .t i{background:#ffc43d}
+.vb{display:flex;align-items:flex-end;gap:6px;height:150px;border-bottom:1px solid var(--line);padding-top:8px}
+.vb div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;min-width:0}
+.vb i{display:block;background:var(--accent);min-height:2px}.vb div:hover i{background:#ffc43d}
+.vb-l{display:flex;gap:6px;margin-top:4px}.vb-l span{flex:1;text-align:center;font-size:10px;color:var(--muted);overflow:hidden;white-space:nowrap}
+.heat{display:grid;grid-template-columns:44px repeat(4,1fr);gap:3px;font-size:11px}
+.heat .c{padding:9px 4px;text-align:center;background:var(--line2);font-variant-numeric:tabular-nums}
+.heat .h{color:var(--muted);background:none;text-transform:uppercase;letter-spacing:.05em;font-size:10px;padding:4px 2px}
+.lc{width:100%;height:auto;display:block}
+.lc text{fill:var(--muted);font-family:var(--mono);font-size:10px}
+.lc .gr{stroke:var(--line2);stroke-width:1}
+.lc .ln{fill:none;stroke:var(--accent);stroke-width:2}
+.lc .cr{stroke:var(--accent-dim);stroke-width:1}
+.lc .dot{fill:var(--accent);stroke:var(--bg);stroke-width:2}
+.spark{width:78px;height:22px;vertical-align:middle}.spark polyline{fill:none;stroke:var(--accent);stroke-width:1.5}
+details{margin-top:10px}details summary{cursor:pointer;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.1em}
+tr.pick{cursor:pointer}
+@media(max-width:900px){#tabbar{padding-bottom:env(safe-area-inset-bottom)}}
 kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-dim)}
 </style>
 </head>
@@ -197,6 +230,8 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
     <div id="crumb"></div>
     <span class="sp"></span>
     <span id="clock"></span>
+    <span id="netTag" class="tag warn" style="display:none">Hors ligne</span>
+    <button class="btn sm" id="installBtn" style="display:none" title="Installer SC//OS comme application">⤓ Installer</button>
     <button class="btn sm" id="alertBtn" title="Notification + son quand un raffinage est prêt"></button>
     <button class="btn sm" id="palBtn2" title="Palette de commandes (Ctrl+K ou /)">⌘ Cmd</button>
   </header>
@@ -263,6 +298,7 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
               </select>
               <button class="btn sm" id="viewGrid">Grille</button><button class="btn sm" id="viewTable">Tableau</button>
               <button class="btn sm" id="fleetEnrich" title="Complète cargo, équipage, rôle, prix via FleetYards">✨ Enrichir</button>
+              <button class="btn sm" id="fleetCsv">⬇ CSV</button>
               <button class="btn sm danger" id="fleetClear">Vider</button>
             </div>
           </div>
@@ -302,7 +338,7 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
         </div>
         <div class="panel">
           <div class="sec-head"><h2>Mes CCU</h2>
-            <label class="small"><input type="checkbox" id="ccuHide"> masquer les appliqués</label></div>
+            <div class="row"><label class="small"><input type="checkbox" id="ccuHide"> masquer les appliqués</label><button class="btn sm" id="ccuCsv">⬇ CSV</button></div></div>
           <div id="ccuList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr))"></div>
         </div>
       </div>
@@ -347,7 +383,7 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
           </div>
         </div>
         <div class="panel">
-          <h2 id="histTitle">Historique</h2>
+          <div class="sec-head"><h2 id="histTitle">Historique</h2><button class="btn sm" id="sessCsv">⬇ CSV</button></div>
           <div style="overflow-x:auto"><table id="sessTable"></table></div>
         </div>
       </div>
@@ -373,8 +409,28 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
         </div>
         <div class="panel">
           <div class="sec-head"><h2>Ordres de raffinage</h2>
-            <label class="small"><input type="checkbox" id="rHideDone"> masquer les récupérés</label></div>
+            <div class="row"><label class="small"><input type="checkbox" id="rHideDone"> masquer les récupérés</label><button class="btn sm" id="refCsv">⬇ CSV</button></div></div>
           <div style="overflow-x:auto"><table id="refTable"></table></div>
+        </div>
+      </div>
+
+      <div data-sub="analysis">
+        <div class="panel">
+          <div class="sec-head"><h2>Analyse des sessions</h2>
+            <div class="row"><span class="row" id="anType"></span><span class="row" id="anPeriod"></span><button class="btn sm" id="anCsv">⬇ CSV sessions</button></div></div>
+          <div id="anEmpty" class="empty" style="display:none">Aucune session sur cette période. Termine une session de minage ou de salvage pour alimenter l'analyse.</div>
+        </div>
+        <div id="anBody">
+          <div class="kpis grid" id="anKpis"></div>
+          <div class="grid two" style="margin-bottom:16px">
+            <div class="panel"><h2>aUEC / heure par lieu</h2><div id="anPlace"></div></div>
+            <div class="panel"><h2>aUEC / heure par vaisseau</h2><div id="anShip"></div></div>
+          </div>
+          <div class="grid two" style="margin-bottom:16px">
+            <div class="panel"><h2>aUEC par semaine</h2><div id="anWeek"></div></div>
+            <div class="panel"><h2>Meilleurs créneaux · aUEC/h moyen</h2><div id="anHeat"></div></div>
+          </div>
+          <div class="panel"><h2>Matériaux récoltés · valeur totale</h2><div id="anMat"></div></div>
         </div>
       </div>
 
@@ -387,10 +443,20 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
               <input id="pCap" type="number" min="1" placeholder="Cargo SCU" style="width:110px">
               <select id="pShip"><option value="">Mon vaisseau…</option></select>
               <button class="btn sm" id="pRefresh">↻ Actualiser</button>
+              <button class="btn sm" id="pCsv">⬇ CSV prix</button>
+              <button class="btn sm" id="pHistCsv">⬇ CSV historique</button>
             </div>
           </div>
           <div class="small" id="pStatus" style="margin-bottom:10px"></div>
           <div style="overflow-x:auto"><table id="pTable"></table></div>
+        </div>
+        <div class="panel" id="pDetail" style="display:none">
+          <div class="sec-head"><h2 id="pdTitle">Historique</h2><button class="btn sm" id="pdClose">Fermer</button></div>
+          <div class="grid two">
+            <div><h3>Meilleur prix du marché · relevés locaux</h3><div id="pdLocal"></div></div>
+            <div><h3>Terminal : <span id="pdTerm"></span> · historique UEX</h3><div id="pdUex"></div></div>
+          </div>
+          <p class="small">Les relevés locaux s'accumulent à chaque actualisation des prix (toutes les 3 h minimum, quand l'app est ouverte).</p>
         </div>
         <div class="panel">
           <h2>Simulateur de rentabilité</h2>
@@ -480,6 +546,30 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
           <p class="small" style="margin:0">FleetYards (modèles, images, hangars publics) · Star Citizen Wiki API (Comm-Link) · UEX Corp (prix de vente) · Gist GitHub (synchronisation, optionnelle).</p>
         </div>
       </div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="panel">
+          <h2>Notifications téléphone (ntfy)</h2>
+          <p class="small" style="margin-top:0">Installe l'app <b>ntfy</b> (Android / iOS, gratuite) et abonne-toi au sujet ci-dessous. À chaque raffinage lancé, l'alerte est <b>programmée sur le serveur ntfy</b> : elle arrive à l'heure dite même PC éteint ou page fermée (3 jours d'avance maximum).</p>
+          <div class="row"><input id="nfTopic" placeholder="Sujet (secret)" style="flex:1;min-width:200px"><button class="btn" id="nfGen">Générer</button><button class="btn" id="nfCopy">Copier</button></div>
+          <div class="row" style="margin-top:8px"><input id="nfServer" placeholder="Serveur" style="flex:1;min-width:200px"></div>
+          <label class="small" style="display:block;margin-top:10px"><input type="checkbox" id="nfOn"> Activer les notifications téléphone</label>
+          <label class="small" style="display:block"><input type="checkbox" id="nfPromos"> Prévenir aussi des nouvelles promos RSI (quand l'app est ouverte)</label>
+          <div class="row" style="margin-top:10px"><button class="btn primary" id="nfTest">Envoyer un test</button><a class="btn" id="nfOpen" target="_blank" rel="noopener noreferrer" href="#">Ouvrir le sujet ↗</a></div>
+          <div class="small" id="nfMsg" style="margin-top:8px"></div>
+          <p class="small">Le nom du sujet sert de mot de passe : quiconque le connaît peut lire tes alertes. Garde-le privé (il est synchronisé avec tes données).</p>
+        </div>
+        <div class="panel">
+          <h2>Application</h2>
+          <div id="appInfo"></div>
+          <h3>Exports CSV</h3>
+          <div class="row">
+            <button class="btn sm" data-csv="sessions">Sessions</button><button class="btn sm" data-csv="refining">Raffinages</button>
+            <button class="btn sm" data-csv="fleet">Flotte</button><button class="btn sm" data-csv="ccus">CCU</button>
+            <button class="btn sm" data-csv="prices">Prix actuels</button><button class="btn sm" data-csv="pricehist">Historique des prix</button>
+          </div>
+          <p class="small">Séparateur « ; », encodage UTF-8 : s'ouvre directement dans Excel ou LibreOffice en français.</p>
+        </div>
+      </div>
     </section>
   </div>
 </div>
@@ -521,7 +611,7 @@ const lset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
    STOCKAGE
    ===================================================== */
 const KEY='scdash.v1';
-const defaults={fleet:[],sessions:[],refining:[],opps:null,active:null,ccus:[],updatedAt:0};
+const defaults={fleet:[],sessions:[],refining:[],opps:null,active:null,ccus:[],ntfy:null,updatedAt:0};
 let db=Object.assign({},defaults,lget(KEY,{}));
 const persist=()=>lset(KEY,db);
 function save(){db.updatedAt=Date.now();persist();queueSync()}
@@ -533,7 +623,7 @@ function backup(){lset(KEY+'.backup',{t:Date.now(),db})}
 const ROUTES={
   today:{label:"Aujourd'hui"},
   fleet:{label:'Flotte',subs:{hangar:'Hangar',ccu:'CCU'}},
-  industry:{label:'Industrie',subs:{mining:'Minage',salvage:'Salvage',refining:'Raffinage',profit:'Rentabilité'}},
+  industry:{label:'Industrie',subs:{mining:'Minage',salvage:'Salvage',refining:'Raffinage',profit:'Rentabilité',analysis:'Analyse'}},
   opps:{label:'Opportunités'},
   system:{label:'Système'}
 };
@@ -883,7 +973,7 @@ $('#rAdd').onclick=()=>{
   const ms=((+$('#rH').value||0)*60+(+$('#rM').value||0))*60000;
   db.refining.unshift({id:uid(),place:$('#rPlace').value,mat,method:$('#rMethod').value.split(' (')[0],scu:num($('#rScu').value),
     cost:num($('#rCost').value),val:num($('#rVal').value),started:Date.now(),ready:Date.now()+ms,collected:false});
-  save();renderRefining();['#rMat','#rScu','#rCost','#rVal','#rH','#rM'].forEach(s=>$(s).value='');
+  save();renderRefining();ntfySchedule(db.refining[0]);['#rMat','#rScu','#rCost','#rVal','#rH','#rM'].forEach(s=>$(s).value='');
 };
 $('#rHideDone').onchange=renderRefining;
 function renderRefining(){
@@ -895,8 +985,8 @@ function renderRefining(){
       <td>${r.collected?'<span class="tag">Récupéré</span>':`<span data-ready="${r.ready}" class="tag warn">…</span>`}</td>
       <td class="row">${r.collected?'':`<a class="btn sm" title="Ajouter à Google Agenda (alerte même onglet fermé)" target="_blank" rel="noopener noreferrer" href="${esc(gcalUrl(r))}">📅</a><button class="btn sm" data-col="${r.id}">Récupéré</button>`}<button class="btn sm danger" data-rdel="${r.id}">✕</button></td></tr>`).join('')
     :'<tr><td class="empty">Aucun ordre de raffinage.</td></tr>';
-  $$('[data-col]').forEach(b=>b.onclick=()=>{db.refining.find(r=>r.id===b.dataset.col).collected=true;save();renderAll()});
-  $$('[data-rdel]').forEach(b=>b.onclick=()=>{db.refining=db.refining.filter(r=>r.id!==b.dataset.rdel);save();renderAll()});
+  $$('[data-col]').forEach(b=>b.onclick=()=>{const r=db.refining.find(r=>r.id===b.dataset.col);r.collected=true;ntfyCancel(r);save();renderAll()});
+  $$('[data-rdel]').forEach(b=>b.onclick=()=>{const r=db.refining.find(r=>r.id===b.dataset.rdel);if(r)ntfyCancel(r);db.refining=db.refining.filter(r=>r.id!==b.dataset.rdel);save();renderAll()});
 }
 
 /* =====================================================
@@ -906,7 +996,7 @@ const UEX_KEY=KEY+'.uex';
 const UEX_CATS={refined:'Minerais raffinés',raw:'Minerais bruts',hand:'Minage à la main',salvage:'Salvage (RMC, matériaux)',all:'Tout'};
 let UEX=lget(UEX_KEY,null);
 async function loadUex(force){
-  if(!force&&UEX&&Date.now()-UEX.t<36e5)return UEX;
+  if(!force&&UEX&&UEX.v===2&&Date.now()-UEX.t<36e5)return UEX;
   $('#pStatus').textContent='Chargement des prix UEX…';
   try{
     const [rc,rp]=await Promise.all([fetchRetry('https://api.uexcorp.uk/2.0/commodities'),fetchRetry('https://api.uexcorp.uk/2.0/commodities_prices_all')]);
@@ -923,11 +1013,11 @@ async function loadUex(force){
       else if(suffix&&c.is_extractable)cat='raw';
       else if(c.is_raw&&!suffix&&c.is_extractable&&c.is_mineral)cat='hand';
       if(!cat)return;
-      const top=rows.slice(0,3).map(p=>({terminal:p.terminal_name,price:p.price_sell,demand:p.scu_sell_avg,t:p.date_modified*1000}));
+      const top=rows.slice(0,3).map(p=>({tid:p.id_terminal,terminal:p.terminal_name,price:p.price_sell,demand:p.scu_sell_avg,t:p.date_modified*1000}));
       items.push({id:c.id,name:c.name,kind:c.kind,cat,best:top[0],top});
     });
     items.sort((a,b)=>b.best.price-a.best.price);
-    UEX={t:Date.now(),items};lset(UEX_KEY,UEX);
+    UEX={v:2,t:Date.now(),items};lset(UEX_KEY,UEX);recordSnapshot();
   }catch(e){
     $('#pStatus').textContent=UEX?'✘ UEX injoignable, affichage de la dernière version en cache.':'✘ Prix UEX indisponibles (réseau ?).';
     if(!UEX)return null;
@@ -944,10 +1034,18 @@ function renderProfit(){
   const cat=$('#pCat').value,cap=num($('#pCap').value);
   const rows=UEX.items.filter(i=>cat==='all'||i.cat===cat);
   $('#pStatus').textContent=`Source : UEX Corp · prix en aUEC par SCU · mis à jour ${ago(UEX.t)}`+(cap?` · cargaison de ${cap} SCU`:' · saisis un cargo (ou choisis un vaisseau) pour valoriser une cargaison');
-  $('#pTable').innerHTML=rows.length?'<tr><th>Matériau</th><th>Catégorie</th><th>aUEC / SCU</th><th>Meilleur terminal</th><th>Demande moy. (SCU)</th><th>Relevé</th>'+(cap?'<th>Cargaison</th>':'')+'<th>Autres terminaux</th></tr>'+
-    rows.map(i=>`<tr><td><b>${esc(i.name)}</b></td><td><span class="tag">${UEX_CATS[i.cat]}</span></td><td style="color:var(--accent)"><b>${fmt(i.best.price)}</b></td>
-      <td>${esc(i.best.terminal)}</td><td>${fmt(i.best.demand)}</td><td>${ageTag(i.best.t)}</td>${cap?`<td><b>${fmt(i.best.price*cap)}</b></td>`:''}
+  const trend=i=>{
+    const sr=phSeries(i.id).filter(p=>Date.now()-p.t<7*864e5);
+    if(sr.length<2)return'<span class="small">en cours…</span>';
+    const d=(sr[sr.length-1].v-sr[0].v)/sr[0].v*100;
+    return sparkline(sr.map(p=>p.v))+` <span class="tag ${d>0.5?'ok':d<-0.5?'warn':''}">${d>0.5?'▲':d<-0.5?'▼':'='} ${Math.abs(d).toFixed(1)}%</span>`;
+  };
+  $('#pTable').innerHTML=rows.length?'<tr><th>Matériau</th><th>Catégorie</th><th>aUEC / SCU</th><th>Tendance 7 j</th><th>Meilleur terminal</th><th>Demande moy. (SCU)</th><th>Relevé</th>'+(cap?'<th>Cargaison</th>':'')+'<th>Autres terminaux</th></tr>'+
+    rows.map(i=>`<tr class="pick" data-pid="${i.id}" title="Cliquer pour l'historique"><td><b>${esc(i.name)}</b></td><td><span class="tag">${UEX_CATS[i.cat]}</span></td><td style="color:var(--accent)"><b>${fmt(i.best.price)}</b></td>
+      <td>${trend(i)}</td><td>${esc(i.best.terminal)}</td><td>${fmt(i.best.demand)}</td><td>${ageTag(i.best.t)}</td>${cap?`<td><b>${fmt(i.best.price*cap)}</b></td>`:''}
       <td class="small">${i.top.slice(1).map(t=>`${esc(t.terminal)} ${fmt(t.price)}`).join('<br>')||'–'}</td></tr>`).join(''):'<tr><td class="empty">Aucune donnée pour cette catégorie.</td></tr>';
+  $$('#pTable tr[data-pid]').forEach(tr=>tr.onclick=()=>{selProfit=+tr.dataset.pid;renderProfitDetail();$('#pDetail').scrollIntoView({behavior:'smooth',block:'nearest'})});
+  renderProfitDetail();
   const sel=$('#xMat'),curx=sel.value;
   const order={refined:0,salvage:1,hand:2};
   sel.innerHTML=UEX.items.filter(i=>i.cat in order).sort((x,y)=>order[x.cat]-order[y.cat]||y.best.price-x.best.price).map(i=>`<option value="${i.id}"${String(i.id)===curx?' selected':''}>${esc(i.name)} – ${fmt(i.best.price)} aUEC/SCU</option>`).join('');
@@ -1038,7 +1136,7 @@ async function loadFeed(force){
       items.push({id:c.id,title:c.title,url:c.rsi_url,date:c.created_at,cat:classifyLink(c.title),x:txt.slice(0,220)});
     }
     items.sort((a,b)=>b.date.localeCompare(a.date));
-    feed={t:Date.now(),items};lset(FEED_KEY,feed);
+    feed={t:Date.now(),items};lset(FEED_KEY,feed);ntfyPromos(items);
   }catch(e){
     $('#feedStatus').textContent=feed.items.length?'✘ Réseau indisponible, affichage de la dernière version en cache.':'✘ Flux indisponible (API du Wiki injoignable).';
     if(!feed.items.length)return;
@@ -1118,6 +1216,7 @@ function notifyReady(r){
   const body=`${r.mat}${r.scu?' · '+r.scu+' SCU':''} à ${r.place}`;
   try{if('Notification' in window&&Notification.permission==='granted')new Notification('⛏ Raffinage prêt',{body})}catch(e){}
   beep();
+  if(!r.ntfy&&db.ntfy&&db.ntfy.on){r.ntfy='sent';ntfyPost('raff-'+r.id,{title:'Raffinage pret',body,tags:'pick',priority:4,click:appUrl('#/industry/refining')})}
 }
 function gcalUrl(r){
   const z=t=>new Date(t).toISOString().replace(/[-:]|\.\d{3}/g,'');
@@ -1284,6 +1383,9 @@ function commands(){
   c.push({t:'Actualiser : enrichir la flotte',run:()=>enrichFleet(false)});
   if(sync.token)c.push({t:'Synchroniser maintenant',run:()=>syncNow()});
   c.push({t:'Exporter les données (JSON)',run:()=>$('#exportAll').click()});
+  Object.entries({sessions:'sessions',refining:'raffinages',fleet:'flotte',ccus:'CCU',prices:'prix actuels',pricehist:'historique des prix'}).forEach(([k,l])=>c.push({t:'Exporter en CSV : '+l,run:()=>CSV[k]()}));
+  c.push({t:'Notifications téléphone : envoyer un test',run:()=>{go('system');setTimeout(()=>$('#nfTest').click(),80)}});
+  if(deferredInstall&&!isStandalone())c.push({t:"Installer l'application",run:installApp});
   c.push({t:'Activer les alertes de raffinage',run:askAlerts});
   return c;
 }
@@ -1315,13 +1417,290 @@ document.addEventListener('keydown',e=>{
   else if(/^[1-5]$/.test(e.key))go(PAGES[+e.key-1]);
 });
 
+
+/* =====================================================
+   EXPORTS CSV
+   ===================================================== */
+function csvCell(v){
+  if(v==null)return'';
+  let t=String(v);
+  if(typeof v!=='number'&&/^[=+\-@\t\r]/.test(t))t="'"+t;   /* évite l'injection de formules (Excel) */
+  return /[";\n\r]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;
+}
+function downloadCsv(name,header,rows){
+  const txt='﻿'+[header,...rows].map(r=>r.map(csvCell).join(';')).join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([txt],{type:'text/csv;charset=utf-8'}));
+  a.download=name+'-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+}
+const isoT=t=>t?new Date(t).toISOString():'';
+const CSV={
+  sessions:()=>downloadCsv('sc-sessions',['date','type','lieu','vaisseau','duree_min','scu','auec','auec_par_h','details'],
+    db.sessions.map(x=>[isoT(x.date),x.type,x.place,x.ship,Math.round(x.ms/6e4),x.scu,x.val,x.ms>18e3?Math.round(x.val/(x.ms/36e5)):'',x.log.map(l=>`${l.mat}:${l.scu}SCU:${l.val}`).join(' | ')])),
+  refining:()=>downloadCsv('sc-raffinages',['lieu','materiau','methode','scu','cout_auec','valeur_estimee_auec','lance','pret','recupere'],
+    db.refining.map(r=>[r.place,r.mat,r.method,r.scu,r.cost,r.val,isoT(r.started),isoT(r.ready),r.collected?'oui':'non'])),
+  fleet:()=>downloadCsv('sc-flotte',['modele','surnom','constructeur','role','cargo_scu','equipage','assurance','valeur_usd','prix_auec'],
+    db.fleet.map(s=>[s.model,s.custom,s.maker,s.role,s.cargo,s.crew,s.insurance,s.value,s.price||''])),
+  ccus:()=>downloadCsv('sc-ccu',['de','vers','type','paye_usd','date','statut','notes'],
+    db.ccus.map(c=>[c.from,c.to,CCU_TYPES[c.type]||c.type,c.paid,c.date,c.status==='stock'?'stocke':'applique',c.note])),
+  prices:()=>UEX?downloadCsv('sc-prix-uex',['materiau','categorie','auec_par_scu','terminal','demande_scu','releve'],
+    UEX.items.map(i=>[i.name,UEX_CATS[i.cat],i.best.price,i.best.terminal,Math.round(i.best.demand||0),isoT(i.best.t)])):alert('Prix non chargés.'),
+  pricehist:()=>{
+    if(!PH.length)return alert('Aucun relevé enregistré pour l\'instant.');
+    const names={};(UEX?UEX.items:[]).forEach(i=>names[i.id]=i);
+    const rows=[];PH.forEach(sn=>Object.entries(sn.p).forEach(([id,v])=>rows.push([isoT(sn.t),(names[id]||{}).name||('#'+id),(names[id]?UEX_CATS[names[id].cat]:''),v])));
+    downloadCsv('sc-historique-prix',['date','materiau','categorie','auec_par_scu'],rows);
+  }
+};
+$('#fleetCsv').onclick=CSV.fleet;$('#ccuCsv').onclick=CSV.ccus;$('#sessCsv').onclick=CSV.sessions;$('#anCsv').onclick=CSV.sessions;
+$('#refCsv').onclick=CSV.refining;$('#pCsv').onclick=CSV.prices;$('#pHistCsv').onclick=CSV.pricehist;
+$$('[data-csv]').forEach(b=>b.onclick=()=>CSV[b.dataset.csv]());
+
+/* =====================================================
+   INFOBULLES + GRAPHIQUES (HTML / SVG, sans dépendance)
+   ===================================================== */
+const tipEl=document.createElement('div');tipEl.id='tip';document.body.appendChild(tipEl);
+function tipShow(t,x,y){
+  tipEl.textContent=t;tipEl.style.display='block';
+  const w=tipEl.offsetWidth,h=tipEl.offsetHeight;
+  tipEl.style.left=Math.max(6,Math.min(innerWidth-w-8,x+14))+'px';tipEl.style.top=Math.max(8,y-h-10)+'px';
+}
+const tipHide=()=>{tipEl.style.display='none'};
+document.addEventListener('mouseover',e=>{const t=e.target.closest&&e.target.closest('[data-tip]');if(t&&t.dataset.tip)tipShow(t.dataset.tip,e.clientX,e.clientY)});
+document.addEventListener('mousemove',e=>{if(tipEl.style.display==='block'){const t=e.target.closest&&e.target.closest('[data-tip]');t?tipShow(t.dataset.tip,e.clientX,e.clientY):tipHide()}});
+document.addEventListener('touchstart',e=>{const t=e.target.closest&&e.target.closest('[data-tip]');if(t){const p=e.touches[0];tipShow(t.dataset.tip,p.clientX,p.clientY);setTimeout(tipHide,2500)}},{passive:true});
+const kfmt=v=>v>=1e6?(v/1e6).toFixed(1).replace('.0','')+' M':v>=1e4?Math.round(v/1e3)+' k':fmt(v);
+function tableDetails(head,rows){
+  return`<details><summary>Voir en tableau</summary><div style="overflow-x:auto"><table><tr>${head.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div></details>`;
+}
+function hbars(el,rows,unit){
+  if(!rows.length){el.innerHTML='<div class="small">Pas assez de données (sessions de plus de 5 min).</div>';return}
+  const max=Math.max(...rows.map(r=>r.value),1);
+  el.innerHTML=rows.map(r=>`<div class="hb" data-tip="${esc(r.tip||'')}"><span class="l" title="${esc(r.label)}">${esc(r.label)}</span><span class="t"><i style="--w:${Math.max(1,r.value/max*100)}%"></i></span><span class="v">${fmt(r.value)}${unit||''}</span></div>`).join('')+
+    tableDetails(['Libellé','Valeur','Détail'],rows.map(r=>[r.label,fmt(r.value)+(unit||''),(r.tip||'').replace(/\n/g,' · ')]));
+}
+function vbars(el,rows){
+  const max=Math.max(...rows.map(r=>r.value),1);
+  el.innerHTML=`<div class="vb">${rows.map(r=>`<div data-tip="${esc(r.tip||'')}"><i style="height:${r.value/max*100}%"></i></div>`).join('')}</div><div class="vb-l">${rows.map(r=>`<span>${esc(r.label)}</span>`).join('')}</div>`+
+    tableDetails(['Semaine','aUEC'],rows.map(r=>[r.label,fmt(r.value)]));
+}
+const DAYS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'],SLOTS=['Nuit 0-6h','Matin 6-12h','Aprèm 12-18h','Soir 18-24h'];
+function heat(el,grid){
+  const all=grid.flat().filter(Boolean),max=Math.max(...all.map(c=>c.v),1);
+  if(!all.length){el.innerHTML='<div class="small">Pas assez de données.</div>';return}
+  let h='<div class="heat"><span class="c h"></span>'+SLOTS.map(x=>`<span class="c h">${x}</span>`).join('');
+  grid.forEach((row,i)=>{h+=`<span class="c h" style="text-align:left">${DAYS[i]}</span>`;
+    row.forEach((c,j)=>{h+=c?`<span class="c" data-tip="${esc(`${DAYS[i]} · ${SLOTS[j]}\n${fmt(c.v)} aUEC/h · ${c.n} session${c.n>1?'s':''}`)}" style="background:rgba(255,176,0,${(.14+.72*c.v/max).toFixed(2)});color:${c.v/max>.55?'#000':'var(--text)'}">${kfmt(c.v)}</span>`:'<span class="c" style="color:var(--line)">·</span>'})});
+  el.innerHTML=h+'</div>'+tableDetails(['Jour','Créneau','aUEC/h','Sessions'],grid.flatMap((row,i)=>row.map((c,j)=>c?[DAYS[i],SLOTS[j],fmt(c.v),c.n]:null).filter(Boolean)));
+}
+const fmtDay=t=>new Date(t).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+function lineChart(el,pts){
+  if(pts.length<2){el.innerHTML='<div class="small">Pas encore assez de relevés (2 minimum).</div>';return}
+  const W=520,H=170,L=58,R=10,T=10,B=22;
+  const x0=pts[0].t,x1=pts[pts.length-1].t,lo=Math.min(...pts.map(p=>p.v)),hi=Math.max(...pts.map(p=>p.v));
+  const pad=(hi-lo)||hi*.05||1,ymin=Math.max(0,lo-pad*.2),ymax=hi+pad*.2;
+  const X=t=>L+(t-x0)/((x1-x0)||1)*(W-L-R),Y=v=>T+(1-(v-ymin)/(ymax-ymin))*(H-T-B);
+  const grid=[0,.5,1].map(f=>{const v=ymin+(ymax-ymin)*f,y=Y(v);return`<line class="gr" x1="${L}" x2="${W-R}" y1="${y}" y2="${y}"/><text x="${L-6}" y="${y+3}" text-anchor="end">${kfmt(v)}</text>`}).join('');
+  const d=pts.map((p,i)=>(i?'L':'M')+X(p.t).toFixed(1)+' '+Y(p.v).toFixed(1)).join('');
+  el.innerHTML=`<svg class="lc" viewBox="0 0 ${W} ${H}" role="img" aria-label="Évolution du prix">${grid}
+    <text x="${L}" y="${H-6}">${fmtDay(x0)}</text><text x="${W-R}" y="${H-6}" text-anchor="end">${fmtDay(x1)}</text>
+    <path class="ln" d="${d}"/><line class="cr" y1="${T}" y2="${H-B}" style="display:none"/><circle class="dot" r="4" style="display:none"/>
+    <rect x="${L}" y="${T}" width="${W-L-R}" height="${H-T-B}" fill="transparent" class="hit"/></svg>`+
+    tableDetails(['Date','aUEC/SCU'],pts.slice(-40).reverse().map(p=>[new Date(p.t).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}),fmt(p.v)]));
+  const svg=el.querySelector('svg'),cr=svg.querySelector('.cr'),dot=svg.querySelector('.dot');
+  const move=e=>{
+    const r=svg.getBoundingClientRect(),cx=(e.touches?e.touches[0].clientX:e.clientX),vx=(cx-r.left)/r.width*W;
+    let best=pts[0];pts.forEach(p=>{if(Math.abs(X(p.t)-vx)<Math.abs(X(best.t)-vx))best=p});
+    cr.setAttribute('x1',X(best.t));cr.setAttribute('x2',X(best.t));cr.style.display='';
+    dot.setAttribute('cx',X(best.t));dot.setAttribute('cy',Y(best.v));dot.style.display='';
+    tipShow(`${new Date(best.t).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}\n${fmt(best.v)} aUEC/SCU`,e.touches?e.touches[0].clientX:e.clientX,e.touches?e.touches[0].clientY:e.clientY);
+  };
+  const hit=svg.querySelector('.hit');
+  hit.addEventListener('mousemove',move);hit.addEventListener('touchstart',move,{passive:true});hit.addEventListener('touchmove',move,{passive:true});
+  hit.addEventListener('mouseleave',()=>{cr.style.display='none';dot.style.display='none';tipHide()});
+}
+function sparkline(vals){
+  const lo=Math.min(...vals),hi=Math.max(...vals),r=(hi-lo)||1;
+  return`<svg class="spark" viewBox="0 0 78 22" aria-hidden="true"><polyline points="${vals.map((v,i)=>`${(i/(vals.length-1)*76+1).toFixed(1)},${(20-(v-lo)/r*18).toFixed(1)}`).join(' ')}"/></svg>`;
+}
+
+/* =====================================================
+   HISTORIQUE DES PRIX
+   ===================================================== */
+const PH_KEY=KEY+'.phist';
+let PH=lget(PH_KEY,[]),selProfit=null;const uexHist={};
+function recordSnapshot(){
+  if(!UEX)return;
+  const last=PH[PH.length-1];
+  if(last&&Date.now()-last.t<3*36e5)return;
+  const p={};UEX.items.forEach(i=>{if(i.cat==='refined'||i.cat==='salvage'||i.cat==='hand')p[i.id]=i.best.price});
+  PH.push({t:UEX.t,p});if(PH.length>400)PH.splice(0,PH.length-400);
+  lset(PH_KEY,PH);
+}
+const phSeries=id=>PH.filter(s=>s.p[id]!=null).map(s=>({t:s.t,v:s.p[id]}));
+function renderProfitDetail(){
+  const box=$('#pDetail'),it=UEX&&UEX.items.find(i=>i.id===selProfit);
+  if(!it){box.style.display='none';return}
+  box.style.display='';
+  $('#pdTitle').textContent='Historique · '+it.name;
+  lineChart($('#pdLocal'),phSeries(it.id));
+  $('#pdTerm').textContent=it.best.terminal;
+  const key=it.id+'-'+it.best.tid,draw=h=>lineChart($('#pdUex'),h);
+  if(uexHist[key])draw(uexHist[key]);
+  else if(!it.best.tid)$('#pdUex').innerHTML='<div class="small">Terminal inconnu.</div>';
+  else{
+    $('#pdUex').innerHTML='<div class="small">Chargement…</div>';
+    fetchRetry(`https://api.uexcorp.uk/2.0/commodities_prices_history?id_commodity=${it.id}&id_terminal=${it.best.tid}`).then(r=>r.json()).then(j=>{
+      const h=(j.data||[]).filter(r=>r.price_sell>0).map(r=>({t:r.date_added*1000,v:r.price_sell})).sort((a,b)=>a.t-b.t);
+      uexHist[key]=h;if(selProfit===it.id)draw(h);
+    }).catch(()=>{$('#pdUex').innerHTML='<div class="small">Historique UEX indisponible.</div>'});
+  }
+}
+$('#pdClose').onclick=()=>{selProfit=null;renderProfitDetail()};
+
+/* =====================================================
+   ANALYSE DES SESSIONS
+   ===================================================== */
+let an={type:'all',period:30};
+function anSessions(){
+  const lim=an.period?Date.now()-an.period*864e5:0;
+  return db.sessions.filter(x=>(an.type==='all'||x.type===an.type)&&x.date>=lim);
+}
+const rateOf=(val,ms)=>ms>0?val/(ms/36e5):0;
+function groupBy(list,key){
+  const m={};
+  list.forEach(x=>{const k=key(x)||'(non renseigné)',g=m[k]=m[k]||{k,n:0,ms:0,val:0,scu:0};g.n++;g.ms+=x.ms;g.val+=x.val;g.scu+=x.scu});
+  return Object.values(m).filter(g=>g.ms>3e5).map(g=>({...g,rate:rateOf(g.val,g.ms)})).sort((a,b)=>b.rate-a.rate);
+}
+function renderAnalysis(){
+  if(cur.page!=='industry'||cur.sub!=='analysis')return;
+  const btn=(grp,val,label,on)=>`<button class="btn sm ${on?'on':''}" data-an="${grp}:${val}">${label}</button>`;
+  $('#anType').innerHTML=[['all','Tout'],['Minage','Minage'],['Salvage','Salvage']].map(([v,l])=>btn('type',v,l,an.type===v)).join('');
+  $('#anPeriod').innerHTML=[[7,'7 j'],[30,'30 j'],[90,'90 j'],[0,'Tout']].map(([v,l])=>btn('period',v,l,an.period===v)).join('');
+  $$('[data-an]').forEach(b=>b.onclick=()=>{const[g,v]=b.dataset.an.split(':');an[g]=g==='period'?+v:v;renderAnalysis()});
+  const s=anSessions();
+  $('#anEmpty').style.display=s.length?'none':'';$('#anBody').style.display=s.length?'':'none';
+  if(!s.length)return;
+  const ms=s.reduce((t,x)=>t+x.ms,0),val=s.reduce((t,x)=>t+x.val,0);
+  const best=[...s].filter(x=>x.ms>3e5).sort((a,b)=>rateOf(b.val,b.ms)-rateOf(a.val,a.ms))[0];
+  const places=groupBy(s,x=>x.place),ships=groupBy(s,x=>x.ship);
+  $('#anKpis').innerHTML=[['Sessions',s.length],['Temps total',(ms/36e5).toFixed(1)+' h'],['aUEC générés',kfmt(val)],['aUEC / heure',ms>3e5?fmt(rateOf(val,ms)):'–'],
+    ['Meilleure session',best?fmt(rateOf(best.val,best.ms))+' /h':'–'],['Meilleur lieu',places[0]?places[0].k:'–']].map(([l,v])=>`<div class="kpi"><div class="v" style="${String(v).length>12?'font-size:16px;line-height:1.9':''}">${esc(v)}</div><div class="l">${l}</div></div>`).join('');
+  const tipOf=g=>`${g.k}\n${fmt(g.rate)} aUEC/h\n${g.n} session${g.n>1?'s':''} · ${(g.ms/36e5).toFixed(1)} h · ${fmt(g.scu)} SCU`;
+  hbars($('#anPlace'),places.slice(0,10).map(g=>({label:g.k,value:g.rate,tip:tipOf(g)})),' /h');
+  hbars($('#anShip'),ships.slice(0,10).map(g=>({label:g.k,value:g.rate,tip:tipOf(g)})),' /h');
+  /* aUEC par semaine (12 dernières, lundi → dimanche) */
+  const wk=t=>{const d=new Date(t);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getTime()};
+  const w0=wk(Date.now()),weeks=[];for(let i=11;i>=0;i--){const d=new Date(w0);d.setDate(d.getDate()-7*i);weeks.push({t:d.getTime(),v:0,n:0})}
+  s.forEach(x=>{const w=weeks.find(w=>w.t===wk(x.date));if(w){w.v+=x.val;w.n++}});
+  vbars($('#anWeek'),weeks.map(w=>({label:new Date(w.t).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),value:w.v,tip:`Semaine du ${new Date(w.t).toLocaleDateString('fr-FR')}\n${fmt(w.v)} aUEC · ${w.n} session${w.n>1?'s':''}`})));
+  /* créneaux : jour de semaine × tranche de 6 h (selon l'heure de début) */
+  const cell=Array.from({length:7},()=>Array.from({length:4},()=>({ms:0,val:0,n:0})));
+  s.forEach(x=>{const d=new Date(x.date),c=cell[(d.getDay()+6)%7][Math.floor(d.getHours()/6)];c.ms+=x.ms;c.val+=x.val;c.n++});
+  heat($('#anHeat'),cell.map(r=>r.map(c=>c.ms>3e5?{v:rateOf(c.val,c.ms),n:c.n}:null)));
+  /* matériaux */
+  const mats={};s.forEach(x=>x.log.forEach(l=>{const m=mats[l.mat]=mats[l.mat]||{k:l.mat,scu:0,val:0};m.scu+=l.scu;m.val+=l.val}));
+  hbars($('#anMat'),Object.values(mats).sort((a,b)=>b.val-a.val).slice(0,10).map(m=>({label:m.k,value:m.val,tip:`${m.k}\n${fmt(m.val)} aUEC · ${fmt(m.scu)} SCU\n${m.scu?fmt(m.val/m.scu):'–'} aUEC/SCU`})),' aUEC');
+}
+
+/* =====================================================
+   NOTIFICATIONS TÉLÉPHONE (ntfy)
+   ===================================================== */
+const nf=()=>db.ntfy=db.ntfy||{on:false,topic:'',server:'https://ntfy.sh',promos:true,seen:[]};
+const ascii=t=>String(t).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\x20-\x7e]/g,'?');
+const appUrl=h=>/^https?:/.test(location.protocol)?location.href.split('#')[0]+h:'';
+const ntfyBase=()=>{const c=nf();return c.server.replace(/\/+$/,'')+'/'+encodeURIComponent(c.topic)};
+async function ntfyPost(seq,{title,body,at,tags,priority,click},force){
+  const c=db.ntfy;if(!c||!c.topic||!(c.on||force))return false;
+  const h={};
+  if(title)h.Title=ascii(title);if(tags)h.Tags=tags;if(priority)h.Priority=String(priority);
+  if(click)h.Click=click;if(at)h.At=String(Math.floor(at/1000));
+  try{const r=await fetchRetry(ntfyBase()+(seq?'/'+encodeURIComponent(seq):''),{method:'POST',body,headers:h},at?1:3);return r.ok}   /* programmé : une seule tentative (un doublon empêcherait l'annulation) */catch(e){return false}
+}
+async function ntfySchedule(r){
+  const c=db.ntfy;if(!c||!c.on||!r||r.collected||r.ntfy)return;
+  const d=r.ready-Date.now();
+  if(d<12e3||d>3*864e5-6e4)return;           /* ntfy : de 10 s à 3 jours */
+  const ok=await ntfyPost('raff-'+r.id,{title:'Raffinage pret',body:`${r.mat}${r.scu?' · '+r.scu+' SCU':''} · ${r.place}`,at:r.ready,tags:'pick',priority:4,click:appUrl('#/industry/refining')});
+  if(ok){r.ntfy='sched';save()}
+}
+async function ntfyCancel(r){
+  const c=db.ntfy;if(!c||!c.topic||r.ntfy!=='sched'||r.ready<=Date.now())return;
+  try{await fetchRetry(ntfyBase()+'/'+encodeURIComponent('raff-'+r.id),{method:'DELETE'},3)}catch(e){}
+  r.ntfy='';
+}
+async function ntfySync(){for(const r of db.refining)await ntfySchedule(r)}
+function ntfyPromos(items){
+  const c=db.ntfy;if(!c)return;
+  const promos=items.filter(i=>i.cat==='promo');
+  if(!c.seen||!c.seen.length){c.seen=promos.map(i=>i.id);save();return}   /* 1re fois : mémorise sans notifier */
+  const fresh=promos.filter(i=>!c.seen.includes(i.id));
+  if(!fresh.length)return;
+  c.seen=[...new Set([...c.seen,...fresh.map(i=>i.id)])].slice(-200);save();
+  if(c.on&&c.promos)fresh.slice(0,3).forEach(i=>ntfyPost('promo-'+i.id,{title:'Promo RSI',body:i.title,tags:'tada',click:safeUrl(i.url)}));
+}
+function renderNtfy(){
+  const c=db.ntfy||{on:false,topic:'',server:'https://ntfy.sh',promos:true};
+  if(document.activeElement!==$('#nfTopic'))$('#nfTopic').value=c.topic;
+  if(document.activeElement!==$('#nfServer'))$('#nfServer').value=c.server;
+  $('#nfOn').checked=!!c.on;$('#nfPromos').checked=c.promos!==false;
+  $('#nfOpen').href=c.topic?safeUrl(ntfyBase())||'#':'#';
+}
+const nfMsg=t=>{$('#nfMsg').textContent=t};
+$('#nfGen').onclick=()=>{
+  const a=new Uint8Array(12);crypto.getRandomValues(a);
+  nf().topic='scos-'+[...a].map(b=>b.toString(36).padStart(2,'0')).join('').slice(0,16);
+  save();renderNtfy();nfMsg('Sujet généré. Abonne-toi-y dans l\'app ntfy avec exactement ce nom.');
+};
+$('#nfCopy').onclick=async()=>{try{await navigator.clipboard.writeText(nf().topic);nfMsg('Sujet copié.')}catch(e){nfMsg('Copie impossible : sélectionne le texte à la main.')}};
+$('#nfTopic').onchange=e=>{nf().topic=e.target.value.trim().replace(/[^A-Za-z0-9_-]/g,'');save();renderNtfy()};
+$('#nfServer').onchange=e=>{const v=e.target.value.trim();nf().server=safeUrl(v)?v:'https://ntfy.sh';save();renderNtfy()};
+$('#nfOn').onchange=e=>{nf().on=e.target.checked;save();if(e.target.checked)ntfySync()};
+$('#nfPromos').onchange=e=>{nf().promos=e.target.checked;save()};
+$('#nfTest').onclick=async()=>{
+  if(!nf().topic)return nfMsg('Génère ou saisis d\'abord un sujet.');
+  nfMsg('Envoi…');
+  const ok=await ntfyPost('',{title:'SC//OS',body:'Test réussi : les alertes arrivent bien sur ce téléphone.',tags:'white_check_mark',priority:3,click:appUrl('')},true);
+  nfMsg(ok?'✔ Test envoyé. Il doit apparaître dans l\'app ntfy (abonnée au même sujet).':'✘ Envoi impossible (réseau, serveur ou sujet invalide).');
+};
+
+/* =====================================================
+   APPLICATION INSTALLABLE (PWA)
+   ===================================================== */
+let deferredInstall=null;
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;renderApp()});
+window.addEventListener('appinstalled',()=>{deferredInstall=null;renderApp()});
+async function installApp(){if(!deferredInstall)return;deferredInstall.prompt();try{await deferredInstall.userChoice}catch(e){}deferredInstall=null;renderApp()}
+$('#installBtn').onclick=installApp;
+function renderNet(){$('#netTag').style.display=navigator.onLine?'none':''}
+window.addEventListener('online',renderNet);window.addEventListener('offline',renderNet);
+function renderApp(){
+  const standalone=isStandalone(),secure=location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  $('#installBtn').style.display=deferredInstall&&!standalone?'':'none';
+  const ready=!!(navigator.serviceWorker&&navigator.serviceWorker.controller);
+  let h;
+  if(standalone)h='<span class="tag ok">Installée</span> L\'application tourne en mode autonome et se met à jour toute seule.';
+  else if(deferredInstall)h='<span class="tag acc">Installable</span> <button class="btn primary sm" id="appInstall">⤓ Installer l\'application</button>';
+  else if(!secure)h='<span class="tag warn">Non installable ici</span> L\'installation exige une page servie en <b>HTTPS</b> (par exemple GitHub Pages). Ouverte depuis un fichier local, elle ne peut pas être installée.';
+  else if(isIOS())h='<span class="tag acc">iPhone / iPad</span> Dans Safari : bouton Partager → « Sur l\'écran d\'accueil ».';
+  else h='Le navigateur ne propose pas l\'installation pour l\'instant. Chrome / Edge : menu ⋮ → « Installer SC//OS ». Firefox desktop ne gère pas l\'installation.';
+  $('#appInfo').innerHTML=h+`<p class="small" style="margin-bottom:0">Hors ligne : ${ready?'<b>prêt</b> (interface en cache, données locales conservées)':'pas encore en cache (se met en place après le premier chargement en HTTPS)'}.</p>`;
+  const b=$('#appInstall');if(b)b.onclick=installApp;
+}
+if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){
+  navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(renderApp).catch(()=>{});
+}
+
 /* =====================================================
    INIT
    ===================================================== */
 function renderAllLight(){renderToday();renderSession();renderIndKpis();renderSessions()}
 function renderAll(){
   renderFleet();renderCcu();renderSession();renderRefining();renderIndKpis();renderSessions();
-  renderProfit();renderOpps();renderFeed();renderToday();renderSync();alertLabel();checkReady();
+  renderProfit();renderAnalysis();renderOpps();renderFeed();renderToday();renderSync();renderNtfy();renderApp();alertLabel();checkReady();
 }
 buildNav();
 if(!location.hash)location.replace('#/'+lget(KEY+'.page','today'));
@@ -1331,6 +1710,9 @@ ensureModels().then(()=>{renderFleet();renderCcu()}).catch(()=>{});
 loadFeed(false);
 loadUex(false).then(()=>{renderProfit();renderToday();renderSessions()});
 if(sync.token)syncNow();
+renderNet();
+setTimeout(()=>{if(db.ntfy&&db.ntfy.on)ntfySync()},4000);
+setTimeout(()=>{if(PH.length===0&&UEX)recordSnapshot()},1500);
 </script>
 </body>
 </html>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0a0907"/>
+  <g fill="none" stroke="#ffb000" stroke-width="22" stroke-linecap="square">
+    <path d="M70 160V70h90"/><path d="M442 352v90h-90"/>
+  </g>
+  <rect x="40" y="40" width="432" height="432" fill="none" stroke="#3a2f15" stroke-width="6"/>
+  <text x="256" y="292" text-anchor="middle" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-weight="700" font-size="190" fill="#ffb000" letter-spacing="-6">SC</text>
+  <text x="256" y="372" text-anchor="middle" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="62" fill="#9a8b66" letter-spacing="14">//OS</text>
+</svg>
