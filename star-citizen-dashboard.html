@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Star Citizen – Dashboard</title>
+<style>
+:root{
+  --bg:#0a0e14;--panel:#121923;--panel2:#18212e;--line:#243044;--text:#d7e0ee;--muted:#7f8da3;
+  --accent:#3fb8ff;--accent2:#ffb53f;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--radius:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;align-items:center;gap:24px;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+header h1{font-size:16px;margin:0;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:none;border:0;color:var(--muted);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit}
+nav button:hover{color:var(--text)}
+nav button.active{background:var(--panel2);color:var(--accent)}
+.spacer{flex:1}
+main{max-width:1200px;margin:0 auto;padding:20px}
+.page{display:none}.page.active{display:block}
+.grid{display:grid;gap:14px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px}
+.kpi,.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+.kpi .v{font-size:24px;font-weight:600}
+.kpi .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+h2{font-size:15px;margin:0 0 10px;color:var(--accent2);text-transform:uppercase;letter-spacing:.08em}
+h3{margin:0 0 6px;font-size:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,select,textarea,button.btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 10px;font:inherit}
+input:focus,select:focus{outline:1px solid var(--accent)}
+button.btn{cursor:pointer}
+button.btn:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:#04121c;border-color:var(--accent);font-weight:600}
+button.danger:hover{border-color:var(--bad);color:var(--bad)}
+.small{font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;white-space:nowrap}
+.tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;border:1px solid var(--line);color:var(--muted)}
+.tag.ok{color:var(--ok);border-color:var(--ok)}.tag.warn{color:var(--warn);border-color:var(--warn)}
+.tag.bad{color:var(--bad);border-color:var(--bad)}.tag.acc{color:var(--accent);border-color:var(--accent)}
+.two{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.timer{font-size:36px;font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:.04em}
+.empty{color:var(--muted);padding:18px;text-align:center}
+.bars{display:flex;align-items:flex-end;gap:4px;height:90px}
+.bars div{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
+.bars div:hover{opacity:1}
+details summary{cursor:pointer;color:var(--accent)}
+.opp{display:flex;flex-direction:column;gap:6px}
+.opp.done{opacity:.5}
+.opp a{color:var(--accent)}
+.note{background:#2a2312;border:1px solid #5b4a1a;color:#e8d29b;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:13px}
+.sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+@media(max-width:600px){main{padding:12px}.timer{font-size:28px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>⟡ SC Dashboard</h1>
+  <nav id="nav">
+    <button data-page="fleet" class="active">🚀 Flotte</button>
+    <button data-page="industry">⛏ Industrie</button>
+    <button data-page="opps">🎯 Opportunités</button>
+  </nav>
+  <span class="spacer"></span>
+  <button class="btn" id="exportAll">Exporter les données</button>
+  <label class="btn" style="cursor:pointer">Importer<input type="file" id="importAll" accept=".json" hidden></label>
+</header>
+
+<main>
+<!-- ===================== FLOTTE ===================== -->
+<section id="page-fleet" class="page active">
+  <div class="grid kpis" id="fleetKpis"></div>
+
+  <div class="grid two" style="margin-bottom:16px">
+    <div class="card">
+      <h2>Importer ma flotte</h2>
+      <p class="small" style="margin-top:0">RSI n'a pas d'API officielle : partager un token/cookie RSI est risqué et bloqué par le navigateur. Deux méthodes sûres :</p>
+      <h3>1. Depuis FleetYards (hangar public)</h3>
+      <div class="row">
+        <input id="fyUser" placeholder="Pseudo FleetYards" style="flex:1;min-width:140px">
+        <button class="btn primary" id="fyLoad">Charger</button>
+      </div>
+      <p class="small">Sur fleetyards.net, importe ton hangar RSI (via HangarXplor) puis rends-le public.</p>
+      <h3>2. Fichier JSON HangarXplor</h3>
+      <div class="row">
+        <label class="btn" style="cursor:pointer">Choisir un fichier JSON<input type="file" id="fleetFile" accept=".json" hidden></label>
+        <span class="small">Extension navigateur « HangarXplor » → Export JSON</span>
+      </div>
+      <div id="fleetMsg" class="small" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h2>Ajouter un vaisseau à la main</h2>
+      <div class="row">
+        <input id="mName" placeholder="Modèle (ex. Cutlass Black)" style="flex:2;min-width:140px">
+        <input id="mMaker" placeholder="Constructeur" style="flex:1;min-width:100px">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="mCargo" type="number" min="0" placeholder="Cargo SCU" style="width:110px">
+        <input id="mCrew" type="number" min="1" placeholder="Équipage" style="width:100px">
+        <input id="mValue" type="number" min="0" placeholder="Valeur $" style="width:100px">
+        <select id="mIns"><option value="">Assurance ?</option><option>LTI</option><option>10 ans</option><option>6 mois</option><option>2 mois</option><option>Standard</option><option>In-game (aUEC)</option></select>
+        <button class="btn primary" id="mAdd">Ajouter</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-head">
+      <h2 style="margin:0">Hangar</h2>
+      <div class="row">
+        <input id="fleetSearch" placeholder="Rechercher…">
+        <select id="fleetRole"><option value="">Tous les rôles</option></select>
+        <button class="btn danger" id="fleetClear">Vider</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto"><table id="fleetTable"></table></div>
+  </div>
+</section>
+
+<!-- ===================== INDUSTRIE ===================== -->
+<section id="page-industry" class="page">
+  <div class="grid kpis" id="indKpis"></div>
+
+  <div class="grid two" style="margin-bottom:16px">
+    <div class="card">
+      <h2>Session en cours</h2>
+      <div class="timer" id="timer">00:00:00</div>
+      <div class="row" style="margin:10px 0">
+        <select id="sType"><option>Minage</option><option>Salvage</option><option>Autre</option></select>
+        <input id="sPlace" placeholder="Lieu (ex. Aaron Halo, Pyro…)" style="flex:1;min-width:140px">
+        <select id="sShip"><option value="">Vaisseau…</option></select>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="sStart">▶ Démarrer</button>
+        <button class="btn" id="sPause" disabled>⏸ Pause</button>
+        <button class="btn danger" id="sStop" disabled>■ Terminer &amp; enregistrer</button>
+      </div>
+      <h3 style="margin-top:16px">Journal de récolte</h3>
+      <div class="row">
+        <input id="lMat" list="mats" placeholder="Matériau" style="flex:1;min-width:110px">
+        <input id="lScu" type="number" min="0" step="0.1" placeholder="SCU" style="width:80px">
+        <input id="lVal" type="number" min="0" placeholder="Valeur aUEC" style="width:110px">
+        <button class="btn" id="lAdd" disabled>+ Ajouter</button>
+      </div>
+      <div id="logList" class="small" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Lancer un raffinage</h2>
+      <div class="row">
+        <select id="rPlace" style="flex:1;min-width:150px"></select>
+        <input id="rMat" list="mats" placeholder="Minerai / RMC" style="flex:1;min-width:110px">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <select id="rMethod"></select>
+        <input id="rScu" type="number" min="0" step="0.1" placeholder="SCU" style="width:80px">
+        <input id="rCost" type="number" min="0" placeholder="Coût aUEC" style="width:100px">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <span class="small">Prêt dans</span>
+        <input id="rH" type="number" min="0" placeholder="h" style="width:64px">
+        <input id="rM" type="number" min="0" max="59" placeholder="min" style="width:64px">
+        <input id="rVal" type="number" min="0" placeholder="Valeur estimée aUEC" style="width:150px">
+        <button class="btn primary" id="rAdd">Lancer</button>
+      </div>
+      <p class="small">Astuce : le temps affiché en jeu au moment de la commande suffit.</p>
+    </div>
+  </div>
+
+  <datalist id="mats"></datalist>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="sec-head"><h2 style="margin:0">Ordres de raffinage</h2>
+      <label class="small"><input type="checkbox" id="rHideDone"> masquer les récupérés</label></div>
+    <div style="overflow-x:auto"><table id="refTable"></table></div>
+  </div>
+
+  <div class="grid two">
+    <div class="card"><h2>aUEC par session</h2><div class="bars" id="sessBars"></div><div class="small" id="sessBarsLegend"></div></div>
+    <div class="card"><h2>Par activité</h2><div id="byType"></div></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <h2>Historique des sessions</h2>
+    <div style="overflow-x:auto"><table id="sessTable"></table></div>
+  </div>
+</section>
+
+<!-- ===================== OPPORTUNITÉS ===================== -->
+<section id="page-opps" class="page">
+  <div class="note">⚠ Les entrées pré-remplies sont un point de départ <b>non vérifié en direct</b> (aucune donnée live récupérée). Vérifie chaque fiche via son lien, puis modifie/ajoute les tiens : dates, statut et notes sont conservés dans ton navigateur.</div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="sec-head">
+      <div class="row" id="oppCats"></div>
+      <div class="row">
+        <label class="small"><input type="checkbox" id="oppHideDone"> masquer les faits</label>
+        <button class="btn primary" id="oppNew">+ Nouvelle opportunité</button>
+      </div>
+    </div>
+    <div id="oppForm" style="display:none;margin-bottom:12px" class="row">
+      <select id="oCat"></select>
+      <input id="oTitle" placeholder="Titre" style="flex:2;min-width:160px">
+      <input id="oReward" placeholder="Récompense" style="flex:2;min-width:160px">
+      <input id="oEnd" type="date" title="Fin (vide = permanent)">
+      <input id="oLink" placeholder="Lien (https://…)" style="flex:2;min-width:160px">
+      <input id="oNote" placeholder="Notes" style="flex:3;min-width:160px">
+      <button class="btn primary" id="oSave">Enregistrer</button>
+    </div>
+    <div class="grid" id="oppList" style="grid-template-columns:repeat(auto-fill,minmax(310px,1fr))"></div>
+  </div>
+</section>
+</main>
+
+<script>
+/* ---------- utilitaires ---------- */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>Math.round(n||0).toLocaleString('fr-FR');
+const uid=()=>Math.random().toString(36).slice(2,10);
+const dur=ms=>{ms=Math.max(0,ms);const s=Math.floor(ms/1000);return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(x=>String(x).padStart(2,'0')).join(':')};
+const safeUrl=u=>/^https?:\/\//i.test(u||'')?u:'';
+
+const KEY='scdash.v1';
+const defaults={fleet:[],sessions:[],refining:[],opps:null,active:null};
+let db;
+try{db=Object.assign({},defaults,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){db={...defaults}}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}};
+
+/* ---------- navigation ---------- */
+function show(p){
+  $$('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===p));
+  $$('.page').forEach(s=>s.classList.toggle('active',s.id==='page-'+p));
+  try{localStorage.setItem(KEY+'.page',p)}catch(e){}
+}
+$('#nav').onclick=e=>{if(e.target.dataset.page)show(e.target.dataset.page)};
+try{const p=localStorage.getItem(KEY+'.page');if(p)show(p)}catch(e){}
+
+/* export / import global */
+$('#exportAll').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'}));
+  a.download='sc-dashboard-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+};
+$('#importAll').onchange=async e=>{
+  try{const d=JSON.parse(await e.target.files[0].text());db=Object.assign({},defaults,d);save();renderAll();}
+  catch(err){alert('Fichier invalide')}
+  e.target.value='';
+};
+
+/* =====================================================
+   FLOTTE
+   ===================================================== */
+const num=v=>{const n=parseFloat(String(v??'').replace(/[^0-9.]/g,''));return isNaN(n)?0:n};
+
+/* normalise un élément venant de HangarXplor ou FleetYards */
+function normShip(o){
+  const m=o.model||{};
+  const model=o.ship_name||m.name||o.name||o.ship_codename||o.slug||'?';
+  const custom=o.ship_name?(o.name&&o.name!==o.ship_name?o.name:''):(m.name&&o.name&&o.name!==m.name?o.name:'');
+  let ins=o.lti?'LTI':(o.insurance||'');
+  if(!ins&&o.monthsInsurance>0)ins=o.monthsInsurance+' mois';
+  if(!ins&&o.lti===false)ins='';
+  return{
+    id:uid(),
+    model, custom,
+    maker:o.manufacturer_name||(m.manufacturer&&m.manufacturer.name)||o.manufacturer||'',
+    role:m.classificationLabel||m.focus||o.focus||o.role||'',
+    cargo:num(m.cargo??o.cargo),
+    crew:num(m.maxCrew??(m.crew&&m.crew.max)??o.crew),
+    value:num(o.pledge_cost??o.value??m.pledgePrice),
+    insurance:ins,
+    status:m.productionStatus||o.flight_ready_status||'',
+    pledge:o.pledge_name||'',
+    source:o.ship_name?'HangarXplor':'FleetYards'
+  };
+}
+function setFleet(list,msg){
+  db.fleet=list;save();renderFleet();
+  $('#fleetMsg').textContent=msg;
+}
+function parseFleetJson(data){
+  if(data&&!Array.isArray(data))data=data.vehicles||data.ships||data.items||[];
+  return data.filter(o=>!o.entity_type||o.entity_type==='ship').map(normShip);
+}
+$('#fleetFile').onchange=async e=>{
+  try{
+    const list=parseFleetJson(JSON.parse(await e.target.files[0].text()));
+    if(!list.length)throw 0;
+    setFleet(list,`✔ ${list.length} vaisseaux importés.`);
+  }catch(err){$('#fleetMsg').textContent='✘ Fichier non reconnu (attendu : export JSON HangarXplor ou FleetYards).'}
+  e.target.value='';
+};
+$('#fyLoad').onclick=async()=>{
+  const u=$('#fyUser').value.trim();if(!u)return;
+  $('#fleetMsg').textContent='Chargement…';
+  try{
+    const all=[];
+    for(let page=1;page<=10;page++){
+      const r=await fetch(`https://api.fleetyards.net/v1/vehicles/${encodeURIComponent(u)}?perPage=240&page=${page}`);
+      if(!r.ok)throw new Error(r.status);
+      const j=await r.json();
+      if(!j.length)break;
+      all.push(...j);
+      if(j.length<240)break;
+    }
+    if(!all.length)throw new Error('vide');
+    setFleet(parseFleetJson(all),`✔ ${all.length} vaisseaux chargés depuis FleetYards.`);
+    try{localStorage.setItem(KEY+'.fy',u)}catch(e){}
+  }catch(err){
+    $('#fleetMsg').textContent='✘ Impossible de charger ce hangar (pseudo inconnu, hangar privé, ou réseau bloqué). Utilise l\'import JSON.';
+  }
+};
+try{$('#fyUser').value=localStorage.getItem(KEY+'.fy')||''}catch(e){}
+
+$('#mAdd').onclick=()=>{
+  const name=$('#mName').value.trim();if(!name)return;
+  db.fleet.push({id:uid(),model:name,custom:'',maker:$('#mMaker').value.trim(),role:'',cargo:num($('#mCargo').value),
+    crew:num($('#mCrew').value),value:num($('#mValue').value),insurance:$('#mIns').value,status:'',pledge:'',source:'manuel'});
+  save();renderFleet();
+  ['#mName','#mMaker','#mCargo','#mCrew','#mValue'].forEach(s=>$(s).value='');
+};
+$('#fleetClear').onclick=()=>{if(confirm('Vider toute la flotte ?')){db.fleet=[];save();renderFleet()}};
+$('#fleetSearch').oninput=renderFleet;$('#fleetRole').onchange=renderFleet;
+
+let fleetSort={k:'model',d:1};
+function renderFleet(){
+  const f=db.fleet;
+  const roles=[...new Set(f.map(s=>s.role).filter(Boolean))].sort();
+  const cur=$('#fleetRole').value;
+  $('#fleetRole').innerHTML='<option value="">Tous les rôles</option>'+roles.map(r=>`<option${r===cur?' selected':''}>${esc(r)}</option>`).join('');
+  const q=$('#fleetSearch').value.toLowerCase(), role=$('#fleetRole').value;
+  let rows=f.filter(s=>(!role||s.role===role)&&(!q||(s.model+s.custom+s.maker+s.role).toLowerCase().includes(q)));
+  const k=fleetSort.k;
+  rows.sort((a,b)=>(typeof a[k]==='number'?a[k]-b[k]:String(a[k]).localeCompare(b[k]))*fleetSort.d);
+  const sum=(a,k)=>a.reduce((t,s)=>t+(s[k]||0),0);
+  $('#fleetKpis').innerHTML=[
+    ['Vaisseaux',f.length],['Cargo total (SCU)',fmt(sum(f,'cargo'))],
+    ['Valeur pledge ($)',fmt(sum(f,'value'))],['LTI',f.filter(s=>s.insurance==='LTI').length],
+    ['Constructeurs',new Set(f.map(s=>s.maker).filter(Boolean)).size]
+  ].map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  const th=(k,l)=>`<th data-k="${k}">${l}${fleetSort.k===k?(fleetSort.d>0?' ▲':' ▼'):''}</th>`;
+  $('#fleetTable').innerHTML=rows.length?
+    `<tr>${th('model','Vaisseau')}${th('maker','Constructeur')}${th('role','Rôle')}${th('cargo','Cargo')}${th('crew','Équipage')}${th('insurance','Assurance')}${th('value','Valeur $')}<th></th></tr>`+
+    rows.map(s=>`<tr><td><b>${esc(s.model)}</b>${s.custom?`<div class="small">« ${esc(s.custom)} »</div>`:''}</td>
+      <td>${esc(s.maker)}</td><td>${esc(s.role)}</td><td>${s.cargo||'–'}</td><td>${s.crew||'–'}</td>
+      <td>${s.insurance?`<span class="tag ${s.insurance==='LTI'?'ok':''}">${esc(s.insurance)}</span>`:'–'}</td>
+      <td>${s.value?fmt(s.value):'–'}</td><td><button class="btn danger" data-del="${s.id}">✕</button></td></tr>`).join('')
+    :'<tr><td class="empty">Aucun vaisseau. Importe ta flotte ou ajoute-en un.</td></tr>';
+  $$('#fleetTable th[data-k]').forEach(h=>h.onclick=()=>{fleetSort={k:h.dataset.k,d:fleetSort.k===h.dataset.k?-fleetSort.d:1};renderFleet()});
+  $$('#fleetTable [data-del]').forEach(b=>b.onclick=()=>{db.fleet=db.fleet.filter(s=>s.id!==b.dataset.del);save();renderFleet()});
+  renderShipSelect();
+}
+function renderShipSelect(){
+  const cur=$('#sShip').value;
+  const names=[...new Set(db.fleet.map(s=>s.custom?`${s.model} (${s.custom})`:s.model))].sort();
+  $('#sShip').innerHTML='<option value="">Vaisseau…</option>'+names.map(n=>`<option${n===cur?' selected':''}>${esc(n)}</option>`).join('');
+}
+
+/* =====================================================
+   INDUSTRIE
+   ===================================================== */
+const PLACES=['ARC-L1 Wide Forest Station','CRU-L1 Ambitious Dream','HUR-L1 Green Glade','MIC-L1 Shallow Frontier',
+ 'Terra Gateway','Pyro Gateway','Ruin Station (Pyro)','Checkmate (Pyro)','Orbituary (Pyro)','Autre…'];
+const METHODS=['Dinyx Solventation (lent, rendement max)','Cormack (équilibré)','Ferron Exchange','Pyrometric Chromalysis',
+ 'Thermonatic Deposition','Electrostarch Gasification','Kazen Winnowing','XCR Reaction (rapide, rendement bas)'];
+const MATS=['Quantanium','Bexalite','Taranite','Laranite','Agricium','Hephaestanite','Titanium','Borase','Gold','Copper',
+ 'Beryl','Tungsten','Corundum','Quartz','Aluminum','Iron','Diamond','Savrilium','Stileron','Riccite','RMC (Recycled Material Composite)','Construction Materials'];
+$('#rPlace').innerHTML=PLACES.map(p=>`<option>${p}</option>`).join('');
+$('#rMethod').innerHTML=METHODS.map(p=>`<option>${p}</option>`).join('');
+$('#mats').innerHTML=MATS.map(p=>`<option>${p}</option>`).join('');
+
+/* --- session chrono (survit au rechargement via db.active) --- */
+function elapsed(a){return a?(a.acc+(a.running?Date.now()-a.since:0)):0}
+function persistActive(){save();renderSession()}
+$('#sStart').onclick=()=>{
+  if(!db.active){
+    db.active={type:$('#sType').value,place:$('#sPlace').value.trim(),ship:$('#sShip').value,start:Date.now(),acc:0,since:Date.now(),running:true,log:[]};
+  }else if(!db.active.running){db.active.since=Date.now();db.active.running=true}
+  persistActive();
+};
+$('#sPause').onclick=()=>{
+  const a=db.active;if(!a||!a.running)return;
+  a.acc+=Date.now()-a.since;a.running=false;persistActive();
+};
+$('#sStop').onclick=()=>{
+  const a=db.active;if(!a)return;
+  const ms=elapsed(a);
+  const scu=a.log.reduce((t,l)=>t+l.scu,0),val=a.log.reduce((t,l)=>t+l.val,0);
+  db.sessions.unshift({id:uid(),type:a.type,place:a.place,ship:a.ship,date:a.start,ms,scu,val,log:a.log});
+  db.active=null;save();renderAll();
+};
+$('#lAdd').onclick=()=>{
+  const a=db.active;if(!a)return;
+  const mat=$('#lMat').value.trim();if(!mat)return;
+  a.log.push({mat,scu:num($('#lScu').value),val:num($('#lVal').value)});
+  ['#lMat','#lScu','#lVal'].forEach(s=>$(s).value='');persistActive();
+};
+function renderSession(){
+  const a=db.active;
+  $('#sStart').disabled=!!(a&&a.running);
+  $('#sStart').textContent=a&&!a.running?'▶ Reprendre':'▶ Démarrer';
+  $('#sPause').disabled=!(a&&a.running);$('#sStop').disabled=!a;$('#lAdd').disabled=!a;
+  ['#sType','#sPlace','#sShip'].forEach(s=>$(s).disabled=!!a);
+  if(a){$('#sType').value=a.type;$('#sPlace').value=a.place;renderShipSelect();$('#sShip').value=a.ship}
+  $('#logList').innerHTML=a&&a.log.length?a.log.map(l=>`${esc(l.mat)} · ${l.scu} SCU · ${fmt(l.val)} aUEC`).join('<br>'):(a?'Aucune récolte saisie.':'');
+}
+setInterval(()=>{
+  $('#timer').textContent=dur(elapsed(db.active));
+  $$('[data-ready]').forEach(el=>{
+    const left=+el.dataset.ready-Date.now();
+    el.textContent=left<=0?'Prêt !':dur(left);
+    el.className=left<=0?'tag ok':'tag warn';
+  });
+},1000);
+
+/* --- raffinage --- */
+$('#rAdd').onclick=()=>{
+  const mat=$('#rMat').value.trim();if(!mat)return;
+  const ms=((+$('#rH').value||0)*60+(+$('#rM').value||0))*60000;
+  db.refining.unshift({id:uid(),place:$('#rPlace').value,mat,method:$('#rMethod').value.split(' (')[0],scu:num($('#rScu').value),
+    cost:num($('#rCost').value),val:num($('#rVal').value),started:Date.now(),ready:Date.now()+ms,collected:false});
+  save();renderRefining();['#rMat','#rScu','#rCost','#rVal','#rH','#rM'].forEach(s=>$(s).value='');
+};
+$('#rHideDone').onchange=renderRefining;
+function renderRefining(){
+  const rows=db.refining.filter(r=>!($('#rHideDone').checked&&r.collected));
+  $('#refTable').innerHTML=rows.length?
+    '<tr><th>Lieu</th><th>Matériau</th><th>Méthode</th><th>SCU</th><th>Coût</th><th>Valeur est.</th><th>Statut</th><th></th></tr>'+
+    rows.map(r=>`<tr><td>${esc(r.place)}</td><td><b>${esc(r.mat)}</b></td><td>${esc(r.method)}</td><td>${r.scu||'–'}</td>
+      <td>${fmt(r.cost)}</td><td>${fmt(r.val)}</td>
+      <td>${r.collected?'<span class="tag">Récupéré</span>':`<span data-ready="${r.ready}" class="tag warn">…</span>`}</td>
+      <td class="row">${r.collected?'':`<button class="btn" data-col="${r.id}">Récupéré</button>`}<button class="btn danger" data-rdel="${r.id}">✕</button></td></tr>`).join('')
+    :'<tr><td class="empty">Aucun ordre de raffinage.</td></tr>';
+  $$('[data-col]').forEach(b=>b.onclick=()=>{db.refining.find(r=>r.id===b.dataset.col).collected=true;save();renderRefining();renderIndKpis()});
+  $$('[data-rdel]').forEach(b=>b.onclick=()=>{db.refining=db.refining.filter(r=>r.id!==b.dataset.rdel);save();renderRefining();renderIndKpis()});
+}
+
+/* --- stats --- */
+function renderIndKpis(){
+  const s=db.sessions,ms=s.reduce((t,x)=>t+x.ms,0),val=s.reduce((t,x)=>t+x.val,0),scu=s.reduce((t,x)=>t+x.scu,0);
+  const h=ms/3600000;
+  const pending=db.refining.filter(r=>!r.collected);
+  $('#indKpis').innerHTML=[
+    ['Sessions',s.length],['Temps total',h.toFixed(1)+' h'],['SCU récoltés',fmt(scu)],['aUEC générés',fmt(val)],
+    ['aUEC / heure',h?fmt(val/h):'–'],['Raffinages en cours',pending.length],
+    ['Valeur en raffinage',fmt(pending.reduce((t,r)=>t+r.val,0))]
+  ].map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+}
+function renderSessions(){
+  const s=db.sessions;
+  $('#sessTable').innerHTML=s.length?
+    '<tr><th>Date</th><th>Activité</th><th>Lieu</th><th>Vaisseau</th><th>Durée</th><th>SCU</th><th>aUEC</th><th>aUEC/h</th><th>Détail</th><th></th></tr>'+
+    s.map(x=>{const h=x.ms/3600000;return`<tr><td>${new Date(x.date).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</td>
+      <td><span class="tag acc">${esc(x.type)}</span></td><td>${esc(x.place)||'–'}</td><td>${esc(x.ship)||'–'}</td><td>${dur(x.ms)}</td>
+      <td>${x.scu}</td><td>${fmt(x.val)}</td><td>${h>0.005?fmt(x.val/h):'–'}</td>
+      <td class="small">${x.log.map(l=>`${esc(l.mat)} ${l.scu}`).join(', ')}</td>
+      <td><button class="btn danger" data-sdel="${x.id}">✕</button></td></tr>`}).join('')
+    :'<tr><td class="empty">Aucune session enregistrée.</td></tr>';
+  $$('[data-sdel]').forEach(b=>b.onclick=()=>{db.sessions=db.sessions.filter(x=>x.id!==b.dataset.sdel);save();renderAll()});
+  const last=s.slice(0,20).reverse(),max=Math.max(1,...last.map(x=>x.val));
+  $('#sessBars').innerHTML=last.map(x=>`<div style="height:${Math.max(2,x.val/max*100)}%" title="${esc(x.type)} – ${fmt(x.val)} aUEC"></div>`).join('')||'<span class="small">Pas encore de données.</span>';
+  $('#sessBarsLegend').textContent=last.length?`${last.length} dernières sessions (max ${fmt(max)} aUEC)`:'';
+  const by={};s.forEach(x=>{const b=by[x.type]=by[x.type]||{n:0,ms:0,val:0,scu:0};b.n++;b.ms+=x.ms;b.val+=x.val;b.scu+=x.scu});
+  $('#byType').innerHTML=Object.keys(by).length?
+    '<table><tr><th>Activité</th><th>Sessions</th><th>SCU</th><th>aUEC</th><th>aUEC/h</th></tr>'+
+    Object.entries(by).map(([k,b])=>`<tr><td>${esc(k)}</td><td>${b.n}</td><td>${fmt(b.scu)}</td><td>${fmt(b.val)}</td><td>${b.ms>18000?fmt(b.val/(b.ms/3600000)):'–'}</td></tr>`).join('')+'</table>'
+    :'<span class="small">Pas encore de données.</span>';
+}
+
+/* =====================================================
+   OPPORTUNITÉS
+   ===================================================== */
+const CATS={warbond:'Warbond & offres',quest:'Quêtes à récompenses permanentes',event:'Événements',tip:'Autres bons plans'};
+/* Données de départ : NON vérifiées en direct, à contrôler via le lien */
+const SEED=[
+ {cat:'warbond',title:'Vaisseaux en édition Warbond',reward:'Même vaisseau à prix réduit (environ −10 % vs édition standard, à vérifier)',link:'https://robertsspaceindustries.com/en/pledge/ships',note:'Warbond = pledge non convertible en store credit (à confirmer sur la fiche). Vérifie le prix pour chaque vaisseau convoité.'},
+ {cat:'warbond',title:'Offres Warbond : packs & « Standalone Ships »',reward:'Packs avec jeu + vaisseau en Warbond',link:'https://robertsspaceindustries.com/en/pledge/packages',note:''},
+ {cat:'quest',title:'Wikelo – contrats d\'échange',reward:'Vaisseaux, armures et objets obtenus in-game contre ressources/objets',link:'https://starcitizen.tools/Wikelo',note:'Contenu évolutif : la liste de contrats et leurs coûts changent selon les patchs.'},
+ {cat:'quest',title:'Programme de parrainage (referral)',reward:'Récompenses permanentes à débloquer en parrainant',link:'https://robertsspaceindustries.com/referral-program',note:'Compte pour les paliers de récompenses ; vérifier les paliers actuels.'},
+ {cat:'quest',title:'Réputation & missions de faction',reward:'Accès à armes/armures/vaisseaux et contrats mieux payés',link:'https://starcitizen.tools/Reputation',note:'À détailler : quelle faction te manque ?'},
+ {cat:'event',title:'CitizenCon (annonces roadmap)',reward:'Annonces, promos et cadeaux fréquents pendant l\'événement',link:'https://robertsspaceindustries.com/comm-link',note:'Renseigner la date dès qu\'elle est annoncée.'},
+ {cat:'event',title:'Free Fly (accès gratuit)',reward:'Acheter/tester des vaisseaux et suivre les promos de la période',link:'https://robertsspaceindustries.com/comm-link',note:'Surveiller le Comm-Link pour les dates.'},
+ {cat:'tip',title:'Rotation de vaisseaux à louer (rental)',reward:'Tester un vaisseau avant achat',link:'https://robertsspaceindustries.com/en/pledge/ships',note:''}
+].map(o=>({...o,id:uid(),end:'',status:'todo'}));
+if(!db.opps){db.opps=SEED;save()}
+
+let oppCat='all';
+function renderOppCats(){
+  const cats={all:'Tout',...CATS};
+  $('#oppCats').innerHTML=Object.entries(cats).map(([k,l])=>
+    `<button class="btn ${oppCat===k?'primary':''}" data-oc="${k}">${l}</button>`).join('');
+  $$('[data-oc]').forEach(b=>b.onclick=()=>{oppCat=b.dataset.oc;renderOpps()});
+  $('#oCat').innerHTML=Object.entries(CATS).map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
+}
+function renderOpps(){
+  renderOppCats();
+  const now=Date.now();
+  let rows=db.opps.filter(o=>(oppCat==='all'||o.cat===oppCat)&&!($('#oppHideDone').checked&&o.status==='done'));
+  const endT=o=>o.end?new Date(o.end+'T23:59:59').getTime():Infinity;
+  rows.sort((a,b)=>(a.status==='done')-(b.status==='done')||endT(a)-endT(b));
+  $('#oppList').innerHTML=rows.map(o=>{
+    const t=endT(o),days=Math.ceil((t-now)/864e5);
+    const when=!o.end?'<span class="tag ok">Permanent</span>':t<now?'<span class="tag bad">Expiré</span>':
+      `<span class="tag ${days<=3?'bad':days<=14?'warn':'acc'}">${days} j restants</span>`;
+    const link=safeUrl(o.link);
+    return `<div class="card opp ${o.status==='done'?'done':''}">
+      <div class="row"><span class="tag">${CATS[o.cat]||o.cat}</span>${when}
+        ${o.status==='doing'?'<span class="tag warn">En cours</span>':''}${o.status==='done'?'<span class="tag ok">Fait</span>':''}</div>
+      <h3>${esc(o.title)}</h3>
+      <div>🎁 ${esc(o.reward)||'<span class="small">–</span>'}</div>
+      ${o.note?`<div class="small">${esc(o.note)}</div>`:''}
+      <div class="row" style="margin-top:auto">
+        ${link?`<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">Source ↗</a>`:''}
+        <span class="spacer"></span>
+        <select data-st="${o.id}"><option value="todo">À faire</option><option value="doing"${o.status==='doing'?' selected':''}>En cours</option><option value="done"${o.status==='done'?' selected':''}>Fait</option></select>
+        <button class="btn danger" data-odel="${o.id}">✕</button>
+      </div></div>`}).join('')||'<div class="empty">Rien dans cette catégorie.</div>';
+  $$('[data-st]').forEach(s=>s.onchange=()=>{db.opps.find(o=>o.id===s.dataset.st).status=s.value;save();renderOpps()});
+  $$('[data-odel]').forEach(b=>b.onclick=()=>{db.opps=db.opps.filter(o=>o.id!==b.dataset.odel);save();renderOpps()});
+}
+$('#oppHideDone').onchange=renderOpps;
+$('#oppNew').onclick=()=>{const f=$('#oppForm');f.style.display=f.style.display==='none'?'flex':'none'};
+$('#oSave').onclick=()=>{
+  const title=$('#oTitle').value.trim();if(!title)return;
+  db.opps.push({id:uid(),cat:$('#oCat').value,title,reward:$('#oReward').value.trim(),end:$('#oEnd').value,
+    link:$('#oLink').value.trim(),note:$('#oNote').value.trim(),status:'todo'});
+  ['#oTitle','#oReward','#oEnd','#oLink','#oNote'].forEach(s=>$(s).value='');
+  save();renderOpps();
+};
+
+/* ---------- init ---------- */
+function renderAll(){renderFleet();renderSession();renderRefining();renderIndKpis();renderSessions();renderOpps()}
+renderAll();
+</script>
+</body>
+</html>
