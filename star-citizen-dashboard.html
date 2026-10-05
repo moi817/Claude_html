@@ -51,6 +51,11 @@ details summary{cursor:pointer;color:var(--accent)}
 .opp{display:flex;flex-direction:column;gap:6px}
 .opp.done{opacity:.5}
 .opp a{color:var(--accent)}
+.note.ready{background:#10261a;border-color:#1f6b3a;color:#9be8b8}
+.feed-item{display:grid;grid-template-columns:78px 1fr auto;gap:4px 12px;padding:9px 0;border-bottom:1px solid var(--line);align-items:start}
+.feed-item a{color:var(--text);font-weight:500;text-decoration:none}.feed-item a:hover{color:var(--accent)}
+.feed-item .x{grid-column:2;color:var(--muted);font-size:12px}
+@media(max-width:600px){.feed-item{grid-template-columns:1fr auto}.feed-item .d{grid-column:1/-1}.feed-item .x{grid-column:1/-1}}
 .note{background:#2a2312;border:1px solid #5b4a1a;color:#e8d29b;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:13px}
 .sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 @media(max-width:600px){main{padding:12px}.timer{font-size:28px}}
@@ -65,11 +70,13 @@ details summary{cursor:pointer;color:var(--accent)}
     <button data-page="opps">🎯 Opportunités</button>
   </nav>
   <span class="spacer"></span>
+  <button class="btn" id="alertBtn" title="Notification + son quand un raffinage est prêt"></button>
   <button class="btn" id="exportAll">Exporter les données</button>
   <label class="btn" style="cursor:pointer">Importer<input type="file" id="importAll" accept=".json" hidden></label>
 </header>
 
 <main>
+<div id="readyBanner" class="note ready" style="display:none"></div>
 <!-- ===================== FLOTTE ===================== -->
 <section id="page-fleet" class="page active">
   <div class="grid kpis" id="fleetKpis"></div>
@@ -113,6 +120,7 @@ details summary{cursor:pointer;color:var(--accent)}
       <div class="row">
         <input id="fleetSearch" placeholder="Rechercher…">
         <select id="fleetRole"><option value="">Tous les rôles</option></select>
+        <button class="btn" id="fleetEnrich" title="Complète cargo, équipage, rôle, prix via FleetYards">✨ Enrichir</button>
         <button class="btn danger" id="fleetClear">Vider</button>
       </div>
     </div>
@@ -190,7 +198,16 @@ details summary{cursor:pointer;color:var(--accent)}
 
 <!-- ===================== OPPORTUNITÉS ===================== -->
 <section id="page-opps" class="page">
-  <div class="note">⚠ Les entrées pré-remplies sont un point de départ <b>non vérifié en direct</b> (aucune donnée live récupérée). Vérifie chaque fiche via son lien, puis modifie/ajoute les tiens : dates, statut et notes sont conservés dans ton navigateur.</div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="sec-head">
+      <h2 style="margin:0">🛰 Flux Comm-Link RSI (en direct)</h2>
+      <div class="row" id="feedFilters"></div>
+      <button class="btn" id="feedRefresh">↻ Actualiser</button>
+    </div>
+    <div class="small" id="feedStatus"></div>
+    <div id="feedList"></div>
+  </div>
+  <div class="note">⚠ Les fiches « Mes opportunités » ci-dessous sont pré-remplies à la main et <b>non vérifiées en direct</b> : contrôle chaque lien. Utilise « + Suivre » dans le flux pour ajouter une annonce à ta liste ; dates, statut et notes sont conservés dans ton navigateur.</div>
   <div class="card" style="margin-bottom:14px">
     <div class="sec-head">
       <div class="row" id="oppCats"></div>
@@ -279,6 +296,7 @@ function normShip(o){
 function setFleet(list,msg){
   db.fleet=list;save();renderFleet();
   $('#fleetMsg').textContent=msg;
+  enrichFleet(true);
 }
 function parseFleetJson(data){
   if(data&&!Array.isArray(data))data=data.vehicles||data.ships||data.items||[];
@@ -318,7 +336,7 @@ $('#mAdd').onclick=()=>{
   const name=$('#mName').value.trim();if(!name)return;
   db.fleet.push({id:uid(),model:name,custom:'',maker:$('#mMaker').value.trim(),role:'',cargo:num($('#mCargo').value),
     crew:num($('#mCrew').value),value:num($('#mValue').value),insurance:$('#mIns').value,status:'',pledge:'',source:'manuel'});
-  save();renderFleet();
+  save();renderFleet();enrichFleet(true);
   ['#mName','#mMaker','#mCargo','#mCrew','#mValue'].forEach(s=>$(s).value='');
 };
 $('#fleetClear').onclick=()=>{if(confirm('Vider toute la flotte ?')){db.fleet=[];save();renderFleet()}};
@@ -342,16 +360,68 @@ function renderFleet(){
   ].map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
   const th=(k,l)=>`<th data-k="${k}">${l}${fleetSort.k===k?(fleetSort.d>0?' ▲':' ▼'):''}</th>`;
   $('#fleetTable').innerHTML=rows.length?
-    `<tr>${th('model','Vaisseau')}${th('maker','Constructeur')}${th('role','Rôle')}${th('cargo','Cargo')}${th('crew','Équipage')}${th('insurance','Assurance')}${th('value','Valeur $')}<th></th></tr>`+
+    `<tr>${th('model','Vaisseau')}${th('maker','Constructeur')}${th('role','Rôle')}${th('cargo','Cargo')}${th('crew','Équipage')}${th('insurance','Assurance')}${th('value','Valeur $')}${th('price','Prix aUEC')}<th></th></tr>`+
     rows.map(s=>`<tr><td><b>${esc(s.model)}</b>${s.custom?`<div class="small">« ${esc(s.custom)} »</div>`:''}</td>
       <td>${esc(s.maker)}</td><td>${esc(s.role)}</td><td>${s.cargo||'–'}</td><td>${s.crew||'–'}</td>
       <td>${s.insurance?`<span class="tag ${s.insurance==='LTI'?'ok':''}">${esc(s.insurance)}</span>`:'–'}</td>
-      <td>${s.value?fmt(s.value):'–'}</td><td><button class="btn danger" data-del="${s.id}">✕</button></td></tr>`).join('')
+      <td>${s.value?fmt(s.value):'–'}</td><td>${s.price?fmt(s.price):(s.status&&s.status!=='flight-ready'?'<span class="small">'+esc(s.status)+'</span>':'–')}</td>
+      <td class="row">${s.slug?`<a class="small" target="_blank" rel="noopener noreferrer" href="https://fleetyards.net/ships/${encodeURIComponent(s.slug)}">↗</a>`:''}<button class="btn danger" data-del="${s.id}">✕</button></td></tr>`).join('')
     :'<tr><td class="empty">Aucun vaisseau. Importe ta flotte ou ajoute-en un.</td></tr>';
   $$('#fleetTable th[data-k]').forEach(h=>h.onclick=()=>{fleetSort={k:h.dataset.k,d:fleetSort.k===h.dataset.k?-fleetSort.d:1};renderFleet()});
   $$('#fleetTable [data-del]').forEach(b=>b.onclick=()=>{db.fleet=db.fleet.filter(s=>s.id!==b.dataset.del);save();renderFleet()});
   renderShipSelect();
 }
+
+/* ---- Enrichissement via le catalogue FleetYards (CORS ouvert) ---- */
+const MODELS_KEY=KEY+'.models';
+async function loadModels(){
+  try{const c=JSON.parse(localStorage.getItem(MODELS_KEY)||'null');if(c&&Date.now()-c.t<864e5&&c.items.length)return c.items}catch(e){}
+  const items=[];
+  for(let page=1;page<=5;page++){
+    const r=await fetch(`https://api.fleetyards.net/v1/models?perPage=240&page=${page}`);
+    if(!r.ok)throw new Error(r.status);
+    const j=await r.json();
+    items.push(...j.items.map(m=>({name:m.name,rsi:m.rsiName||'',slug:m.slug,maker:(m.manufacturer||{}).name||'',
+      cargo:(m.metrics||{}).cargo||0,crew:(m.crew||{}).max||0,role:m.focus||m.classificationLabel||'',
+      pledge:m.pledgePrice||0,price:m.price||0,status:m.productionStatus||''})));
+    if(page>=((j.meta||{}).pagination||{}).totalPages)break;
+  }
+  try{localStorage.setItem(MODELS_KEY,JSON.stringify({t:Date.now(),items}))}catch(e){}
+  return items;
+}
+const nk=x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+function findModel(models,s){
+  const cands=[s.model,s.maker+' '+s.model].map(nk);
+  /* « Aegis Avenger Stalker » -> « Avenger Stalker » : retire un préfixe constructeur connu */
+  const prefixes=new Set(models.flatMap(m=>[nk(m.maker),nk(m.maker.split(' ')[0])]).filter(x=>x.length>=3));
+  const first=nk(s.model);
+  prefixes.forEach(p=>{if(first.startsWith(p)&&first.length>p.length+2)cands.push(first.slice(p.length))});
+  for(const m of models){const k=[nk(m.name),nk(m.rsi),nk(m.maker+' '+m.name)];if(cands.some(c=>k.includes(c)))return m}
+  /* repli : plus long nom de modèle qui est un préfixe (ex. « … Best In Show Edition ») */
+  let best=null;
+  for(const m of models){const k=nk(m.name);if(k.length>=4&&cands.some(c=>c.startsWith(k))&&(!best||k.length>nk(best.name).length))best=m}
+  return best;
+}
+async function enrichFleet(quiet){
+  if(!db.fleet.length)return;
+  const msg=$('#fleetMsg');
+  try{
+    if(!quiet)msg.textContent='Enrichissement…';
+    const models=await loadModels();
+    let ok=0;const miss=[];
+    db.fleet.forEach(s=>{
+      const m=findModel(models,s);
+      if(!m){miss.push(s.model);return}
+      ok++;
+      s.slug=m.slug;s.price=m.price;s.status=m.status;
+      if(!s.maker)s.maker=m.maker;if(!s.role)s.role=m.role;
+      if(!s.cargo)s.cargo=m.cargo;if(!s.crew)s.crew=m.crew;if(!s.value)s.value=m.pledge;
+    });
+    save();renderFleet();
+    msg.textContent=`✔ ${ok}/${db.fleet.length} vaisseaux enrichis (FleetYards)`+(miss.length?` · non trouvés : ${[...new Set(miss)].join(', ')}`:'');
+  }catch(e){if(!quiet)msg.textContent='✘ Catalogue FleetYards indisponible (réseau ?).'}
+}
+$('#fleetEnrich').onclick=()=>enrichFleet(false);
 function renderShipSelect(){
   const cur=$('#sShip').value;
   const names=[...new Set(db.fleet.map(s=>s.custom?`${s.model} (${s.custom})`:s.model))].sort();
@@ -431,7 +501,7 @@ function renderRefining(){
     rows.map(r=>`<tr><td>${esc(r.place)}</td><td><b>${esc(r.mat)}</b></td><td>${esc(r.method)}</td><td>${r.scu||'–'}</td>
       <td>${fmt(r.cost)}</td><td>${fmt(r.val)}</td>
       <td>${r.collected?'<span class="tag">Récupéré</span>':`<span data-ready="${r.ready}" class="tag warn">…</span>`}</td>
-      <td class="row">${r.collected?'':`<button class="btn" data-col="${r.id}">Récupéré</button>`}<button class="btn danger" data-rdel="${r.id}">✕</button></td></tr>`).join('')
+      <td class="row">${r.collected?'':`<a class="btn" title="Ajouter à Google Agenda (alerte même onglet fermé)" target="_blank" rel="noopener noreferrer" href="${esc(gcalUrl(r))}">📅</a><button class="btn" data-col="${r.id}">Récupéré</button>`}<button class="btn danger" data-rdel="${r.id}">✕</button></td></tr>`).join('')
     :'<tr><td class="empty">Aucun ordre de raffinage.</td></tr>';
   $$('[data-col]').forEach(b=>b.onclick=()=>{db.refining.find(r=>r.id===b.dataset.col).collected=true;save();renderRefining();renderIndKpis()});
   $$('[data-rdel]').forEach(b=>b.onclick=()=>{db.refining=db.refining.filter(r=>r.id!==b.dataset.rdel);save();renderRefining();renderIndKpis()});
@@ -518,7 +588,7 @@ function renderOpps(){
         <button class="btn danger" data-odel="${o.id}">✕</button>
       </div></div>`}).join('')||'<div class="empty">Rien dans cette catégorie.</div>';
   $$('[data-st]').forEach(s=>s.onchange=()=>{db.opps.find(o=>o.id===s.dataset.st).status=s.value;save();renderOpps()});
-  $$('[data-odel]').forEach(b=>b.onclick=()=>{db.opps=db.opps.filter(o=>o.id!==b.dataset.odel);save();renderOpps()});
+  $$('[data-odel]').forEach(b=>b.onclick=()=>{db.opps=db.opps.filter(o=>o.id!==b.dataset.odel);save();renderOpps();renderFeed()});
 }
 $('#oppHideDone').onchange=renderOpps;
 $('#oppNew').onclick=()=>{const f=$('#oppForm');f.style.display=f.style.display==='none'?'flex':'none'};
@@ -530,9 +600,109 @@ $('#oSave').onclick=()=>{
   save();renderOpps();
 };
 
+
+/* ---- Flux Comm-Link RSI via l'API du Star Citizen Wiki (CORS ouvert) ---- */
+const FEED_KEY=KEY+'.feed';
+const FEED_CATS={promo:'Promos & événements',patch:'Patchs',news:'Actus',all:'Tout'};
+function classifyLink(t){
+  if(/subscriber promo|deals?\b|\bsale\b|warbond|referral|twitch drops|free fly|festival|pirate week|alien week|defensecon|invictus|\biae\b|citizencon|anniversary|ship showdown|concept sale|bonus/i.test(t))return'promo';
+  if(/alpha \d|release info|patch|ptu|tech preview/i.test(t))return'patch';
+  return'news';
+}
+let feed={t:0,items:[]},feedCat='promo';
+try{feed=JSON.parse(localStorage.getItem(FEED_KEY)||'')||feed}catch(e){}
+async function loadFeed(force){
+  if(!force&&feed.items.length&&Date.now()-feed.t<36e5){renderFeed();return}
+  $('#feedStatus').textContent='Chargement du flux…';
+  try{
+    const r=await fetch('https://api.star-citizen.wiki/api/v2/comm-links?page%5Bsize%5D=100');
+    if(!r.ok)throw new Error(r.status);
+    const j=await r.json(),seen=new Set(),items=[];
+    for(const c of j.data){
+      if(seen.has(c.id)||/^[A-Z0-9]+(-[A-Za-z0-9]+)+$/.test(c.title))continue; /* doublons + fiches d'items techniques */
+      seen.add(c.id);
+      const txt=((c.translations||{}).en_EN||'').split('\n').slice(1).join(' ').replace(/\s+/g,' ').trim();
+      items.push({id:c.id,title:c.title,url:c.rsi_url,date:c.created_at,cat:classifyLink(c.title),x:txt.slice(0,220)});
+    }
+    items.sort((a,b)=>b.date.localeCompare(a.date));
+    feed={t:Date.now(),items};
+    try{localStorage.setItem(FEED_KEY,JSON.stringify(feed))}catch(e){}
+  }catch(e){
+    $('#feedStatus').textContent=feed.items.length?'✘ Réseau indisponible, affichage de la dernière version en cache.':'✘ Flux indisponible (API du Wiki injoignable).';
+    if(!feed.items.length){return}
+  }
+  renderFeed();
+}
+function renderFeed(){
+  $('#feedFilters').innerHTML=Object.entries(FEED_CATS).map(([k,l])=>{
+    const n=k==='all'?feed.items.length:feed.items.filter(i=>i.cat===k).length;
+    return`<button class="btn ${feedCat===k?'primary':''}" data-fc="${k}">${l} (${n})</button>`}).join('');
+  $$('[data-fc]').forEach(b=>b.onclick=()=>{feedCat=b.dataset.fc;renderFeed()});
+  const rows=feed.items.filter(i=>feedCat==='all'||i.cat===feedCat).slice(0,40);
+  const followed=new Set(db.opps.map(o=>o.link));
+  $('#feedList').innerHTML=rows.map(i=>{
+    const age=(Date.now()-new Date(i.date))/864e5,url=safeUrl(i.url);
+    return`<div class="feed-item"><span class="small d">${new Date(i.date).toLocaleDateString('fr-FR')}</span>
+      <a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(i.title)} ${age<14?'<span class="tag ok">Nouveau</span>':''}</a>
+      <button class="btn" data-follow="${i.id}" ${followed.has(i.url)?'disabled':''}>${followed.has(i.url)?'✔ Suivi':'+ Suivre'}</button>
+      ${i.x?`<div class="x">${esc(i.x)}…</div>`:''}</div>`}).join('')||'<div class="empty">Rien dans cette catégorie sur la période.</div>';
+  $$('[data-follow]').forEach(b=>b.onclick=()=>{
+    const i=feed.items.find(x=>String(x.id)===b.dataset.follow);if(!i)return;
+    db.opps.push({id:uid(),cat:i.cat==='promo'?'event':'tip',title:i.title,reward:'',end:'',link:i.url,note:'Comm-Link du '+new Date(i.date).toLocaleDateString('fr-FR'),status:'todo'});
+    save();renderOpps();renderFeed();
+  });
+  if(feed.items.length)$('#feedStatus').textContent='Source : Comm-Link RSI via api.star-citizen.wiki · mis à jour '+new Date(feed.t).toLocaleTimeString('fr-FR',{timeStyle:'short'});
+}
+$('#feedRefresh').onclick=()=>loadFeed(true);
+
+/* =====================================================
+   ALERTES RAFFINAGE
+   ===================================================== */
+function alertLabel(){
+  const p=('Notification' in window)?Notification.permission:'unsupported';
+  $('#alertBtn').textContent=p==='granted'?'🔔 Alertes : activées':p==='denied'?'🔕 Alertes : bloquées':'🔔 Activer les alertes';
+}
+$('#alertBtn').onclick=async()=>{
+  if('Notification' in window&&Notification.permission==='default')await Notification.requestPermission();
+  beep();alertLabel();
+};
+let actx;
+function beep(){
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    [660,880].forEach((f,i)=>{const o=actx.createOscillator(),g=actx.createGain();
+      o.frequency.value=f;g.gain.value=.12;o.connect(g);g.connect(actx.destination);
+      o.start(actx.currentTime+i*.18);o.stop(actx.currentTime+i*.18+.15)});
+  }catch(e){}
+}
+function notifyReady(r){
+  const body=`${r.mat}${r.scu?' · '+r.scu+' SCU':''} à ${r.place}`;
+  try{if('Notification' in window&&Notification.permission==='granted')new Notification('⛏ Raffinage prêt',{body})}catch(e){}
+  beep();
+}
+function checkReady(){
+  const now=Date.now();let changed=false;
+  db.refining.forEach(r=>{if(!r.collected&&!r.notified&&r.ready<=now){r.notified=true;changed=true;notifyReady(r)}});
+  if(changed)save();
+  const ready=db.refining.filter(r=>!r.collected&&r.ready<=now);
+  const b=$('#readyBanner');
+  b.style.display=ready.length?'block':'none';
+  b.innerHTML=ready.length?`✅ <b>${ready.length} raffinage${ready.length>1?'s':''} prêt${ready.length>1?'s':''}</b> : `+
+    ready.map(r=>`${esc(r.mat)} (${esc(r.place)})`).join(' · ')+' — <a href="#" id="goInd" style="color:inherit">voir</a>':'';
+  if(ready.length)$('#goInd').onclick=e=>{e.preventDefault();show('industry')};
+  document.title=(ready.length?`(${ready.length}) `:'')+'Star Citizen – Dashboard';
+  if(changed)renderRefining();
+}
+function gcalUrl(r){
+  const z=t=>new Date(t).toISOString().replace(/[-:]|\.\d{3}/g,'');
+  return'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('⛏ Raffinage prêt : '+r.mat)+
+    '&dates='+z(r.ready)+'/'+z(r.ready+15*60000)+'&details='+encodeURIComponent(`${r.mat} ${r.scu||''} SCU – ${r.place} (${r.method})`);
+}
+setInterval(checkReady,1000);
+
 /* ---------- init ---------- */
 function renderAll(){renderFleet();renderSession();renderRefining();renderIndKpis();renderSessions();renderOpps()}
-renderAll();
+renderAll();alertLabel();checkReady();loadFeed(false);
 </script>
 </body>
 </html>
