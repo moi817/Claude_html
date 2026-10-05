@@ -3,305 +3,634 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Star Citizen – Dashboard</title>
+<title>SC//OS – Star Citizen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0a0e14;--panel:#121923;--panel2:#18212e;--line:#243044;--text:#d7e0ee;--muted:#7f8da3;
-  --accent:#3fb8ff;--accent2:#ffb53f;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--radius:10px;
+  --bg:#0a0907;--panel:#12100b;--panel2:#1a160d;--line:#3a2f15;--line2:#251e0d;
+  --text:#efe3c4;--muted:#9a8b66;--accent:#ffb000;--accent-dim:#7a5600;
+  --ok:#9ccc65;--warn:#ff8a3d;--bad:#ff5a4d;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --rail:196px;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-header{display:flex;align-items:center;gap:24px;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5;flex-wrap:wrap}
-header h1{font-size:16px;margin:0;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
-nav{display:flex;gap:4px;flex-wrap:wrap}
-nav button{background:none;border:0;color:var(--muted);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit}
-nav button:hover{color:var(--text)}
-nav button.active{background:var(--panel2);color:var(--accent)}
-.spacer{flex:1}
-main{max-width:1200px;margin:0 auto;padding:20px}
-.page{display:none}.page.active{display:block}
-.grid{display:grid;gap:14px}
-.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px}
-.kpi,.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
-.kpi .v{font-size:24px;font-weight:600}
-.kpi .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
-h2{font-size:15px;margin:0 0 10px;color:var(--accent2);text-transform:uppercase;letter-spacing:.08em}
-h3{margin:0 0 6px;font-size:14px}
+html{scrollbar-color:var(--line) var(--bg)}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.55 var(--mono);-webkit-font-smoothing:antialiased}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:200;
+  background:repeating-linear-gradient(0deg,rgba(255,176,0,.022) 0 1px,transparent 1px 3px)}
+a{color:var(--accent)}
+:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
+::selection{background:var(--accent);color:#000}
+
+/* ---------- squelette : rail + contenu ---------- */
+#rail{position:fixed;inset:0 auto 0 0;width:var(--rail);border-right:1px solid var(--line);background:var(--panel);
+  display:flex;flex-direction:column;padding:18px 0 14px;z-index:20}
+.brand{display:flex;align-items:baseline;gap:2px;padding:0 20px 20px;text-decoration:none;color:var(--text);font-size:20px;font-weight:700;letter-spacing:.04em}
+.brand b{color:var(--accent)}.brand span{color:var(--muted);font-weight:400}
+#railNav{display:flex;flex-direction:column}
+#railNav a,#tabbar a{display:flex;align-items:center;gap:12px;padding:11px 20px;color:var(--muted);text-decoration:none;
+  text-transform:uppercase;letter-spacing:.1em;font-size:12px;border-left:2px solid transparent;position:relative}
+#railNav a i{font-style:normal;color:var(--accent-dim);font-size:11px}
+#railNav a:hover{color:var(--text);background:var(--panel2)}
+#railNav a.on{color:var(--accent);border-left-color:var(--accent);background:linear-gradient(90deg,rgba(255,176,0,.09),transparent)}
+#railNav a.on i{color:var(--accent)}
+.sig{margin-left:auto;min-width:8px;height:8px;font-style:normal;font-size:10px;color:#000;background:var(--accent);padding:0 5px;line-height:15px;height:15px}
+.sig:empty{display:none}
+.sig.dot{width:8px;min-width:8px;height:8px;padding:0;border-radius:50%;animation:pulse 1.4s infinite}
+.sig.ok{background:var(--ok)}
+@keyframes pulse{50%{opacity:.25}}
+#rail .spacer{flex:1}
+.railBtn{margin:0 14px 8px;background:none;border:1px solid var(--line);color:var(--muted);padding:8px 10px;font:inherit;font-size:11px;text-align:left;cursor:pointer;text-transform:uppercase;letter-spacing:.08em}
+.railBtn:hover{border-color:var(--accent);color:var(--accent)}
+.railBtn kbd{float:right;color:var(--accent-dim)}
+#syncPill{margin:0 14px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;cursor:pointer;padding:6px 0}
+#syncPill b{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:7px}
+#syncPill.ok b{background:var(--ok)}#syncPill.busy b{background:var(--accent);animation:pulse 1s infinite}#syncPill.err b{background:var(--bad)}
+
+#main{margin-left:var(--rail);min-height:100vh}
+#top{display:flex;align-items:center;gap:16px;padding:12px 28px;border-bottom:1px solid var(--line2);position:sticky;top:0;background:rgba(10,9,7,.92);backdrop-filter:blur(6px);z-index:10;flex-wrap:wrap}
+#crumb{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--muted)}
+#crumb b{color:var(--accent);font-weight:500}
+#top .sp{flex:1}
+#clock{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+#view{max-width:1240px;margin:0 auto;padding:22px 28px 80px}
+.page{display:none}.page.on{display:block;animation:enter .22s ease-out}
+@keyframes enter{from{opacity:0;transform:translateY(6px)}}
+@media(prefers-reduced-motion:reduce){.page.on{animation:none}.sig.dot,#syncPill.busy b{animation:none}}
+
+/* sous-navigation */
+.tabs{display:flex;gap:2px;margin-bottom:18px;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.tabs a{padding:9px 16px;color:var(--muted);text-decoration:none;text-transform:uppercase;letter-spacing:.12em;font-size:12px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a:hover{color:var(--text)}
+.tabs a.on{color:var(--accent);border-bottom-color:var(--accent)}
+.tabs a::before{content:"[ ";color:var(--accent-dim)}.tabs a::after{content:" ]";color:var(--accent-dim)}
+.tabs a.on::before,.tabs a.on::after{color:var(--accent)}
+
+/* mobile : barre basse */
+#tabbar{display:none}
+@media(max-width:900px){
+  #rail{display:none}#main{margin-left:0}
+  #tabbar{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);z-index:30}
+  #tabbar a{flex:1;flex-direction:column;gap:2px;padding:9px 2px;font-size:9.5px;letter-spacing:.04em;border-left:0;border-top:2px solid transparent;justify-content:center;text-align:center}
+  #tabbar a i{font-style:normal;font-size:12px;color:var(--accent-dim)}
+  #tabbar a.on{color:var(--accent);border-top-color:var(--accent)}#tabbar a.on i{color:var(--accent)}
+  #view{padding:16px 14px 90px}#top{padding:10px 14px}
+}
+
+/* ---------- panneaux ---------- */
+.grid{display:grid;gap:16px}
+.two{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px;gap:0;border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.kpi{background:var(--panel);padding:14px 16px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.kpi .v{font-size:24px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-top:2px}
+.panel{position:relative;border:1px solid var(--line);background:var(--panel);padding:18px 18px 16px;margin-bottom:16px}
+.grid>.panel{margin-bottom:0}
+.panel::before,.panel::after{content:"";position:absolute;width:10px;height:10px;border:2px solid var(--accent);pointer-events:none}
+.panel::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+.panel::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+h2{font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin:0 0 14px}
+h2::before{content:"// ";color:var(--accent-dim)}
+h3{font-size:12px;margin:14px 0 6px;color:var(--text);text-transform:uppercase;letter-spacing:.1em;font-weight:500}
+.sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.sec-head h2{margin:0}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-input,select,textarea,button.btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 10px;font:inherit}
-input:focus,select:focus{outline:1px solid var(--accent)}
-button.btn{cursor:pointer}
-button.btn:hover{border-color:var(--accent)}
-button.primary{background:var(--accent);color:#04121c;border-color:var(--accent);font-weight:600}
-button.danger:hover{border-color:var(--bad);color:var(--bad)}
-.small{font-size:12px;color:var(--muted)}
+.small{font-size:11.5px;color:var(--muted)}
+.empty{color:var(--muted);padding:20px;text-align:center}
+.sp{flex:1}
+
+/* ---------- champs & boutons ---------- */
+input,select,textarea{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:7px 10px;font:inherit;border-radius:0;max-width:100%}
+input::placeholder{color:#66593d}
+input:focus,select:focus{border-color:var(--accent);outline:0}
+input[type=checkbox]{accent-color:var(--accent)}
+select option{background:var(--panel2)}
+.btn{background:transparent;border:1px solid var(--line);color:var(--text);padding:7px 13px;font:inherit;font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:.08em;text-decoration:none;display:inline-block;border-radius:0}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700}
+.btn.primary:hover{background:#ffc43d;color:#000}
+.btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.btn.sm{padding:3px 8px;font-size:11px}
+.btn.on{border-color:var(--accent);color:var(--accent);background:rgba(255,176,0,.08)}
+
+/* ---------- tableaux, tags, jauges ---------- */
 table{width:100%;border-collapse:collapse}
-th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
-th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;white-space:nowrap}
-.tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;border:1px solid var(--line);color:var(--muted)}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line2);vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;white-space:nowrap}
+th[data-k]{cursor:pointer}th[data-k]:hover{color:var(--accent)}
+tr:hover td{background:rgba(255,176,0,.035)}
+.tag{display:inline-block;padding:0 7px;font-size:10.5px;border:1px solid var(--line);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;line-height:17px;white-space:nowrap}
 .tag.ok{color:var(--ok);border-color:var(--ok)}.tag.warn{color:var(--warn);border-color:var(--warn)}
 .tag.bad{color:var(--bad);border-color:var(--bad)}.tag.acc{color:var(--accent);border-color:var(--accent)}
-.two{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
-.timer{font-size:36px;font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:.04em}
-.empty{color:var(--muted);padding:18px;text-align:center}
-.bars{display:flex;align-items:flex-end;gap:4px;height:90px}
-.bars div{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
-.bars div:hover{opacity:1}
-details summary{cursor:pointer;color:var(--accent)}
-.opp{display:flex;flex-direction:column;gap:6px}
-.opp.done{opacity:.5}
-.opp a{color:var(--accent)}
-.note.ready{background:#10261a;border-color:#1f6b3a;color:#9be8b8}
-.feed-item{display:grid;grid-template-columns:78px 1fr auto;gap:4px 12px;padding:9px 0;border-bottom:1px solid var(--line);align-items:start}
-.feed-item a{color:var(--text);font-weight:500;text-decoration:none}.feed-item a:hover{color:var(--accent)}
-.feed-item .x{grid-column:2;color:var(--muted);font-size:12px}
-@media(max-width:600px){.feed-item{grid-template-columns:1fr auto}.feed-item .d{grid-column:1/-1}.feed-item .x{grid-column:1/-1}}
-.note{background:#2a2312;border:1px solid #5b4a1a;color:#e8d29b;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:13px}
-.sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
-@media(max-width:600px){main{padding:12px}.timer{font-size:28px}}
+.gauge{height:9px;background:repeating-linear-gradient(90deg,#2a2210 0 6px,transparent 6px 9px)}
+.gauge i{display:block;height:100%;width:var(--p,0%);background:repeating-linear-gradient(90deg,var(--accent) 0 6px,transparent 6px 9px);transition:width .6s}
+.gauge.ok i{background:repeating-linear-gradient(90deg,var(--ok) 0 6px,transparent 6px 9px)}
+.timer{font-size:42px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent);letter-spacing:.03em;line-height:1.1}
+.timer.idle{color:var(--accent-dim)}
+.note{border:1px solid var(--line);border-left:3px solid var(--warn);padding:10px 14px;margin-bottom:16px;font-size:12px;color:#d9c79b;background:var(--panel)}
+.note.ready{border-left-color:var(--ok);color:#cfe8b3}
+.bars{display:flex;align-items:flex-end;gap:3px;height:96px;border-bottom:1px solid var(--line)}
+.bars div{flex:1;background:var(--accent);min-height:2px;opacity:.8}.bars div:hover{opacity:1}
+
+/* ---------- hangar : cartes ---------- */
+.ships{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.ship{border:1px solid var(--line);background:var(--panel2);display:flex;flex-direction:column;position:relative}
+.ship:hover{border-color:var(--accent)}
+.ship-img{aspect-ratio:16/9;background:
+  linear-gradient(var(--line2) 1px,transparent 1px) 0 0/100% 18px,linear-gradient(90deg,var(--line2) 1px,transparent 1px) 0 0/18px 100%,#0d0b07;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.ship-img img{width:100%;height:100%;object-fit:contain;filter:saturate(.8) contrast(1.05);transition:.25s}
+.ship:hover .ship-img img{filter:none;transform:scale(1.04)}
+.noimg{font-size:30px;color:var(--accent-dim);font-weight:700;letter-spacing:.1em}
+.ship-img .tag{position:absolute;top:8px;left:8px;background:#0a0907}
+.ship-body{padding:11px 12px 12px;display:flex;flex-direction:column;gap:6px;flex:1}
+.ship-body b{font-size:14px;line-height:1.25}
+.ship-meta{display:flex;gap:12px;font-size:11.5px;color:var(--muted);flex-wrap:wrap}
+.ship-meta span em{font-style:normal;color:var(--text)}
+.ship-foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:6px;padding-top:6px;border-top:1px solid var(--line2)}
+
+/* ---------- CCU ---------- */
+.ccu{display:grid;grid-template-columns:1fr auto 1fr;gap:6px 12px;align-items:center;border:1px solid var(--line);padding:11px 14px;background:var(--panel2)}
+.ccu .arrow{color:var(--accent);font-size:18px}
+.ccu .meta{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:var(--muted)}
+.ccu.applied{opacity:.5}
+.chain{color:var(--accent);font-weight:700}
+
+/* ---------- flux / opportunités ---------- */
+.feed-item{display:grid;grid-template-columns:84px 1fr auto;gap:3px 14px;padding:10px 0;border-bottom:1px solid var(--line2);align-items:start}
+.feed-item a{color:var(--text);text-decoration:none;font-weight:500}.feed-item a:hover{color:var(--accent)}
+.feed-item .x{grid-column:2;color:var(--muted);font-size:11.5px}
+.opp{display:flex;flex-direction:column;gap:7px;border:1px solid var(--line);padding:13px;background:var(--panel2);margin:0}
+.opp.done{opacity:.45}
+.opps{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+@media(max-width:600px){.feed-item{grid-template-columns:1fr auto}.feed-item .d,.feed-item .x{grid-column:1/-1}}
+
+/* ---------- palette de commandes ---------- */
+#pal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.65);display:none;align-items:flex-start;justify-content:center;padding-top:12vh}
+#pal.on{display:flex}
+#palBox{width:min(560px,92vw);background:var(--panel);border:1px solid var(--accent);box-shadow:0 0 0 1px #000,0 20px 60px #000}
+#palIn{width:100%;border:0;border-bottom:1px solid var(--line);padding:14px 16px;font-size:14px;background:var(--panel)}
+#palIn:focus{outline:0}
+#palList{max-height:50vh;overflow:auto;margin:0;padding:6px 0;list-style:none}
+#palList li{display:flex;justify-content:space-between;gap:12px;padding:8px 16px;cursor:pointer;color:var(--muted)}
+#palList li b{color:var(--text);font-weight:500}
+#palList li.sel{background:rgba(255,176,0,.12);color:var(--accent)}#palList li.sel b{color:var(--accent)}
+#palFoot{border-top:1px solid var(--line);padding:7px 16px;font-size:11px;color:var(--muted)}
+kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-dim)}
 </style>
 </head>
 <body>
-<header>
-  <h1>⟡ SC Dashboard</h1>
-  <nav id="nav">
-    <button data-page="fleet" class="active">🚀 Flotte</button>
-    <button data-page="industry">⛏ Industrie</button>
-    <button data-page="opps">🎯 Opportunités</button>
-  </nav>
+
+<aside id="rail">
+  <a class="brand" href="#/today"><b>SC</b><span>//OS</span></a>
+  <nav id="railNav"></nav>
   <span class="spacer"></span>
-  <button class="btn" id="alertBtn" title="Notification + son quand un raffinage est prêt"></button>
-  <button class="btn" id="exportAll">Exporter les données</button>
-  <label class="btn" style="cursor:pointer">Importer<input type="file" id="importAll" accept=".json" hidden></label>
-</header>
+  <button class="railBtn" id="palBtn">Commandes <kbd>Ctrl K</kbd></button>
+  <div id="syncPill" class="" title="État de la synchronisation"><b></b><span>Sync · off</span></div>
+</aside>
 
-<main>
-<div id="readyBanner" class="note ready" style="display:none"></div>
-<!-- ===================== FLOTTE ===================== -->
-<section id="page-fleet" class="page active">
-  <div class="grid kpis" id="fleetKpis"></div>
+<div id="main">
+  <header id="top">
+    <div id="crumb"></div>
+    <span class="sp"></span>
+    <span id="clock"></span>
+    <button class="btn sm" id="alertBtn" title="Notification + son quand un raffinage est prêt"></button>
+    <button class="btn sm" id="palBtn2" title="Palette de commandes (Ctrl+K ou /)">⌘ Cmd</button>
+  </header>
 
-  <div class="grid two" style="margin-bottom:16px">
-    <div class="card">
-      <h2>Importer ma flotte</h2>
-      <p class="small" style="margin-top:0">RSI n'a pas d'API officielle : partager un token/cookie RSI est risqué et bloqué par le navigateur. Deux méthodes sûres :</p>
-      <h3>1. Depuis FleetYards (hangar public)</h3>
-      <div class="row">
-        <input id="fyUser" placeholder="Pseudo FleetYards" style="flex:1;min-width:140px">
-        <button class="btn primary" id="fyLoad">Charger</button>
+  <div id="view">
+    <div id="readyBanner" class="note ready" style="display:none"></div>
+
+    <!-- ============ AUJOURD'HUI ============ -->
+    <section class="page" id="page-today" data-page="today">
+      <div class="kpis grid" id="tKpis"></div>
+      <div class="grid two" style="margin-bottom:16px">
+        <div class="panel"><h2>Session</h2><div id="tSession"></div></div>
+        <div class="panel"><h2>Raffineries</h2><div id="tRefining"></div></div>
       </div>
-      <p class="small">Sur fleetyards.net, importe ton hangar RSI (via HangarXplor) puis rends-le public.</p>
-      <h3>2. Fichier JSON HangarXplor</h3>
-      <div class="row">
-        <label class="btn" style="cursor:pointer">Choisir un fichier JSON<input type="file" id="fleetFile" accept=".json" hidden></label>
-        <span class="small">Extension navigateur « HangarXplor » → Export JSON</span>
+      <div class="grid two">
+        <div class="panel"><h2>Promos &amp; annonces RSI</h2><div id="tPromos"></div></div>
+        <div class="panel"><h2>Marché · meilleurs prix de vente</h2><div id="tMarket"></div></div>
       </div>
-      <div id="fleetMsg" class="small" style="margin-top:8px"></div>
-    </div>
-    <div class="card">
-      <h2>Ajouter un vaisseau à la main</h2>
-      <div class="row">
-        <input id="mName" placeholder="Modèle (ex. Cutlass Black)" style="flex:2;min-width:140px">
-        <input id="mMaker" placeholder="Constructeur" style="flex:1;min-width:100px">
+    </section>
+
+    <!-- ============ FLOTTE ============ -->
+    <section class="page" id="page-fleet" data-page="fleet">
+      <div class="tabs" data-tabs="fleet"></div>
+
+      <div data-sub="hangar">
+        <div class="kpis grid" id="fleetKpis"></div>
+        <div class="grid two" style="margin-bottom:16px">
+          <div class="panel">
+            <h2>Importer ma flotte</h2>
+            <p class="small" style="margin-top:0">RSI n'a pas d'API officielle : un token/cookie RSI serait risqué et bloqué par le navigateur. Deux méthodes sûres :</p>
+            <h3>1 · Hangar public FleetYards</h3>
+            <div class="row">
+              <input id="fyUser" placeholder="Pseudo FleetYards" style="flex:1;min-width:140px">
+              <button class="btn primary" id="fyLoad">Charger</button>
+            </div>
+            <h3>2 · Export JSON HangarXplor</h3>
+            <label class="btn" style="cursor:pointer">Choisir un fichier<input type="file" id="fleetFile" accept=".json" hidden></label>
+            <div id="fleetMsg" class="small" style="margin-top:10px"></div>
+          </div>
+          <div class="panel">
+            <h2>Ajout manuel</h2>
+            <div class="row">
+              <input id="mName" list="shipNames" placeholder="Modèle (ex. Cutlass Black)" style="flex:2;min-width:150px">
+              <input id="mMaker" placeholder="Constructeur" style="flex:1;min-width:100px">
+            </div>
+            <div class="row" style="margin-top:8px">
+              <input id="mCargo" type="number" min="0" placeholder="Cargo SCU" style="width:110px">
+              <input id="mCrew" type="number" min="1" placeholder="Équipage" style="width:100px">
+              <input id="mValue" type="number" min="0" placeholder="Valeur $" style="width:100px">
+              <select id="mIns"><option value="">Assurance ?</option><option>LTI</option><option>10 ans</option><option>6 mois</option><option>2 mois</option><option>Standard</option><option>In-game (aUEC)</option></select>
+              <button class="btn primary" id="mAdd">Ajouter</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="sec-head">
+            <h2>Hangar</h2>
+            <div class="row">
+              <input id="fleetSearch" placeholder="Rechercher…">
+              <select id="fleetRole"><option value="">Tous les rôles</option></select>
+              <select id="fleetSortSel">
+                <option value="model">Tri : nom</option><option value="value">Tri : valeur</option>
+                <option value="cargo">Tri : cargo</option><option value="maker">Tri : constructeur</option>
+              </select>
+              <button class="btn sm" id="viewGrid">Grille</button><button class="btn sm" id="viewTable">Tableau</button>
+              <button class="btn sm" id="fleetEnrich" title="Complète cargo, équipage, rôle, prix via FleetYards">✨ Enrichir</button>
+              <button class="btn sm danger" id="fleetClear">Vider</button>
+            </div>
+          </div>
+          <div id="fleetGrid" class="ships"></div>
+          <div style="overflow-x:auto"><table id="fleetTable"></table></div>
+        </div>
       </div>
-      <div class="row" style="margin-top:8px">
-        <input id="mCargo" type="number" min="0" placeholder="Cargo SCU" style="width:110px">
-        <input id="mCrew" type="number" min="1" placeholder="Équipage" style="width:100px">
-        <input id="mValue" type="number" min="0" placeholder="Valeur $" style="width:100px">
-        <select id="mIns"><option value="">Assurance ?</option><option>LTI</option><option>10 ans</option><option>6 mois</option><option>2 mois</option><option>Standard</option><option>In-game (aUEC)</option></select>
-        <button class="btn primary" id="mAdd">Ajouter</button>
+
+      <div data-sub="ccu">
+        <div class="kpis grid" id="ccuKpis"></div>
+        <div class="grid two" style="margin-bottom:16px">
+          <div class="panel">
+            <h2>Enregistrer un CCU</h2>
+            <div class="row">
+              <input id="cFrom" list="shipNames" placeholder="De (vaisseau)" style="flex:1;min-width:140px">
+              <span class="chain">➜</span>
+              <input id="cTo" list="shipNames" placeholder="Vers (vaisseau)" style="flex:1;min-width:140px">
+            </div>
+            <div class="row" style="margin-top:8px">
+              <input id="cPaid" type="number" min="0" step="0.01" placeholder="Payé $" style="width:100px">
+              <select id="cType"><option value="std">Standard</option><option value="wb">Warbond</option><option value="cr">Crédit store</option></select>
+              <input id="cDate" type="date" title="Date d'achat">
+              <input id="cNote" placeholder="Notes" style="flex:1;min-width:120px">
+              <button class="btn primary" id="cAdd">Ajouter</button>
+            </div>
+            <p class="small">Statut « stocké » = CCU acheté non appliqué. Il sert au calcul de chemin du simulateur.</p>
+          </div>
+          <div class="panel">
+            <h2>Simulateur d'upgrade</h2>
+            <div class="row">
+              <input id="sFrom" list="shipNames" placeholder="Vaisseau actuel" style="flex:1;min-width:140px">
+              <span class="chain">➜</span>
+              <input id="sTo" list="shipNames" placeholder="Vaisseau visé" style="flex:1;min-width:140px">
+            </div>
+            <div id="sOut" style="margin-top:12px"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="sec-head"><h2>Mes CCU</h2>
+            <label class="small"><input type="checkbox" id="ccuHide"> masquer les appliqués</label></div>
+          <div id="ccuList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr))"></div>
+        </div>
       </div>
-    </div>
+      <datalist id="shipNames"></datalist>
+    </section>
+
+    <!-- ============ INDUSTRIE ============ -->
+    <section class="page" id="page-industry" data-page="industry">
+      <div class="tabs" data-tabs="industry"></div>
+
+      <div data-sub="mining salvage">
+        <div class="kpis grid" id="indKpis"></div>
+        <div class="grid two" style="margin-bottom:16px">
+          <div class="panel">
+            <h2 id="sessTitle">Session</h2>
+            <div class="timer idle" id="timer">00:00:00</div>
+            <div id="sessNotice" class="small" style="margin:6px 0"></div>
+            <div class="row" style="margin:12px 0">
+              <input id="sPlace" placeholder="Lieu" style="flex:1;min-width:140px">
+              <select id="sShip"><option value="">Vaisseau…</option></select>
+            </div>
+            <div class="row">
+              <button class="btn primary" id="sStart">▶ Démarrer</button>
+              <button class="btn" id="sPause" disabled>⏸ Pause</button>
+              <button class="btn danger" id="sStop" disabled>■ Terminer</button>
+            </div>
+            <h3>Journal de récolte</h3>
+            <div class="row">
+              <input id="lMat" list="logMats" placeholder="Matériau" style="flex:1;min-width:110px">
+              <input id="lScu" type="number" min="0" step="0.1" placeholder="SCU" style="width:80px">
+              <input id="lVal" type="number" min="0" placeholder="Valeur aUEC" style="width:110px">
+              <button class="btn" id="lAdd" disabled>+ Ajouter</button>
+            </div>
+            <div id="logList" class="small" style="margin-top:8px"></div>
+            <datalist id="logMats"></datalist>
+          </div>
+          <div class="panel">
+            <h2>aUEC par session</h2>
+            <div class="bars" id="sessBars"></div><div class="small" id="sessBarsLegend" style="margin-top:6px"></div>
+            <h3>Prix de référence (UEX)</h3>
+            <div id="indRef" class="small"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2 id="histTitle">Historique</h2>
+          <div style="overflow-x:auto"><table id="sessTable"></table></div>
+        </div>
+      </div>
+
+      <div data-sub="refining">
+        <div class="panel">
+          <h2>Lancer un raffinage</h2>
+          <div class="row">
+            <select id="rPlace" style="flex:1;min-width:170px"></select>
+            <input id="rMat" list="mats" placeholder="Minerai" style="flex:1;min-width:120px">
+            <select id="rMethod"></select>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <input id="rScu" type="number" min="0" step="0.1" placeholder="SCU" style="width:80px">
+            <input id="rCost" type="number" min="0" placeholder="Coût aUEC" style="width:110px">
+            <span class="small">Prêt dans</span>
+            <input id="rH" type="number" min="0" placeholder="h" style="width:64px">
+            <input id="rM" type="number" min="0" max="59" placeholder="min" style="width:64px">
+            <input id="rVal" type="number" min="0" placeholder="Valeur estimée aUEC" style="width:170px">
+            <button class="btn primary" id="rAdd">Lancer</button>
+          </div>
+          <datalist id="mats"></datalist>
+        </div>
+        <div class="panel">
+          <div class="sec-head"><h2>Ordres de raffinage</h2>
+            <label class="small"><input type="checkbox" id="rHideDone"> masquer les récupérés</label></div>
+          <div style="overflow-x:auto"><table id="refTable"></table></div>
+        </div>
+      </div>
+
+      <div data-sub="profit">
+        <div class="panel">
+          <div class="sec-head">
+            <h2>Prix de vente en direct</h2>
+            <div class="row">
+              <select id="pCat"></select>
+              <input id="pCap" type="number" min="1" placeholder="Cargo SCU" style="width:110px">
+              <select id="pShip"><option value="">Mon vaisseau…</option></select>
+              <button class="btn sm" id="pRefresh">↻ Actualiser</button>
+            </div>
+          </div>
+          <div class="small" id="pStatus" style="margin-bottom:10px"></div>
+          <div style="overflow-x:auto"><table id="pTable"></table></div>
+        </div>
+        <div class="panel">
+          <h2>Simulateur de rentabilité</h2>
+          <div class="row">
+            <select id="xMat" style="min-width:200px"></select>
+            <input id="xScu" type="number" min="0" step="0.1" placeholder="SCU minés (bruts)" style="width:150px">
+            <input id="xYield" type="number" min="1" max="100" placeholder="Rendement %" style="width:120px" value="50">
+            <input id="xCost" type="number" min="0" placeholder="Coût raffinage aUEC" style="width:160px" value="0">
+            <input id="xMin" type="number" min="1" placeholder="Durée cycle (min)" style="width:150px" value="60">
+          </div>
+          <div id="xOut" style="margin-top:14px"></div>
+          <p class="small">Le rendement dépend de la méthode, du lieu et de la qualité du minerai : saisis celui que tu observes en jeu. Les prix viennent de UEX Corp (relevés communautaires, parfois anciens).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ OPPORTUNITÉS ============ -->
+    <section class="page" id="page-opps" data-page="opps">
+      <div class="panel">
+        <div class="sec-head">
+          <h2>Flux Comm-Link RSI</h2>
+          <div class="row" id="feedFilters"></div>
+          <button class="btn sm" id="feedRefresh">↻ Actualiser</button>
+        </div>
+        <div class="small" id="feedStatus"></div>
+        <div id="feedList"></div>
+      </div>
+      <div class="note">⚠ Les fiches « Mes opportunités » pré-remplies sont écrites à la main et <b>non vérifiées en direct</b> : contrôle chaque lien. Utilise « + Suivre » dans le flux pour ajouter une annonce à ta liste.</div>
+      <div class="panel">
+        <div class="sec-head">
+          <h2>Mes opportunités</h2>
+          <div class="row">
+            <span class="row" id="oppCats"></span>
+            <label class="small"><input type="checkbox" id="oppHideDone"> masquer les faits</label>
+            <button class="btn primary sm" id="oppNew">+ Nouvelle</button>
+          </div>
+        </div>
+        <div id="oppForm" style="display:none;margin-bottom:14px" class="row">
+          <select id="oCat"></select>
+          <input id="oTitle" placeholder="Titre" style="flex:2;min-width:160px">
+          <input id="oReward" placeholder="Récompense" style="flex:2;min-width:160px">
+          <input id="oEnd" type="date" title="Fin (vide = permanent)">
+          <input id="oLink" placeholder="Lien (https://…)" style="flex:2;min-width:160px">
+          <input id="oNote" placeholder="Notes" style="flex:3;min-width:160px">
+          <button class="btn primary" id="oSave">Enregistrer</button>
+        </div>
+        <div class="opps" id="oppList"></div>
+      </div>
+    </section>
+
+    <!-- ============ SYSTÈME ============ -->
+    <section class="page" id="page-system" data-page="system">
+      <div class="grid two">
+        <div class="panel">
+          <h2>Synchronisation entre appareils</h2>
+          <p class="small" style="margin-top:0">Tes données sont stockées dans un <b>Gist GitHub secret</b> (fichier <code>sc-dashboard.json</code>) de ton compte. Sur chaque appareil, il suffit de coller le même token : le Gist est retrouvé automatiquement.</p>
+          <div id="syncForm">
+            <div class="row">
+              <input id="syToken" type="password" placeholder="Token GitHub (scope « gist » uniquement)" style="flex:1;min-width:220px" autocomplete="off">
+              <button class="btn primary" id="syConnect">Connecter</button>
+            </div>
+            <p class="small"><a target="_blank" rel="noopener noreferrer" href="https://github.com/settings/tokens/new?scopes=gist&description=SC%20OS%20dashboard">Créer un token avec le seul droit « gist » ↗</a><br>
+            Le token reste dans <b>ce navigateur</b> uniquement ; il n'est jamais envoyé ailleurs que sur api.github.com. Ne lui donne aucun autre droit.</p>
+          </div>
+          <div id="syncInfo" style="display:none">
+            <div id="syStatus" style="margin-bottom:10px"></div>
+            <div class="row">
+              <button class="btn primary" id="syNow">Synchroniser maintenant</button>
+              <button class="btn" id="syPush" title="Écrase le cloud avec cet appareil">Forcer l'envoi</button>
+              <button class="btn" id="syPull" title="Écrase cet appareil avec le cloud">Forcer la réception</button>
+              <button class="btn danger" id="syOff">Déconnecter</button>
+            </div>
+            <label class="small" style="display:block;margin-top:10px"><input type="checkbox" id="syAuto"> Synchroniser automatiquement (à chaque modification, puis toutes les 5 min)</label>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Données locales</h2>
+          <div class="row">
+            <button class="btn" id="exportAll">Exporter (JSON)</button>
+            <label class="btn" style="cursor:pointer">Importer<input type="file" id="importAll" accept=".json" hidden></label>
+            <button class="btn" id="restoreBk" title="Restaure la version d'avant le dernier écrasement par le cloud">Restaurer la sauvegarde</button>
+          </div>
+          <p class="small">Une copie de sécurité de cet appareil est gardée automatiquement avant tout écrasement par le cloud ou un import.</p>
+          <h3>Alertes</h3>
+          <div class="row"><button class="btn" id="alertBtn2"></button></div>
+          <h3>Sources de données</h3>
+          <p class="small" style="margin:0">FleetYards (modèles, images, hangars publics) · Star Citizen Wiki API (Comm-Link) · UEX Corp (prix de vente) · Gist GitHub (synchronisation, optionnelle).</p>
+        </div>
+      </div>
+    </section>
   </div>
+</div>
 
-  <div class="card">
-    <div class="sec-head">
-      <h2 style="margin:0">Hangar</h2>
-      <div class="row">
-        <input id="fleetSearch" placeholder="Rechercher…">
-        <select id="fleetRole"><option value="">Tous les rôles</option></select>
-        <button class="btn" id="fleetEnrich" title="Complète cargo, équipage, rôle, prix via FleetYards">✨ Enrichir</button>
-        <button class="btn danger" id="fleetClear">Vider</button>
-      </div>
-    </div>
-    <div style="overflow-x:auto"><table id="fleetTable"></table></div>
-  </div>
-</section>
+<nav id="tabbar"></nav>
 
-<!-- ===================== INDUSTRIE ===================== -->
-<section id="page-industry" class="page">
-  <div class="grid kpis" id="indKpis"></div>
-
-  <div class="grid two" style="margin-bottom:16px">
-    <div class="card">
-      <h2>Session en cours</h2>
-      <div class="timer" id="timer">00:00:00</div>
-      <div class="row" style="margin:10px 0">
-        <select id="sType"><option>Minage</option><option>Salvage</option><option>Autre</option></select>
-        <input id="sPlace" placeholder="Lieu (ex. Aaron Halo, Pyro…)" style="flex:1;min-width:140px">
-        <select id="sShip"><option value="">Vaisseau…</option></select>
-      </div>
-      <div class="row">
-        <button class="btn primary" id="sStart">▶ Démarrer</button>
-        <button class="btn" id="sPause" disabled>⏸ Pause</button>
-        <button class="btn danger" id="sStop" disabled>■ Terminer &amp; enregistrer</button>
-      </div>
-      <h3 style="margin-top:16px">Journal de récolte</h3>
-      <div class="row">
-        <input id="lMat" list="mats" placeholder="Matériau" style="flex:1;min-width:110px">
-        <input id="lScu" type="number" min="0" step="0.1" placeholder="SCU" style="width:80px">
-        <input id="lVal" type="number" min="0" placeholder="Valeur aUEC" style="width:110px">
-        <button class="btn" id="lAdd" disabled>+ Ajouter</button>
-      </div>
-      <div id="logList" class="small" style="margin-top:8px"></div>
-    </div>
-
-    <div class="card">
-      <h2>Lancer un raffinage</h2>
-      <div class="row">
-        <select id="rPlace" style="flex:1;min-width:150px"></select>
-        <input id="rMat" list="mats" placeholder="Minerai / RMC" style="flex:1;min-width:110px">
-      </div>
-      <div class="row" style="margin-top:8px">
-        <select id="rMethod"></select>
-        <input id="rScu" type="number" min="0" step="0.1" placeholder="SCU" style="width:80px">
-        <input id="rCost" type="number" min="0" placeholder="Coût aUEC" style="width:100px">
-      </div>
-      <div class="row" style="margin-top:8px">
-        <span class="small">Prêt dans</span>
-        <input id="rH" type="number" min="0" placeholder="h" style="width:64px">
-        <input id="rM" type="number" min="0" max="59" placeholder="min" style="width:64px">
-        <input id="rVal" type="number" min="0" placeholder="Valeur estimée aUEC" style="width:150px">
-        <button class="btn primary" id="rAdd">Lancer</button>
-      </div>
-      <p class="small">Astuce : le temps affiché en jeu au moment de la commande suffit.</p>
-    </div>
-  </div>
-
-  <datalist id="mats"></datalist>
-
-  <div class="card" style="margin-bottom:16px">
-    <div class="sec-head"><h2 style="margin:0">Ordres de raffinage</h2>
-      <label class="small"><input type="checkbox" id="rHideDone"> masquer les récupérés</label></div>
-    <div style="overflow-x:auto"><table id="refTable"></table></div>
-  </div>
-
-  <div class="grid two">
-    <div class="card"><h2>aUEC par session</h2><div class="bars" id="sessBars"></div><div class="small" id="sessBarsLegend"></div></div>
-    <div class="card"><h2>Par activité</h2><div id="byType"></div></div>
-  </div>
-  <div class="card" style="margin-top:14px">
-    <h2>Historique des sessions</h2>
-    <div style="overflow-x:auto"><table id="sessTable"></table></div>
-  </div>
-</section>
-
-<!-- ===================== OPPORTUNITÉS ===================== -->
-<section id="page-opps" class="page">
-  <div class="card" style="margin-bottom:14px">
-    <div class="sec-head">
-      <h2 style="margin:0">🛰 Flux Comm-Link RSI (en direct)</h2>
-      <div class="row" id="feedFilters"></div>
-      <button class="btn" id="feedRefresh">↻ Actualiser</button>
-    </div>
-    <div class="small" id="feedStatus"></div>
-    <div id="feedList"></div>
-  </div>
-  <div class="note">⚠ Les fiches « Mes opportunités » ci-dessous sont pré-remplies à la main et <b>non vérifiées en direct</b> : contrôle chaque lien. Utilise « + Suivre » dans le flux pour ajouter une annonce à ta liste ; dates, statut et notes sont conservés dans ton navigateur.</div>
-  <div class="card" style="margin-bottom:14px">
-    <div class="sec-head">
-      <div class="row" id="oppCats"></div>
-      <div class="row">
-        <label class="small"><input type="checkbox" id="oppHideDone"> masquer les faits</label>
-        <button class="btn primary" id="oppNew">+ Nouvelle opportunité</button>
-      </div>
-    </div>
-    <div id="oppForm" style="display:none;margin-bottom:12px" class="row">
-      <select id="oCat"></select>
-      <input id="oTitle" placeholder="Titre" style="flex:2;min-width:160px">
-      <input id="oReward" placeholder="Récompense" style="flex:2;min-width:160px">
-      <input id="oEnd" type="date" title="Fin (vide = permanent)">
-      <input id="oLink" placeholder="Lien (https://…)" style="flex:2;min-width:160px">
-      <input id="oNote" placeholder="Notes" style="flex:3;min-width:160px">
-      <button class="btn primary" id="oSave">Enregistrer</button>
-    </div>
-    <div class="grid" id="oppList" style="grid-template-columns:repeat(auto-fill,minmax(310px,1fr))"></div>
-  </div>
-</section>
-</main>
+<div id="pal"><div id="palBox">
+  <input id="palIn" placeholder="Aller à… ou lancer une action" autocomplete="off">
+  <ul id="palList"></ul>
+  <div id="palFoot"><kbd>↑↓</kbd> choisir · <kbd>Entrée</kbd> valider · <kbd>Échap</kbd> fermer · raccourcis : <kbd>1</kbd>–<kbd>5</kbd> pages, <kbd>/</kbd> commandes</div>
+</div></div>
 
 <script>
-/* ---------- utilitaires ---------- */
+/* =====================================================
+   OUTILS
+   ===================================================== */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Math.round(n||0).toLocaleString('fr-FR');
 const uid=()=>Math.random().toString(36).slice(2,10);
+const num=v=>{const n=parseFloat(String(v??'').replace(/[^0-9.]/g,''));return isNaN(n)?0:n};
 const dur=ms=>{ms=Math.max(0,ms);const s=Math.floor(ms/1000);return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(x=>String(x).padStart(2,'0')).join(':')};
 const safeUrl=u=>/^https?:\/\//i.test(u||'')?u:'';
-
-const KEY='scdash.v1';
-const defaults={fleet:[],sessions:[],refining:[],opps:null,active:null};
-let db;
-try{db=Object.assign({},defaults,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){db={...defaults}}
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}};
-
-/* ---------- navigation ---------- */
-function show(p){
-  $$('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===p));
-  $$('.page').forEach(s=>s.classList.toggle('active',s.id==='page-'+p));
-  try{localStorage.setItem(KEY+'.page',p)}catch(e){}
+const nk=x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const ago=t=>{const m=(Date.now()-t)/6e4;return m<2?'à l\'instant':m<60?`il y a ${Math.round(m)} min`:m<1440?`il y a ${Math.round(m/60)} h`:`il y a ${Math.round(m/1440)} j`};
+/* fetch avec nouvelles tentatives (réseaux instables) */
+async function fetchRetry(url,opt,tries=4){
+  let err;
+  for(let i=0;i<tries;i++){
+    try{const r=await fetch(url,opt);if(r.ok||r.status<500)return r;err=new Error('http '+r.status)}catch(e){err=e}
+    await new Promise(ok=>setTimeout(ok,700*(i+1)));
+  }
+  throw err;
 }
-$('#nav').onclick=e=>{if(e.target.dataset.page)show(e.target.dataset.page)};
-try{const p=localStorage.getItem(KEY+'.page');if(p)show(p)}catch(e){}
+const lget=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}};
+const lset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 
-/* export / import global */
-$('#exportAll').onclick=()=>{
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'}));
-  a.download='sc-dashboard-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+/* =====================================================
+   STOCKAGE
+   ===================================================== */
+const KEY='scdash.v1';
+const defaults={fleet:[],sessions:[],refining:[],opps:null,active:null,ccus:[],updatedAt:0};
+let db=Object.assign({},defaults,lget(KEY,{}));
+const persist=()=>lset(KEY,db);
+function save(){db.updatedAt=Date.now();persist();queueSync()}
+function backup(){lset(KEY+'.backup',{t:Date.now(),db})}
+
+/* =====================================================
+   ROUTEUR  (#/page/sous-page)
+   ===================================================== */
+const ROUTES={
+  today:{label:"Aujourd'hui"},
+  fleet:{label:'Flotte',subs:{hangar:'Hangar',ccu:'CCU'}},
+  industry:{label:'Industrie',subs:{mining:'Minage',salvage:'Salvage',refining:'Raffinage',profit:'Rentabilité'}},
+  opps:{label:'Opportunités'},
+  system:{label:'Système'}
 };
-$('#importAll').onchange=async e=>{
-  try{const d=JSON.parse(await e.target.files[0].text());db=Object.assign({},defaults,d);save();renderAll();}
-  catch(err){alert('Fichier invalide')}
-  e.target.value='';
-};
+const PAGES=Object.keys(ROUTES);
+let cur={page:'today',sub:''};
+function parseHash(){
+  const m=(location.hash||'').match(/^#\/([a-z]+)(?:\/([a-z]+))?/);
+  let page=m&&ROUTES[m[1]]?m[1]:'today',subs=ROUTES[page].subs,sub='';
+  if(subs)sub=m&&m[2]&&subs[m[2]]?m[2]:(lget(KEY+'.sub.'+page,'')||Object.keys(subs)[0]);
+  if(subs&&!subs[sub])sub=Object.keys(subs)[0];
+  return{page,sub};
+}
+const go=p=>{location.hash='#/'+p};
+function route(){
+  cur=parseHash();
+  if(cur.sub)lset(KEY+'.sub.'+cur.page,cur.sub);
+  const canon='#/'+cur.page+(cur.sub?'/'+cur.sub:'');
+  if(location.hash!==canon)history.replaceState(null,'',canon);
+  $$('.page').forEach(s=>s.classList.toggle('on',s.dataset.page===cur.page));
+  $$('#page-'+cur.page+' [data-sub]').forEach(el=>el.style.display=el.dataset.sub.split(' ').includes(cur.sub)?'':'none');
+  $$('[data-r]').forEach(a=>a.classList.toggle('on',a.dataset.r===cur.page));
+  const t=$(`#page-${cur.page} [data-tabs]`);
+  if(t)t.innerHTML=Object.entries(ROUTES[cur.page].subs).map(([k,l])=>`<a href="#/${cur.page}/${k}" class="${k===cur.sub?'on':''}">${l}</a>`).join('');
+  $('#crumb').innerHTML=`SC//OS › <b>${ROUTES[cur.page].label}</b>`+(cur.sub?` › ${ROUTES[cur.page].subs[cur.sub]}`:'');
+  window.scrollTo(0,0);
+  renderAll();
+}
+function buildNav(){
+  const html=PAGES.map((p,i)=>`<a href="#/${p}" data-r="${p}"><i>0${i+1}</i><span>${ROUTES[p].label}</span><em class="sig" id="sig-${p}"></em></a>`).join('');
+  $('#railNav').innerHTML=html;
+  $('#tabbar').innerHTML=PAGES.map((p,i)=>`<a href="#/${p}" data-r="${p}"><i>0${i+1}</i><span>${ROUTES[p].label.replace("Aujourd'hui",'Jour').replace('Opportunités','Opport.')}</span></a>`).join('');
+}
+window.addEventListener('hashchange',route);
 
 /* =====================================================
    FLOTTE
    ===================================================== */
-const num=v=>{const n=parseFloat(String(v??'').replace(/[^0-9.]/g,''));return isNaN(n)?0:n};
+let MODELS=[],MODEL_BY_SLUG={};
+const MODELS_KEY=KEY+'.models2';
+function indexModels(items){
+  MODELS=items;MODEL_BY_SLUG={};items.forEach(m=>MODEL_BY_SLUG[m.slug]=m);
+  $('#shipNames').innerHTML=[...new Set([...items.map(m=>m.name),...db.fleet.map(s=>s.model)])].sort().map(n=>`<option value="${esc(n)}">`).join('');
+}
+async function loadModels(){
+  const c=lget(MODELS_KEY,null);
+  if(c&&Date.now()-c.t<864e5&&c.items.length)return c.items;
+  const items=[];
+  for(let page=1;page<=5;page++){
+    const r=await fetchRetry(`https://api.fleetyards.net/v1/models?perPage=240&page=${page}`);
+    if(!r.ok)throw new Error(r.status);
+    const j=await r.json();
+    items.push(...j.items.map(m=>{
+      const md=m.media||{},im=(md.angledView||md.storeImage||md.topView||{});
+      return{name:m.name,rsi:m.rsiName||'',slug:m.slug,maker:(m.manufacturer||{}).name||'',
+        cargo:(m.metrics||{}).cargo||0,crew:(m.crew||{}).max||0,role:m.focus||m.classificationLabel||'',
+        pledge:m.pledgePrice||0,price:m.price||0,status:m.productionStatus||'',img:im.smallUrl||''}}));
+    if(page>=((j.meta||{}).pagination||{}).totalPages)break;
+  }
+  lset(MODELS_KEY,{t:Date.now(),items});
+  return items;
+}
+let modelsPromise=null;
+function ensureModels(){
+  if(MODELS.length)return Promise.resolve(MODELS);
+  if(!modelsPromise)modelsPromise=loadModels().then(items=>{indexModels(items);return items}).finally(()=>{modelsPromise=null});
+  return modelsPromise;
+}
+function findModel(models,s){
+  const cands=[s.model,(s.maker||'')+' '+s.model].map(nk);
+  const prefixes=new Set(models.flatMap(m=>[nk(m.maker),nk(m.maker.split(' ')[0])]).filter(x=>x.length>=3));
+  const first=nk(s.model);
+  prefixes.forEach(p=>{if(first.startsWith(p)&&first.length>p.length+2)cands.push(first.slice(p.length))});
+  for(const m of models){const k=[nk(m.name),nk(m.rsi),nk(m.maker+' '+m.name)];if(cands.some(c=>k.includes(c)))return m}
+  let best=null;
+  for(const m of models){const k=nk(m.name);if(k.length>=4&&cands.some(c=>c.startsWith(k))&&(!best||k.length>nk(best.name).length))best=m}
+  return best;
+}
+const modelOf=s=>s.slug?MODEL_BY_SLUG[s.slug]:null;
 
-/* normalise un élément venant de HangarXplor ou FleetYards */
 function normShip(o){
   const m=o.model||{};
   const model=o.ship_name||m.name||o.name||o.ship_codename||o.slug||'?';
   const custom=o.ship_name?(o.name&&o.name!==o.ship_name?o.name:''):(m.name&&o.name&&o.name!==m.name?o.name:'');
   let ins=o.lti?'LTI':(o.insurance||'');
   if(!ins&&o.monthsInsurance>0)ins=o.monthsInsurance+' mois';
-  if(!ins&&o.lti===false)ins='';
-  return{
-    id:uid(),
-    model, custom,
+  return{id:uid(),model,custom,
     maker:o.manufacturer_name||(m.manufacturer&&m.manufacturer.name)||o.manufacturer||'',
     role:m.classificationLabel||m.focus||o.focus||o.role||'',
-    cargo:num(m.cargo??o.cargo),
-    crew:num(m.maxCrew??(m.crew&&m.crew.max)??o.crew),
-    value:num(o.pledge_cost??o.value??m.pledgePrice),
-    insurance:ins,
-    status:m.productionStatus||o.flight_ready_status||'',
-    pledge:o.pledge_name||'',
-    source:o.ship_name?'HangarXplor':'FleetYards'
-  };
-}
-function setFleet(list,msg){
-  db.fleet=list;save();renderFleet();
-  $('#fleetMsg').textContent=msg;
-  enrichFleet(true);
+    cargo:num(m.metrics?m.metrics.cargo:(m.cargo??o.cargo)),crew:num(m.maxCrew??(m.crew&&m.crew.max)??o.crew),
+    value:num(o.pledge_cost??o.value??m.pledgePrice),insurance:ins,status:m.productionStatus||o.flight_ready_status||'',
+    slug:m.slug||'',price:0,pledge:o.pledge_name||'',source:o.ship_name?'HangarXplor':'FleetYards'};
 }
 function parseFleetJson(data){
   if(data&&!Array.isArray(data))data=data.vehicles||data.ships||data.items||[];
   return data.filter(o=>!o.entity_type||o.entity_type==='ship').map(normShip);
 }
+function setFleet(list,msg){db.fleet=list;save();renderFleet();$('#fleetMsg').textContent=msg;enrichFleet(true)}
 $('#fleetFile').onchange=async e=>{
   try{
     const list=parseFleetJson(JSON.parse(await e.target.files[0].text()));
@@ -316,7 +645,7 @@ $('#fyLoad').onclick=async()=>{
   try{
     const all=[];
     for(let page=1;page<=10;page++){
-      const r=await fetch(`https://api.fleetyards.net/v1/vehicles/${encodeURIComponent(u)}?perPage=240&page=${page}`);
+      const r=await fetchRetry(`https://api.fleetyards.net/v1/vehicles/${encodeURIComponent(u)}?perPage=240&page=${page}`);
       if(!r.ok)throw new Error(r.status);
       const j=await r.json();
       if(!j.length)break;
@@ -325,89 +654,24 @@ $('#fyLoad').onclick=async()=>{
     }
     if(!all.length)throw new Error('vide');
     setFleet(parseFleetJson(all),`✔ ${all.length} vaisseaux chargés depuis FleetYards.`);
-    try{localStorage.setItem(KEY+'.fy',u)}catch(e){}
-  }catch(err){
-    $('#fleetMsg').textContent='✘ Impossible de charger ce hangar (pseudo inconnu, hangar privé, ou réseau bloqué). Utilise l\'import JSON.';
-  }
+    lset(KEY+'.fy',u);
+  }catch(err){$('#fleetMsg').textContent='✘ Hangar introuvable (pseudo inconnu, hangar privé ou réseau bloqué). Utilise l\'import JSON.'}
 };
-try{$('#fyUser').value=localStorage.getItem(KEY+'.fy')||''}catch(e){}
-
+$('#fyUser').value=lget(KEY+'.fy','');
 $('#mAdd').onclick=()=>{
   const name=$('#mName').value.trim();if(!name)return;
   db.fleet.push({id:uid(),model:name,custom:'',maker:$('#mMaker').value.trim(),role:'',cargo:num($('#mCargo').value),
-    crew:num($('#mCrew').value),value:num($('#mValue').value),insurance:$('#mIns').value,status:'',pledge:'',source:'manuel'});
+    crew:num($('#mCrew').value),value:num($('#mValue').value),insurance:$('#mIns').value,status:'',slug:'',price:0,pledge:'',source:'manuel'});
   save();renderFleet();enrichFleet(true);
   ['#mName','#mMaker','#mCargo','#mCrew','#mValue'].forEach(s=>$(s).value='');
 };
 $('#fleetClear').onclick=()=>{if(confirm('Vider toute la flotte ?')){db.fleet=[];save();renderFleet()}};
-$('#fleetSearch').oninput=renderFleet;$('#fleetRole').onchange=renderFleet;
-
-let fleetSort={k:'model',d:1};
-function renderFleet(){
-  const f=db.fleet;
-  const roles=[...new Set(f.map(s=>s.role).filter(Boolean))].sort();
-  const cur=$('#fleetRole').value;
-  $('#fleetRole').innerHTML='<option value="">Tous les rôles</option>'+roles.map(r=>`<option${r===cur?' selected':''}>${esc(r)}</option>`).join('');
-  const q=$('#fleetSearch').value.toLowerCase(), role=$('#fleetRole').value;
-  let rows=f.filter(s=>(!role||s.role===role)&&(!q||(s.model+s.custom+s.maker+s.role).toLowerCase().includes(q)));
-  const k=fleetSort.k;
-  rows.sort((a,b)=>(typeof a[k]==='number'?a[k]-b[k]:String(a[k]).localeCompare(b[k]))*fleetSort.d);
-  const sum=(a,k)=>a.reduce((t,s)=>t+(s[k]||0),0);
-  $('#fleetKpis').innerHTML=[
-    ['Vaisseaux',f.length],['Cargo total (SCU)',fmt(sum(f,'cargo'))],
-    ['Valeur pledge ($)',fmt(sum(f,'value'))],['LTI',f.filter(s=>s.insurance==='LTI').length],
-    ['Constructeurs',new Set(f.map(s=>s.maker).filter(Boolean)).size]
-  ].map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
-  const th=(k,l)=>`<th data-k="${k}">${l}${fleetSort.k===k?(fleetSort.d>0?' ▲':' ▼'):''}</th>`;
-  $('#fleetTable').innerHTML=rows.length?
-    `<tr>${th('model','Vaisseau')}${th('maker','Constructeur')}${th('role','Rôle')}${th('cargo','Cargo')}${th('crew','Équipage')}${th('insurance','Assurance')}${th('value','Valeur $')}${th('price','Prix aUEC')}<th></th></tr>`+
-    rows.map(s=>`<tr><td><b>${esc(s.model)}</b>${s.custom?`<div class="small">« ${esc(s.custom)} »</div>`:''}</td>
-      <td>${esc(s.maker)}</td><td>${esc(s.role)}</td><td>${s.cargo||'–'}</td><td>${s.crew||'–'}</td>
-      <td>${s.insurance?`<span class="tag ${s.insurance==='LTI'?'ok':''}">${esc(s.insurance)}</span>`:'–'}</td>
-      <td>${s.value?fmt(s.value):'–'}</td><td>${s.price?fmt(s.price):(s.status&&s.status!=='flight-ready'?'<span class="small">'+esc(s.status)+'</span>':'–')}</td>
-      <td class="row">${s.slug?`<a class="small" target="_blank" rel="noopener noreferrer" href="https://fleetyards.net/ships/${encodeURIComponent(s.slug)}">↗</a>`:''}<button class="btn danger" data-del="${s.id}">✕</button></td></tr>`).join('')
-    :'<tr><td class="empty">Aucun vaisseau. Importe ta flotte ou ajoute-en un.</td></tr>';
-  $$('#fleetTable th[data-k]').forEach(h=>h.onclick=()=>{fleetSort={k:h.dataset.k,d:fleetSort.k===h.dataset.k?-fleetSort.d:1};renderFleet()});
-  $$('#fleetTable [data-del]').forEach(b=>b.onclick=()=>{db.fleet=db.fleet.filter(s=>s.id!==b.dataset.del);save();renderFleet()});
-  renderShipSelect();
-}
-
-/* ---- Enrichissement via le catalogue FleetYards (CORS ouvert) ---- */
-const MODELS_KEY=KEY+'.models';
-async function loadModels(){
-  try{const c=JSON.parse(localStorage.getItem(MODELS_KEY)||'null');if(c&&Date.now()-c.t<864e5&&c.items.length)return c.items}catch(e){}
-  const items=[];
-  for(let page=1;page<=5;page++){
-    const r=await fetch(`https://api.fleetyards.net/v1/models?perPage=240&page=${page}`);
-    if(!r.ok)throw new Error(r.status);
-    const j=await r.json();
-    items.push(...j.items.map(m=>({name:m.name,rsi:m.rsiName||'',slug:m.slug,maker:(m.manufacturer||{}).name||'',
-      cargo:(m.metrics||{}).cargo||0,crew:(m.crew||{}).max||0,role:m.focus||m.classificationLabel||'',
-      pledge:m.pledgePrice||0,price:m.price||0,status:m.productionStatus||''})));
-    if(page>=((j.meta||{}).pagination||{}).totalPages)break;
-  }
-  try{localStorage.setItem(MODELS_KEY,JSON.stringify({t:Date.now(),items}))}catch(e){}
-  return items;
-}
-const nk=x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-function findModel(models,s){
-  const cands=[s.model,s.maker+' '+s.model].map(nk);
-  /* « Aegis Avenger Stalker » -> « Avenger Stalker » : retire un préfixe constructeur connu */
-  const prefixes=new Set(models.flatMap(m=>[nk(m.maker),nk(m.maker.split(' ')[0])]).filter(x=>x.length>=3));
-  const first=nk(s.model);
-  prefixes.forEach(p=>{if(first.startsWith(p)&&first.length>p.length+2)cands.push(first.slice(p.length))});
-  for(const m of models){const k=[nk(m.name),nk(m.rsi),nk(m.maker+' '+m.name)];if(cands.some(c=>k.includes(c)))return m}
-  /* repli : plus long nom de modèle qui est un préfixe (ex. « … Best In Show Edition ») */
-  let best=null;
-  for(const m of models){const k=nk(m.name);if(k.length>=4&&cands.some(c=>c.startsWith(k))&&(!best||k.length>nk(best.name).length))best=m}
-  return best;
-}
 async function enrichFleet(quiet){
   if(!db.fleet.length)return;
   const msg=$('#fleetMsg');
   try{
     if(!quiet)msg.textContent='Enrichissement…';
-    const models=await loadModels();
+    const models=await ensureModels();
     let ok=0;const miss=[];
     db.fleet.forEach(s=>{
       const m=findModel(models,s);
@@ -422,68 +686,196 @@ async function enrichFleet(quiet){
   }catch(e){if(!quiet)msg.textContent='✘ Catalogue FleetYards indisponible (réseau ?).'}
 }
 $('#fleetEnrich').onclick=()=>enrichFleet(false);
-function renderShipSelect(){
-  const cur=$('#sShip').value;
+
+/* image de vaisseau indisponible -> sigle du constructeur */
+document.addEventListener('error',e=>{
+  const i=e.target;if(!i||i.tagName!=='IMG'||!i.closest('.ship-img'))return;
+  const sp=document.createElement('span');sp.className='noimg';sp.textContent=i.dataset.fallback||'?';i.replaceWith(sp);
+},true);
+let fleetView=lget(KEY+'.fview','grid'),fleetSort={k:'model',d:1};
+$('#viewGrid').onclick=()=>{fleetView='grid';lset(KEY+'.fview',fleetView);renderFleet()};
+$('#viewTable').onclick=()=>{fleetView='table';lset(KEY+'.fview',fleetView);renderFleet()};
+$('#fleetSearch').oninput=renderFleet;$('#fleetRole').onchange=renderFleet;
+$('#fleetSortSel').onchange=e=>{const k=e.target.value;fleetSort={k,d:k==='model'||k==='maker'?1:-1};renderFleet()};
+const insTag=s=>s.insurance?`<span class="tag ${s.insurance==='LTI'?'ok':''}">${esc(s.insurance)}</span>`:'';
+function renderFleet(){
+  const f=db.fleet;
+  const roles=[...new Set(f.map(s=>s.role).filter(Boolean))].sort();
+  const cur=$('#fleetRole').value;
+  $('#fleetRole').innerHTML='<option value="">Tous les rôles</option>'+roles.map(r=>`<option${r===cur?' selected':''}>${esc(r)}</option>`).join('');
+  const q=$('#fleetSearch').value.toLowerCase(),role=$('#fleetRole').value;
+  const rows=f.filter(s=>(!role||s.role===role)&&(!q||(s.model+s.custom+s.maker+s.role).toLowerCase().includes(q)));
+  const k=fleetSort.k;
+  rows.sort((a,b)=>(typeof a[k]==='number'||typeof b[k]==='number'?(a[k]||0)-(b[k]||0):String(a[k]).localeCompare(b[k]))*fleetSort.d);
+  const sum=(a,k)=>a.reduce((t,s)=>t+(s[k]||0),0);
+  const stock=db.ccus.filter(c=>c.status==='stock').length;
+  $('#fleetKpis').innerHTML=[['Vaisseaux',f.length],['Cargo total (SCU)',fmt(sum(f,'cargo'))],['Valeur pledge ($)',fmt(sum(f,'value'))],
+    ['LTI',f.filter(s=>s.insurance==='LTI').length],['CCU en stock',stock]].map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  $('#viewGrid').classList.toggle('on',fleetView==='grid');$('#viewTable').classList.toggle('on',fleetView==='table');
+  $('#fleetGrid').style.display=fleetView==='grid'?'':'none';
+  $('#fleetTable').parentElement.style.display=fleetView==='table'?'':'none';
+  if(fleetView==='grid'){
+    $('#fleetGrid').innerHTML=rows.map(s=>{
+      const m=modelOf(s),img=safeUrl(m&&m.img);
+      return`<article class="ship"><div class="ship-img">${img?`<img loading="lazy" referrerpolicy="no-referrer" alt="" data-fallback="${esc((s.maker||s.model).slice(0,3).toUpperCase())}" src="${esc(img)}">`:`<span class="noimg">${esc((s.maker||s.model).slice(0,3).toUpperCase())}</span>`}
+        ${s.insurance?`<span class="tag ${s.insurance==='LTI'?'ok':''}">${esc(s.insurance)}</span>`:''}</div>
+        <div class="ship-body"><b>${esc(s.model)}</b>${s.custom?`<span class="small">« ${esc(s.custom)} »</span>`:''}
+          <span class="small">${esc(s.maker)}${s.role?' · '+esc(s.role):''}</span>
+          <div class="ship-meta"><span>CARGO <em>${s.cargo||'–'}</em></span><span>ÉQUIP. <em>${s.crew||'–'}</em></span>${s.value?`<span>PLEDGE <em>$${fmt(s.value)}</em></span>`:''}</div>
+          <div class="ship-foot"><span class="small">${s.price?fmt(s.price)+' aUEC':(s.status&&s.status!=='flight-ready'?esc(s.status):'')}</span>
+            <span class="row">${s.slug?`<a class="btn sm" target="_blank" rel="noopener noreferrer" href="https://fleetyards.net/ships/${encodeURIComponent(s.slug)}">↗</a>`:''}<button class="btn sm danger" data-del="${s.id}">✕</button></span></div>
+        </div></article>`}).join('')||'<div class="empty">Aucun vaisseau. Importe ta flotte ou ajoute-en un.</div>';
+  }else{
+    const th=(k,l)=>`<th data-k="${k}">${l}${fleetSort.k===k?(fleetSort.d>0?' ▲':' ▼'):''}</th>`;
+    $('#fleetTable').innerHTML=rows.length?
+      `<tr>${th('model','Vaisseau')}${th('maker','Constructeur')}${th('role','Rôle')}${th('cargo','Cargo')}${th('crew','Équipage')}${th('insurance','Assurance')}${th('value','Valeur $')}${th('price','Prix aUEC')}<th></th></tr>`+
+      rows.map(s=>`<tr><td><b>${esc(s.model)}</b>${s.custom?`<div class="small">« ${esc(s.custom)} »</div>`:''}</td>
+        <td>${esc(s.maker)}</td><td>${esc(s.role)}</td><td>${s.cargo||'–'}</td><td>${s.crew||'–'}</td><td>${insTag(s)||'–'}</td>
+        <td>${s.value?fmt(s.value):'–'}</td><td>${s.price?fmt(s.price):'–'}</td>
+        <td class="row"><button class="btn sm danger" data-del="${s.id}">✕</button></td></tr>`).join(''):'<tr><td class="empty">Aucun vaisseau.</td></tr>';
+    $$('#fleetTable th[data-k]').forEach(h=>h.onclick=()=>{fleetSort={k:h.dataset.k,d:fleetSort.k===h.dataset.k?-fleetSort.d:1};renderFleet()});
+  }
+  $$('#page-fleet [data-del]').forEach(b=>b.onclick=()=>{db.fleet=db.fleet.filter(s=>s.id!==b.dataset.del);save();renderFleet()});
+  renderShipSelects();
+}
+function renderShipSelects(){
   const names=[...new Set(db.fleet.map(s=>s.custom?`${s.model} (${s.custom})`:s.model))].sort();
+  const cur=$('#sShip').value;
   $('#sShip').innerHTML='<option value="">Vaisseau…</option>'+names.map(n=>`<option${n===cur?' selected':''}>${esc(n)}</option>`).join('');
+  const cp=$('#pShip').value;
+  $('#pShip').innerHTML='<option value="">Mon vaisseau…</option>'+db.fleet.filter(s=>s.cargo>0).map(s=>`<option value="${s.cargo}"${String(s.cargo)===cp?' selected':''}>${esc(s.model)} (${s.cargo} SCU)</option>`).join('');
 }
 
 /* =====================================================
-   INDUSTRIE
+   CCU
    ===================================================== */
-const PLACES=['ARC-L1 Wide Forest Station','CRU-L1 Ambitious Dream','HUR-L1 Green Glade','MIC-L1 Shallow Frontier',
- 'Terra Gateway','Pyro Gateway','Ruin Station (Pyro)','Checkmate (Pyro)','Orbituary (Pyro)','Autre…'];
-const METHODS=['Dinyx Solventation (lent, rendement max)','Cormack (équilibré)','Ferron Exchange','Pyrometric Chromalysis',
- 'Thermonatic Deposition','Electrostarch Gasification','Kazen Winnowing','XCR Reaction (rapide, rendement bas)'];
-const MATS=['Quantanium','Bexalite','Taranite','Laranite','Agricium','Hephaestanite','Titanium','Borase','Gold','Copper',
- 'Beryl','Tungsten','Corundum','Quartz','Aluminum','Iron','Diamond','Savrilium','Stileron','Riccite','RMC (Recycled Material Composite)','Construction Materials'];
+const CCU_TYPES={std:'Standard',wb:'Warbond',cr:'Crédit store'};
+const pledgeOf=name=>{const m=name&&MODELS.length?findModel(MODELS,{model:name,maker:''}):null;return m?m.pledge:0};
+$('#cAdd').onclick=()=>{
+  const from=$('#cFrom').value.trim(),to=$('#cTo').value.trim();if(!from||!to)return;
+  db.ccus.unshift({id:uid(),from,to,paid:num($('#cPaid').value),type:$('#cType').value,date:$('#cDate').value,note:$('#cNote').value.trim(),status:'stock'});
+  save();['#cFrom','#cTo','#cPaid','#cDate','#cNote'].forEach(s=>$(s).value='');renderCcu();
+};
+$('#ccuHide').onchange=renderCcu;
+$('#sFrom').oninput=$('#sTo').oninput=renderSim;
+function renderCcu(){
+  const all=db.ccus,stock=all.filter(c=>c.status==='stock');
+  const paid=all.reduce((t,c)=>t+c.paid,0);
+  const saving=all.reduce((t,c)=>{const d=pledgeOf(c.to)-pledgeOf(c.from);return d>0?t+d-c.paid:t},0);
+  $('#ccuKpis').innerHTML=[['CCU en stock',stock.length],['CCU appliqués',all.length-stock.length],['Investi ($)',fmt(paid)],
+    ['Valeur stockée ($)',fmt(stock.reduce((t,c)=>t+Math.max(0,pledgeOf(c.to)-pledgeOf(c.from)),0))],['Économie vs catalogue ($)',fmt(saving)]]
+    .map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  const rows=all.filter(c=>!($('#ccuHide').checked&&c.status==='applied'));
+  $('#ccuList').innerHTML=rows.map(c=>{
+    const d=pledgeOf(c.to)-pledgeOf(c.from),known=pledgeOf(c.from)&&pledgeOf(c.to);
+    return`<div class="ccu ${c.status==='applied'?'applied':''}"><b>${esc(c.from)}</b><span class="arrow">➜</span><b>${esc(c.to)}</b>
+      <div class="meta"><span class="tag acc">${CCU_TYPES[c.type]||''}</span><span>payé <b style="color:var(--text)">$${fmt(c.paid)}</b></span>
+        ${known&&d>0?`<span>catalogue +$${fmt(d)}</span>${d-c.paid>0?`<span class="tag ok">−$${fmt(d-c.paid)}</span>`:''}`:''}
+        ${c.date?`<span>${esc(c.date)}</span>`:''}${c.note?`<span>${esc(c.note)}</span>`:''}
+        <span class="sp"></span>
+        <button class="btn sm" data-cs="${c.id}">${c.status==='stock'?'Marquer appliqué':'Remettre en stock'}</button>
+        <button class="btn sm danger" data-cd="${c.id}">✕</button></div></div>`}).join('')||'<div class="empty">Aucun CCU enregistré.</div>';
+  $$('[data-cs]').forEach(b=>b.onclick=()=>{const c=db.ccus.find(x=>x.id===b.dataset.cs);c.status=c.status==='stock'?'applied':'stock';save();renderCcu()});
+  $$('[data-cd]').forEach(b=>b.onclick=()=>{db.ccus=db.ccus.filter(x=>x.id!==b.dataset.cd);save();renderCcu()});
+  renderSim();
+}
+/* chemin le plus court dans le graphe des CCU stockés (BFS) */
+function ccuPath(from,to){
+  const f=nk(from),t=nk(to);if(!f||!t)return null;
+  const edges=db.ccus.filter(c=>c.status==='stock'),prev={[f]:null},q=[f];
+  while(q.length){
+    const n=q.shift();if(n===t)break;
+    edges.filter(c=>nk(c.from)===n).forEach(c=>{const k=nk(c.to);if(!(k in prev)){prev[k]={n,c};q.push(k)}});
+  }
+  if(!(t in prev))return null;
+  const path=[];for(let k=t;prev[k];k=prev[k].n)path.unshift(prev[k].c);
+  return path;
+}
+function renderSim(){
+  const from=$('#sFrom').value.trim(),to=$('#sTo').value.trim(),out=$('#sOut');
+  if(!from||!to){out.innerHTML='<span class="small">Choisis deux vaisseaux.</span>';return}
+  const pf=pledgeOf(from),pt=pledgeOf(to);
+  let h='';
+  if(pf&&pt){
+    const d=pt-pf;
+    h+=d>0?`<div>Écart de pledge catalogue : <span class="chain">+$${fmt(d)}</span> <span class="small">($${fmt(pf)} ➜ $${fmt(pt)})</span></div>`:
+      `<div class="small">${d===0?'Même valeur de pledge.':'Le vaisseau visé est moins cher : un CCU ne permet pas de descendre.'}</div>`;
+  }else h+='<div class="small">Prix catalogue introuvable pour l\'un des deux vaisseaux (catalogue non chargé ou nom inconnu).</div>';
+  const p=ccuPath(from,to);
+  h+=p?`<div style="margin-top:8px">✔ Chemin avec tes CCU stockés : <span class="chain">${[p[0].from,...p.map(c=>c.to)].map(esc).join(' ➜ ')}</span><br><span class="small">${p.length} CCU · coût déjà payé $${fmt(p.reduce((t,c)=>t+c.paid,0))}</span></div>`:
+    '<div style="margin-top:8px" class="small">✘ Aucun chemin possible avec tes CCU stockés.</div>';
+  out.innerHTML=h;
+}
+
+/* =====================================================
+   INDUSTRIE : sessions (minage / salvage)
+   ===================================================== */
+const curType=()=>cur.page==='industry'&&cur.sub==='salvage'?'Salvage':'Minage';
+const MATS_MINING=['Quantanium','Bexalite','Taranite','Laranite','Agricium','Hephaestanite','Titanium','Borase','Gold','Copper','Beryl','Tungsten','Corundum','Quartz','Aluminum','Iron','Diamond','Savrilium','Stileron','Riccite','Hadanite','Aphorite','Dolivine'];
+const MATS_SALVAGE=['RMC (Recycled Material Composite)','Construction Materials'];
+const PLACES=['ARC-L1 Wide Forest Station','CRU-L1 Ambitious Dream','HUR-L1 Green Glade','MIC-L1 Shallow Frontier','Terra Gateway','Pyro Gateway','Ruin Station (Pyro)','Checkmate (Pyro)','Orbituary (Pyro)','Autre…'];
+const METHODS=['Dinyx Solventation (lent, rendement max)','Cormack (équilibré)','Ferron Exchange','Pyrometric Chromalysis','Thermonatic Deposition','Electrostarch Gasification','Kazen Winnowing','XCR Reaction (rapide, rendement bas)'];
 $('#rPlace').innerHTML=PLACES.map(p=>`<option>${p}</option>`).join('');
 $('#rMethod').innerHTML=METHODS.map(p=>`<option>${p}</option>`).join('');
-$('#mats').innerHTML=MATS.map(p=>`<option>${p}</option>`).join('');
+$('#mats').innerHTML=MATS_MINING.map(p=>`<option>${p}</option>`).join('');
 
-/* --- session chrono (survit au rechargement via db.active) --- */
-function elapsed(a){return a?(a.acc+(a.running?Date.now()-a.since:0)):0}
-function persistActive(){save();renderSession()}
-$('#sStart').onclick=()=>{
-  if(!db.active){
-    db.active={type:$('#sType').value,place:$('#sPlace').value.trim(),ship:$('#sShip').value,start:Date.now(),acc:0,since:Date.now(),running:true,log:[]};
-  }else if(!db.active.running){db.active.since=Date.now();db.active.running=true}
-  persistActive();
-};
-$('#sPause').onclick=()=>{
-  const a=db.active;if(!a||!a.running)return;
-  a.acc+=Date.now()-a.since;a.running=false;persistActive();
-};
-$('#sStop').onclick=()=>{
+const elapsed=a=>a?(a.acc+(a.running?Date.now()-a.since:0)):0;
+function sessStart(){
+  if(!db.active)db.active={type:curType(),place:$('#sPlace').value.trim(),ship:$('#sShip').value,start:Date.now(),acc:0,since:Date.now(),running:true,log:[]};
+  else if(!db.active.running){db.active.since=Date.now();db.active.running=true}
+  save();renderSession();
+}
+function sessPause(){const a=db.active;if(!a||!a.running)return;a.acc+=Date.now()-a.since;a.running=false;save();renderSession()}
+function sessStop(){
   const a=db.active;if(!a)return;
-  const ms=elapsed(a);
-  const scu=a.log.reduce((t,l)=>t+l.scu,0),val=a.log.reduce((t,l)=>t+l.val,0);
-  db.sessions.unshift({id:uid(),type:a.type,place:a.place,ship:a.ship,date:a.start,ms,scu,val,log:a.log});
+  db.sessions.unshift({id:uid(),type:a.type,place:a.place,ship:a.ship,date:a.start,ms:elapsed(a),
+    scu:a.log.reduce((t,l)=>t+l.scu,0),val:a.log.reduce((t,l)=>t+l.val,0),log:a.log});
   db.active=null;save();renderAll();
-};
+}
+$('#sStart').onclick=sessStart;$('#sPause').onclick=sessPause;$('#sStop').onclick=sessStop;
 $('#lAdd').onclick=()=>{
   const a=db.active;if(!a)return;
   const mat=$('#lMat').value.trim();if(!mat)return;
   a.log.push({mat,scu:num($('#lScu').value),val:num($('#lVal').value)});
-  ['#lMat','#lScu','#lVal'].forEach(s=>$(s).value='');persistActive();
+  ['#lMat','#lScu','#lVal'].forEach(s=>$(s).value='');save();renderSession();
 };
 function renderSession(){
-  const a=db.active;
-  $('#sStart').disabled=!!(a&&a.running);
-  $('#sStart').textContent=a&&!a.running?'▶ Reprendre':'▶ Démarrer';
-  $('#sPause').disabled=!(a&&a.running);$('#sStop').disabled=!a;$('#lAdd').disabled=!a;
-  ['#sType','#sPlace','#sShip'].forEach(s=>$(s).disabled=!!a);
-  if(a){$('#sType').value=a.type;$('#sPlace').value=a.place;renderShipSelect();$('#sShip').value=a.ship}
-  $('#logList').innerHTML=a&&a.log.length?a.log.map(l=>`${esc(l.mat)} · ${l.scu} SCU · ${fmt(l.val)} aUEC`).join('<br>'):(a?'Aucune récolte saisie.':'');
+  const a=db.active,t=curType(),mine=!a||a.type===t,verb=t==='Salvage'?'salvage':'minage';
+  $('#sessTitle').textContent='Session de '+verb;
+  $('#histTitle').textContent='Historique · '+t;
+  $('#sPlace').placeholder=t==='Salvage'?'Épave / lieu (ex. Yela, Pyro…)':'Lieu (ex. Aaron Halo, Pyro…)';
+  $('#logMats').innerHTML=(t==='Salvage'?MATS_SALVAGE:MATS_MINING).map(m=>`<option>${m}</option>`).join('');
+  $('#sStart').disabled=!!(a&&(a.running||!mine));
+  $('#sStart').textContent=a&&mine&&!a.running?'▶ Reprendre':'▶ Démarrer';
+  $('#sPause').disabled=!(a&&a.running&&mine);$('#sStop').disabled=!a||!mine;$('#lAdd').disabled=!a||!mine;
+  ['#sPlace','#sShip'].forEach(s=>$(s).disabled=!!a);
+  if(a){$('#sPlace').value=a.place;renderShipSelects();$('#sShip').value=a.ship}
+  $('#sessNotice').innerHTML=a&&!mine?`⚠ Une session <b>${esc(a.type)}</b> est en cours. <a href="#/industry/${a.type==='Salvage'?'salvage':'mining'}">Aller à son onglet →</a>`:
+    a?`En cours : <span class="tag acc">${esc(a.type)}</span> ${a.running?'':'<span class="tag warn">pause</span>'}`:'';
+  $('#logList').innerHTML=a&&mine&&a.log.length?a.log.map(l=>`${esc(l.mat)} · ${l.scu} SCU · ${fmt(l.val)} aUEC`).join('<br>'):(a&&mine?'Aucune récolte saisie.':'');
 }
-setInterval(()=>{
-  $('#timer').textContent=dur(elapsed(db.active));
-  $$('[data-ready]').forEach(el=>{
-    const left=+el.dataset.ready-Date.now();
-    el.textContent=left<=0?'Prêt !':dur(left);
-    el.className=left<=0?'tag ok':'tag warn';
-  });
-},1000);
+function renderIndKpis(){
+  const t=curType(),s=db.sessions.filter(x=>x.type===t),ms=s.reduce((a,x)=>a+x.ms,0),val=s.reduce((a,x)=>a+x.val,0),scu=s.reduce((a,x)=>a+x.scu,0),h=ms/3600000;
+  $('#indKpis').innerHTML=[['Sessions',s.length],['Temps total',h.toFixed(1)+' h'],['SCU récoltés',fmt(scu)],['aUEC générés',fmt(val)],['aUEC / heure',h>.01?fmt(val/h):'–']]
+    .map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+}
+function renderSessions(){
+  const t=curType(),s=db.sessions.filter(x=>x.type===t);
+  $('#sessTable').innerHTML=s.length?
+    '<tr><th>Date</th><th>Lieu</th><th>Vaisseau</th><th>Durée</th><th>SCU</th><th>aUEC</th><th>aUEC/h</th><th>Détail</th><th></th></tr>'+
+    s.map(x=>{const h=x.ms/3600000;return`<tr><td>${new Date(x.date).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</td>
+      <td>${esc(x.place)||'–'}</td><td>${esc(x.ship)||'–'}</td><td>${dur(x.ms)}</td><td>${x.scu}</td><td>${fmt(x.val)}</td><td>${h>0.005?fmt(x.val/h):'–'}</td>
+      <td class="small">${x.log.map(l=>`${esc(l.mat)} ${l.scu}`).join(', ')}</td>
+      <td><button class="btn sm danger" data-sdel="${x.id}">✕</button></td></tr>`}).join(''):'<tr><td class="empty">Aucune session de ce type.</td></tr>';
+  $$('[data-sdel]').forEach(b=>b.onclick=()=>{db.sessions=db.sessions.filter(x=>x.id!==b.dataset.sdel);save();renderAll()});
+  const last=s.slice(0,20).reverse(),max=Math.max(1,...last.map(x=>x.val));
+  $('#sessBars').innerHTML=last.map(x=>`<div style="height:${Math.max(2,x.val/max*100)}%" title="${fmt(x.val)} aUEC"></div>`).join('')||'<span class="small" style="align-self:center;padding:0 8px">Pas encore de données.</span>';
+  $('#sessBarsLegend').textContent=last.length?`${last.length} dernières sessions (max ${fmt(max)} aUEC)`:'';
+  /* prix de référence rapides */
+  const cats=t==='Salvage'?['salvage']:['refined'];
+  const items=(UEX?UEX.items:[]).filter(i=>cats.includes(i.cat)).slice(0,5);
+  $('#indRef').innerHTML=items.length?items.map(i=>`${esc(i.name)} · <b style="color:var(--text)">${fmt(i.best.price)}</b> aUEC/SCU · ${esc(i.best.terminal)}`).join('<br>'):'Prix indisponibles (onglet Rentabilité pour actualiser).';
+}
 
 /* --- raffinage --- */
 $('#rAdd').onclick=()=>{
@@ -501,92 +893,121 @@ function renderRefining(){
     rows.map(r=>`<tr><td>${esc(r.place)}</td><td><b>${esc(r.mat)}</b></td><td>${esc(r.method)}</td><td>${r.scu||'–'}</td>
       <td>${fmt(r.cost)}</td><td>${fmt(r.val)}</td>
       <td>${r.collected?'<span class="tag">Récupéré</span>':`<span data-ready="${r.ready}" class="tag warn">…</span>`}</td>
-      <td class="row">${r.collected?'':`<a class="btn" title="Ajouter à Google Agenda (alerte même onglet fermé)" target="_blank" rel="noopener noreferrer" href="${esc(gcalUrl(r))}">📅</a><button class="btn" data-col="${r.id}">Récupéré</button>`}<button class="btn danger" data-rdel="${r.id}">✕</button></td></tr>`).join('')
+      <td class="row">${r.collected?'':`<a class="btn sm" title="Ajouter à Google Agenda (alerte même onglet fermé)" target="_blank" rel="noopener noreferrer" href="${esc(gcalUrl(r))}">📅</a><button class="btn sm" data-col="${r.id}">Récupéré</button>`}<button class="btn sm danger" data-rdel="${r.id}">✕</button></td></tr>`).join('')
     :'<tr><td class="empty">Aucun ordre de raffinage.</td></tr>';
-  $$('[data-col]').forEach(b=>b.onclick=()=>{db.refining.find(r=>r.id===b.dataset.col).collected=true;save();renderRefining();renderIndKpis()});
-  $$('[data-rdel]').forEach(b=>b.onclick=()=>{db.refining=db.refining.filter(r=>r.id!==b.dataset.rdel);save();renderRefining();renderIndKpis()});
-}
-
-/* --- stats --- */
-function renderIndKpis(){
-  const s=db.sessions,ms=s.reduce((t,x)=>t+x.ms,0),val=s.reduce((t,x)=>t+x.val,0),scu=s.reduce((t,x)=>t+x.scu,0);
-  const h=ms/3600000;
-  const pending=db.refining.filter(r=>!r.collected);
-  $('#indKpis').innerHTML=[
-    ['Sessions',s.length],['Temps total',h.toFixed(1)+' h'],['SCU récoltés',fmt(scu)],['aUEC générés',fmt(val)],
-    ['aUEC / heure',h?fmt(val/h):'–'],['Raffinages en cours',pending.length],
-    ['Valeur en raffinage',fmt(pending.reduce((t,r)=>t+r.val,0))]
-  ].map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
-}
-function renderSessions(){
-  const s=db.sessions;
-  $('#sessTable').innerHTML=s.length?
-    '<tr><th>Date</th><th>Activité</th><th>Lieu</th><th>Vaisseau</th><th>Durée</th><th>SCU</th><th>aUEC</th><th>aUEC/h</th><th>Détail</th><th></th></tr>'+
-    s.map(x=>{const h=x.ms/3600000;return`<tr><td>${new Date(x.date).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</td>
-      <td><span class="tag acc">${esc(x.type)}</span></td><td>${esc(x.place)||'–'}</td><td>${esc(x.ship)||'–'}</td><td>${dur(x.ms)}</td>
-      <td>${x.scu}</td><td>${fmt(x.val)}</td><td>${h>0.005?fmt(x.val/h):'–'}</td>
-      <td class="small">${x.log.map(l=>`${esc(l.mat)} ${l.scu}`).join(', ')}</td>
-      <td><button class="btn danger" data-sdel="${x.id}">✕</button></td></tr>`}).join('')
-    :'<tr><td class="empty">Aucune session enregistrée.</td></tr>';
-  $$('[data-sdel]').forEach(b=>b.onclick=()=>{db.sessions=db.sessions.filter(x=>x.id!==b.dataset.sdel);save();renderAll()});
-  const last=s.slice(0,20).reverse(),max=Math.max(1,...last.map(x=>x.val));
-  $('#sessBars').innerHTML=last.map(x=>`<div style="height:${Math.max(2,x.val/max*100)}%" title="${esc(x.type)} – ${fmt(x.val)} aUEC"></div>`).join('')||'<span class="small">Pas encore de données.</span>';
-  $('#sessBarsLegend').textContent=last.length?`${last.length} dernières sessions (max ${fmt(max)} aUEC)`:'';
-  const by={};s.forEach(x=>{const b=by[x.type]=by[x.type]||{n:0,ms:0,val:0,scu:0};b.n++;b.ms+=x.ms;b.val+=x.val;b.scu+=x.scu});
-  $('#byType').innerHTML=Object.keys(by).length?
-    '<table><tr><th>Activité</th><th>Sessions</th><th>SCU</th><th>aUEC</th><th>aUEC/h</th></tr>'+
-    Object.entries(by).map(([k,b])=>`<tr><td>${esc(k)}</td><td>${b.n}</td><td>${fmt(b.scu)}</td><td>${fmt(b.val)}</td><td>${b.ms>18000?fmt(b.val/(b.ms/3600000)):'–'}</td></tr>`).join('')+'</table>'
-    :'<span class="small">Pas encore de données.</span>';
+  $$('[data-col]').forEach(b=>b.onclick=()=>{db.refining.find(r=>r.id===b.dataset.col).collected=true;save();renderAll()});
+  $$('[data-rdel]').forEach(b=>b.onclick=()=>{db.refining=db.refining.filter(r=>r.id!==b.dataset.rdel);save();renderAll()});
 }
 
 /* =====================================================
-   OPPORTUNITÉS
+   MARCHÉ (UEX Corp) : rentabilité
+   ===================================================== */
+const UEX_KEY=KEY+'.uex';
+const UEX_CATS={refined:'Minerais raffinés',raw:'Minerais bruts',hand:'Minage à la main',salvage:'Salvage (RMC, matériaux)',all:'Tout'};
+let UEX=lget(UEX_KEY,null);
+async function loadUex(force){
+  if(!force&&UEX&&Date.now()-UEX.t<36e5)return UEX;
+  $('#pStatus').textContent='Chargement des prix UEX…';
+  try{
+    const [rc,rp]=await Promise.all([fetchRetry('https://api.uexcorp.uk/2.0/commodities'),fetchRetry('https://api.uexcorp.uk/2.0/commodities_prices_all')]);
+    if(!rc.ok||!rp.ok)throw new Error('http');
+    const com=(await rc.json()).data,prices=(await rp.json()).data;
+    const byId={};prices.forEach(p=>{if(p.price_sell>0)(byId[p.id_commodity]=byId[p.id_commodity]||[]).push(p)});
+    const items=[];
+    com.forEach(c=>{
+      const rows=(byId[c.id]||[]).sort((a,b)=>b.price_sell-a.price_sell);if(!rows.length)return;
+      const suffix=/\((ore|raw)\)\s*$/i.test(c.name);
+      let cat=null;
+      if(/^(recycled material composite|construction materials)$/i.test(c.name))cat='salvage';
+      else if(c.is_refined&&c.is_extractable)cat='refined';
+      else if(suffix&&c.is_extractable)cat='raw';
+      else if(c.is_raw&&!suffix&&c.is_extractable&&c.is_mineral)cat='hand';
+      if(!cat)return;
+      const top=rows.slice(0,3).map(p=>({terminal:p.terminal_name,price:p.price_sell,demand:p.scu_sell_avg,t:p.date_modified*1000}));
+      items.push({id:c.id,name:c.name,kind:c.kind,cat,best:top[0],top});
+    });
+    items.sort((a,b)=>b.best.price-a.best.price);
+    UEX={t:Date.now(),items};lset(UEX_KEY,UEX);
+  }catch(e){
+    $('#pStatus').textContent=UEX?'✘ UEX injoignable, affichage de la dernière version en cache.':'✘ Prix UEX indisponibles (réseau ?).';
+    if(!UEX)return null;
+  }
+  return UEX;
+}
+$('#pCat').innerHTML=Object.entries(UEX_CATS).map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
+$('#pCat').onchange=renderProfit;$('#pCap').oninput=renderProfit;
+$('#pShip').onchange=e=>{$('#pCap').value=e.target.value;renderProfit()};
+$('#pRefresh').onclick=async()=>{await loadUex(true);renderProfit();renderAllLight()};
+const ageTag=t=>{const d=(Date.now()-t)/864e5;return`<span class="tag ${d>14?'bad':d>4?'warn':'ok'}" title="Dernier relevé communautaire">${d<1?'<24 h':Math.round(d)+' j'}</span>`};
+function renderProfit(){
+  if(!UEX){$('#pTable').innerHTML='<tr><td class="empty">Aucun prix chargé.</td></tr>';return}
+  const cat=$('#pCat').value,cap=num($('#pCap').value);
+  const rows=UEX.items.filter(i=>cat==='all'||i.cat===cat);
+  $('#pStatus').textContent=`Source : UEX Corp · prix en aUEC par SCU · mis à jour ${ago(UEX.t)}`+(cap?` · cargaison de ${cap} SCU`:' · saisis un cargo (ou choisis un vaisseau) pour valoriser une cargaison');
+  $('#pTable').innerHTML=rows.length?'<tr><th>Matériau</th><th>Catégorie</th><th>aUEC / SCU</th><th>Meilleur terminal</th><th>Demande moy. (SCU)</th><th>Relevé</th>'+(cap?'<th>Cargaison</th>':'')+'<th>Autres terminaux</th></tr>'+
+    rows.map(i=>`<tr><td><b>${esc(i.name)}</b></td><td><span class="tag">${UEX_CATS[i.cat]}</span></td><td style="color:var(--accent)"><b>${fmt(i.best.price)}</b></td>
+      <td>${esc(i.best.terminal)}</td><td>${fmt(i.best.demand)}</td><td>${ageTag(i.best.t)}</td>${cap?`<td><b>${fmt(i.best.price*cap)}</b></td>`:''}
+      <td class="small">${i.top.slice(1).map(t=>`${esc(t.terminal)} ${fmt(t.price)}`).join('<br>')||'–'}</td></tr>`).join(''):'<tr><td class="empty">Aucune donnée pour cette catégorie.</td></tr>';
+  const sel=$('#xMat'),curx=sel.value;
+  const order={refined:0,salvage:1,hand:2};
+  sel.innerHTML=UEX.items.filter(i=>i.cat in order).sort((x,y)=>order[x.cat]-order[y.cat]||y.best.price-x.best.price).map(i=>`<option value="${i.id}"${String(i.id)===curx?' selected':''}>${esc(i.name)} – ${fmt(i.best.price)} aUEC/SCU</option>`).join('');
+  renderSimProfit();
+}
+['#xMat','#xScu','#xYield','#xCost','#xMin'].forEach(s=>$(s).oninput=renderSimProfit);
+$('#xMat').onchange=()=>{const it=UEX&&UEX.items.find(i=>String(i.id)===$('#xMat').value);if(it)$('#xYield').value=it.cat==='refined'?50:100;renderSimProfit()};
+function renderSimProfit(){
+  const it=UEX&&UEX.items.find(i=>String(i.id)===$('#xMat').value),scu=num($('#xScu').value),y=num($('#xYield').value)||100,cost=num($('#xCost').value),min=num($('#xMin').value);
+  if(!it||!scu){$('#xOut').innerHTML='<span class="small">Saisis les SCU minés pour estimer le profit.</span>';return}
+  const out=scu*y/100,rev=out*it.best.price,profit=rev-cost,h=min/60;
+  const real=db.sessions.filter(x=>x.ms>18e5),rh=real.reduce((a,x)=>a+x.ms,0)/36e5,rv=real.reduce((a,x)=>a+x.val,0);
+  $('#xOut').innerHTML=`<div class="kpis grid" style="margin:0"><div class="kpi"><div class="v">${fmt(out)}</div><div class="l">SCU vendables</div></div>
+    <div class="kpi"><div class="v">${fmt(rev)}</div><div class="l">Revenu brut aUEC</div></div>
+    <div class="kpi"><div class="v">${fmt(profit)}</div><div class="l">Profit net aUEC</div></div>
+    <div class="kpi"><div class="v">${h>0?fmt(profit/h):'–'}</div><div class="l">aUEC / heure estimé</div></div>
+    <div class="kpi"><div class="v">${rh>0?fmt(rv/rh):'–'}</div><div class="l">Ton aUEC/h réel (sessions)</div></div></div>
+    <p class="small" style="margin-bottom:0">Vendre à : ${esc(it.best.terminal)}</p>`;
+}
+
+/* =====================================================
+   OPPORTUNITÉS + FLUX COMM-LINK
    ===================================================== */
 const CATS={warbond:'Warbond & offres',quest:'Quêtes à récompenses permanentes',event:'Événements',tip:'Autres bons plans'};
-/* Données de départ : NON vérifiées en direct, à contrôler via le lien */
 const SEED=[
- {cat:'warbond',title:'Vaisseaux en édition Warbond',reward:'Même vaisseau à prix réduit (environ −10 % vs édition standard, à vérifier)',link:'https://robertsspaceindustries.com/en/pledge/ships',note:'Warbond = pledge non convertible en store credit (à confirmer sur la fiche). Vérifie le prix pour chaque vaisseau convoité.'},
+ {cat:'warbond',title:'Vaisseaux en édition Warbond',reward:'Même vaisseau à prix réduit (environ −10 % vs édition standard, à vérifier)',link:'https://robertsspaceindustries.com/en/pledge/ships',note:'Warbond = pledge non convertible en store credit (à confirmer sur la fiche).'},
  {cat:'warbond',title:'Offres Warbond : packs & « Standalone Ships »',reward:'Packs avec jeu + vaisseau en Warbond',link:'https://robertsspaceindustries.com/en/pledge/packages',note:''},
- {cat:'quest',title:'Wikelo – contrats d\'échange',reward:'Vaisseaux, armures et objets obtenus in-game contre ressources/objets',link:'https://starcitizen.tools/Wikelo',note:'Contenu évolutif : la liste de contrats et leurs coûts changent selon les patchs.'},
- {cat:'quest',title:'Programme de parrainage (referral)',reward:'Récompenses permanentes à débloquer en parrainant',link:'https://robertsspaceindustries.com/referral-program',note:'Compte pour les paliers de récompenses ; vérifier les paliers actuels.'},
+ {cat:'quest',title:'Wikelo – contrats d\'échange',reward:'Vaisseaux, armures et objets obtenus in-game contre ressources/objets',link:'https://starcitizen.tools/Wikelo',note:'Contenu évolutif : contrats et coûts changent selon les patchs.'},
+ {cat:'quest',title:'Programme de parrainage (referral)',reward:'Récompenses permanentes à débloquer en parrainant',link:'https://robertsspaceindustries.com/referral-program',note:'Vérifier les paliers actuels.'},
  {cat:'quest',title:'Réputation & missions de faction',reward:'Accès à armes/armures/vaisseaux et contrats mieux payés',link:'https://starcitizen.tools/Reputation',note:'À détailler : quelle faction te manque ?'},
  {cat:'event',title:'CitizenCon (annonces roadmap)',reward:'Annonces, promos et cadeaux fréquents pendant l\'événement',link:'https://robertsspaceindustries.com/comm-link',note:'Renseigner la date dès qu\'elle est annoncée.'},
  {cat:'event',title:'Free Fly (accès gratuit)',reward:'Acheter/tester des vaisseaux et suivre les promos de la période',link:'https://robertsspaceindustries.com/comm-link',note:'Surveiller le Comm-Link pour les dates.'},
  {cat:'tip',title:'Rotation de vaisseaux à louer (rental)',reward:'Tester un vaisseau avant achat',link:'https://robertsspaceindustries.com/en/pledge/ships',note:''}
 ].map(o=>({...o,id:uid(),end:'',status:'todo'}));
-if(!db.opps){db.opps=SEED;save()}
+if(!db.opps){db.opps=SEED;persist()}
 
 let oppCat='all';
 function renderOppCats(){
   const cats={all:'Tout',...CATS};
-  $('#oppCats').innerHTML=Object.entries(cats).map(([k,l])=>
-    `<button class="btn ${oppCat===k?'primary':''}" data-oc="${k}">${l}</button>`).join('');
+  $('#oppCats').innerHTML=Object.entries(cats).map(([k,l])=>`<button class="btn sm ${oppCat===k?'on':''}" data-oc="${k}">${l}</button>`).join('');
   $$('[data-oc]').forEach(b=>b.onclick=()=>{oppCat=b.dataset.oc;renderOpps()});
   $('#oCat').innerHTML=Object.entries(CATS).map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
 }
 function renderOpps(){
   renderOppCats();
   const now=Date.now();
-  let rows=db.opps.filter(o=>(oppCat==='all'||o.cat===oppCat)&&!($('#oppHideDone').checked&&o.status==='done'));
+  const rows=db.opps.filter(o=>(oppCat==='all'||o.cat===oppCat)&&!($('#oppHideDone').checked&&o.status==='done'));
   const endT=o=>o.end?new Date(o.end+'T23:59:59').getTime():Infinity;
   rows.sort((a,b)=>(a.status==='done')-(b.status==='done')||endT(a)-endT(b));
   $('#oppList').innerHTML=rows.map(o=>{
     const t=endT(o),days=Math.ceil((t-now)/864e5);
-    const when=!o.end?'<span class="tag ok">Permanent</span>':t<now?'<span class="tag bad">Expiré</span>':
-      `<span class="tag ${days<=3?'bad':days<=14?'warn':'acc'}">${days} j restants</span>`;
+    const when=!o.end?'<span class="tag ok">Permanent</span>':t<now?'<span class="tag bad">Expiré</span>':`<span class="tag ${days<=3?'bad':days<=14?'warn':'acc'}">${days} j restants</span>`;
     const link=safeUrl(o.link);
-    return `<div class="card opp ${o.status==='done'?'done':''}">
-      <div class="row"><span class="tag">${CATS[o.cat]||o.cat}</span>${when}
-        ${o.status==='doing'?'<span class="tag warn">En cours</span>':''}${o.status==='done'?'<span class="tag ok">Fait</span>':''}</div>
-      <h3>${esc(o.title)}</h3>
-      <div>🎁 ${esc(o.reward)||'<span class="small">–</span>'}</div>
-      ${o.note?`<div class="small">${esc(o.note)}</div>`:''}
-      <div class="row" style="margin-top:auto">
-        ${link?`<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">Source ↗</a>`:''}
-        <span class="spacer"></span>
+    return`<div class="opp ${o.status==='done'?'done':''}">
+      <div class="row"><span class="tag">${CATS[o.cat]||o.cat}</span>${when}${o.status==='doing'?'<span class="tag warn">En cours</span>':''}${o.status==='done'?'<span class="tag ok">Fait</span>':''}</div>
+      <b>${esc(o.title)}</b>
+      ${o.reward?`<div>🎁 ${esc(o.reward)}</div>`:''}${o.note?`<div class="small">${esc(o.note)}</div>`:''}
+      <div class="row" style="margin-top:auto">${link?`<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">Source ↗</a>`:''}<span class="sp"></span>
         <select data-st="${o.id}"><option value="todo">À faire</option><option value="doing"${o.status==='doing'?' selected':''}>En cours</option><option value="done"${o.status==='done'?' selected':''}>Fait</option></select>
-        <button class="btn danger" data-odel="${o.id}">✕</button>
-      </div></div>`}).join('')||'<div class="empty">Rien dans cette catégorie.</div>';
+        <button class="btn sm danger" data-odel="${o.id}">✕</button></div></div>`}).join('')||'<div class="empty">Rien dans cette catégorie.</div>';
   $$('[data-st]').forEach(s=>s.onchange=()=>{db.opps.find(o=>o.id===s.dataset.st).status=s.value;save();renderOpps()});
   $$('[data-odel]').forEach(b=>b.onclick=()=>{db.opps=db.opps.filter(o=>o.id!==b.dataset.odel);save();renderOpps();renderFeed()});
 }
@@ -594,49 +1015,40 @@ $('#oppHideDone').onchange=renderOpps;
 $('#oppNew').onclick=()=>{const f=$('#oppForm');f.style.display=f.style.display==='none'?'flex':'none'};
 $('#oSave').onclick=()=>{
   const title=$('#oTitle').value.trim();if(!title)return;
-  db.opps.push({id:uid(),cat:$('#oCat').value,title,reward:$('#oReward').value.trim(),end:$('#oEnd').value,
-    link:$('#oLink').value.trim(),note:$('#oNote').value.trim(),status:'todo'});
-  ['#oTitle','#oReward','#oEnd','#oLink','#oNote'].forEach(s=>$(s).value='');
-  save();renderOpps();
+  db.opps.push({id:uid(),cat:$('#oCat').value,title,reward:$('#oReward').value.trim(),end:$('#oEnd').value,link:$('#oLink').value.trim(),note:$('#oNote').value.trim(),status:'todo'});
+  ['#oTitle','#oReward','#oEnd','#oLink','#oNote'].forEach(s=>$(s).value='');save();renderOpps();
 };
 
-
-/* ---- Flux Comm-Link RSI via l'API du Star Citizen Wiki (CORS ouvert) ---- */
 const FEED_KEY=KEY+'.feed';
 const FEED_CATS={promo:'Promos & événements',patch:'Patchs',news:'Actus',all:'Tout'};
-function classifyLink(t){
-  if(/subscriber promo|deals?\b|\bsale\b|warbond|referral|twitch drops|free fly|festival|pirate week|alien week|defensecon|invictus|\biae\b|citizencon|anniversary|ship showdown|concept sale|bonus/i.test(t))return'promo';
-  if(/alpha \d|release info|patch|ptu|tech preview/i.test(t))return'patch';
-  return'news';
-}
-let feed={t:0,items:[]},feedCat='promo';
-try{feed=JSON.parse(localStorage.getItem(FEED_KEY)||'')||feed}catch(e){}
+const classifyLink=t=>/subscriber promo|deals?\b|\bsale\b|warbond|referral|twitch drops|free fly|festival|pirate week|alien week|defensecon|invictus|\biae\b|citizencon|anniversary|ship showdown|concept sale|bonus/i.test(t)?'promo':
+  /alpha \d|release info|patch|ptu|tech preview/i.test(t)?'patch':'news';
+let feed=lget(FEED_KEY,{t:0,items:[]}),feedCat='promo';
 async function loadFeed(force){
   if(!force&&feed.items.length&&Date.now()-feed.t<36e5){renderFeed();return}
   $('#feedStatus').textContent='Chargement du flux…';
   try{
-    const r=await fetch('https://api.star-citizen.wiki/api/v2/comm-links?page%5Bsize%5D=100');
+    const r=await fetchRetry('https://api.star-citizen.wiki/api/v2/comm-links?page%5Bsize%5D=100');
     if(!r.ok)throw new Error(r.status);
     const j=await r.json(),seen=new Set(),items=[];
     for(const c of j.data){
-      if(seen.has(c.id)||/^[A-Z0-9]+(-[A-Za-z0-9]+)+$/.test(c.title))continue; /* doublons + fiches d'items techniques */
+      if(seen.has(c.id)||/^[A-Z0-9]+(-[A-Za-z0-9]+)+$/.test(c.title))continue;
       seen.add(c.id);
       const txt=((c.translations||{}).en_EN||'').split('\n').slice(1).join(' ').replace(/\s+/g,' ').trim();
       items.push({id:c.id,title:c.title,url:c.rsi_url,date:c.created_at,cat:classifyLink(c.title),x:txt.slice(0,220)});
     }
     items.sort((a,b)=>b.date.localeCompare(a.date));
-    feed={t:Date.now(),items};
-    try{localStorage.setItem(FEED_KEY,JSON.stringify(feed))}catch(e){}
+    feed={t:Date.now(),items};lset(FEED_KEY,feed);
   }catch(e){
     $('#feedStatus').textContent=feed.items.length?'✘ Réseau indisponible, affichage de la dernière version en cache.':'✘ Flux indisponible (API du Wiki injoignable).';
-    if(!feed.items.length){return}
+    if(!feed.items.length)return;
   }
-  renderFeed();
+  renderFeed();renderToday();
 }
 function renderFeed(){
   $('#feedFilters').innerHTML=Object.entries(FEED_CATS).map(([k,l])=>{
     const n=k==='all'?feed.items.length:feed.items.filter(i=>i.cat===k).length;
-    return`<button class="btn ${feedCat===k?'primary':''}" data-fc="${k}">${l} (${n})</button>`}).join('');
+    return`<button class="btn sm ${feedCat===k?'on':''}" data-fc="${k}">${l} (${n})</button>`}).join('');
   $$('[data-fc]').forEach(b=>b.onclick=()=>{feedCat=b.dataset.fc;renderFeed()});
   const rows=feed.items.filter(i=>feedCat==='all'||i.cat===feedCat).slice(0,40);
   const followed=new Set(db.opps.map(o=>o.link));
@@ -644,7 +1056,7 @@ function renderFeed(){
     const age=(Date.now()-new Date(i.date))/864e5,url=safeUrl(i.url);
     return`<div class="feed-item"><span class="small d">${new Date(i.date).toLocaleDateString('fr-FR')}</span>
       <a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(i.title)} ${age<14?'<span class="tag ok">Nouveau</span>':''}</a>
-      <button class="btn" data-follow="${i.id}" ${followed.has(i.url)?'disabled':''}>${followed.has(i.url)?'✔ Suivi':'+ Suivre'}</button>
+      <button class="btn sm" data-follow="${i.id}" ${followed.has(i.url)?'disabled':''}>${followed.has(i.url)?'✔ Suivi':'+ Suivre'}</button>
       ${i.x?`<div class="x">${esc(i.x)}…</div>`:''}</div>`}).join('')||'<div class="empty">Rien dans cette catégorie sur la période.</div>';
   $$('[data-follow]').forEach(b=>b.onclick=()=>{
     const i=feed.items.find(x=>String(x.id)===b.dataset.follow);if(!i)return;
@@ -656,16 +1068,43 @@ function renderFeed(){
 $('#feedRefresh').onclick=()=>loadFeed(true);
 
 /* =====================================================
-   ALERTES RAFFINAGE
+   AUJOURD'HUI
+   ===================================================== */
+function renderToday(){
+  const now=Date.now(),a=db.active;
+  const pend=db.refining.filter(r=>!r.collected),ready=pend.filter(r=>r.ready<=now);
+  const ms=db.sessions.reduce((t,x)=>t+x.ms,0),val=db.sessions.reduce((t,x)=>t+x.val,0);
+  $('#tKpis').innerHTML=[['Vaisseaux',db.fleet.length],['CCU en stock',db.ccus.filter(c=>c.status==='stock').length],
+    ['Raffinages prêts',`${ready.length}<span style="font-size:13px;color:var(--muted)"> / ${pend.length}</span>`],
+    ['aUEC générés',fmt(val)],['aUEC / heure',ms>36e3?fmt(val/(ms/36e5)):'–']].map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  $('#tSession').innerHTML=a?`<div class="timer" id="tTimer">${dur(elapsed(a))}</div>
+      <div class="small">${esc(a.type)}${a.place?' · '+esc(a.place):''}${a.ship?' · '+esc(a.ship):''} ${a.running?'':'<span class="tag warn">pause</span>'}</div>
+      <div class="row" style="margin-top:12px"><a class="btn sm primary" href="#/industry/${a.type==='Salvage'?'salvage':'mining'}">Ouvrir la session</a></div>`:
+    `<div class="timer idle">00:00:00</div><div class="small" style="margin-bottom:12px">Aucune session en cours.</div>
+     <div class="row"><a class="btn sm primary" href="#/industry/mining">▶ Minage</a><a class="btn sm primary" href="#/industry/salvage">▶ Salvage</a></div>`;
+  $('#tRefining').innerHTML=pend.length?pend.slice(0,6).map(r=>`<div style="margin-bottom:12px"><div class="row"><b>${esc(r.mat)}</b><span class="small">${r.scu?r.scu+' SCU · ':''}${esc(r.place)}</span><span class="sp"></span>
+      <span data-ready="${r.ready}" class="tag warn">…</span></div><div class="gauge" data-prog="${r.started}-${r.ready}"><i></i></div></div>`).join('')+
+      (pend.length>6?`<div class="small">+ ${pend.length-6} autres</div>`:''):
+    '<div class="small">Aucun raffinage en cours. <a href="#/industry/refining">Lancer un ordre →</a></div>';
+  const promos=feed.items.filter(i=>i.cat==='promo').slice(0,5);
+  $('#tPromos').innerHTML=promos.length?promos.map(i=>`<div class="feed-item" style="grid-template-columns:70px 1fr"><span class="small d">${new Date(i.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})}</span>
+    <a href="${esc(safeUrl(i.url))}" target="_blank" rel="noopener noreferrer">${esc(i.title)}</a></div>`).join('')+'<div style="margin-top:10px"><a href="#/opps">Tout le flux →</a></div>':
+    '<div class="small">Flux en cours de chargement ou indisponible.</div>';
+  const top=(UEX?UEX.items:[]).filter(i=>i.cat==='refined'||i.cat==='salvage').slice(0,5);
+  $('#tMarket').innerHTML=top.length?'<table>'+top.map(i=>`<tr><td><b>${esc(i.name)}</b></td><td style="color:var(--accent)">${fmt(i.best.price)}</td><td class="small">${esc(i.best.terminal)}</td></tr>`).join('')+'</table><div style="margin-top:10px"><a href="#/industry/profit">Détail & simulateur →</a></div>':
+    '<div class="small">Prix non chargés. <a href="#/industry/profit">Ouvrir Rentabilité →</a></div>';
+}
+
+/* =====================================================
+   ALERTES RAFFINAGE + HORLOGE
    ===================================================== */
 function alertLabel(){
   const p=('Notification' in window)?Notification.permission:'unsupported';
-  $('#alertBtn').textContent=p==='granted'?'🔔 Alertes : activées':p==='denied'?'🔕 Alertes : bloquées':'🔔 Activer les alertes';
+  const t=p==='granted'?'🔔 Alertes on':p==='denied'?'🔕 Alertes bloquées':'🔔 Activer les alertes';
+  $('#alertBtn').textContent=t;$('#alertBtn2').textContent=t;
 }
-$('#alertBtn').onclick=async()=>{
-  if('Notification' in window&&Notification.permission==='default')await Notification.requestPermission();
-  beep();alertLabel();
-};
+const askAlerts=async()=>{if('Notification' in window&&Notification.permission==='default')await Notification.requestPermission();beep();alertLabel()};
+$('#alertBtn').onclick=askAlerts;$('#alertBtn2').onclick=askAlerts;
 let actx;
 function beep(){
   try{
@@ -680,6 +1119,12 @@ function notifyReady(r){
   try{if('Notification' in window&&Notification.permission==='granted')new Notification('⛏ Raffinage prêt',{body})}catch(e){}
   beep();
 }
+function gcalUrl(r){
+  const z=t=>new Date(t).toISOString().replace(/[-:]|\.\d{3}/g,'');
+  return'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('⛏ Raffinage prêt : '+r.mat)+
+    '&dates='+z(r.ready)+'/'+z(r.ready+15*60000)+'&details='+encodeURIComponent(`${r.mat} ${r.scu||''} SCU – ${r.place} (${r.method})`);
+}
+let lastSigKey='';
 function checkReady(){
   const now=Date.now();let changed=false;
   db.refining.forEach(r=>{if(!r.collected&&!r.notified&&r.ready<=now){r.notified=true;changed=true;notifyReady(r)}});
@@ -688,21 +1133,204 @@ function checkReady(){
   const b=$('#readyBanner');
   b.style.display=ready.length?'block':'none';
   b.innerHTML=ready.length?`✅ <b>${ready.length} raffinage${ready.length>1?'s':''} prêt${ready.length>1?'s':''}</b> : `+
-    ready.map(r=>`${esc(r.mat)} (${esc(r.place)})`).join(' · ')+' — <a href="#" id="goInd" style="color:inherit">voir</a>':'';
-  if(ready.length)$('#goInd').onclick=e=>{e.preventDefault();show('industry')};
-  document.title=(ready.length?`(${ready.length}) `:'')+'Star Citizen – Dashboard';
-  if(changed)renderRefining();
+    ready.map(r=>`${esc(r.mat)} (${esc(r.place)})`).join(' · ')+' — <a href="#/industry/refining">voir</a>':'';
+  document.title=(ready.length?`(${ready.length}) `:'')+'SC//OS – Star Citizen';
+  /* signaux du rail */
+  const sig=(id,txt,cls)=>{const e=$('#sig-'+id);if(e){e.textContent=txt||'';e.className='sig '+(cls||'')}};
+  sig('industry',ready.length||'',ready.length?'':'');
+  if(!ready.length&&db.active&&db.active.running)sig('industry','','dot');
+  const newPromos=feed.items.filter(i=>i.cat==='promo'&&Date.now()-new Date(i.date)<7*864e5).length;
+  sig('opps',newPromos||'');
+  const k=[ready.length,db.refining.length,db.sessions.length,db.active?1:0,newPromos].join();
+  if(k!==lastSigKey){lastSigKey=k;if(changed||cur.page==='today')renderToday();if(changed)renderRefining()}
 }
-function gcalUrl(r){
-  const z=t=>new Date(t).toISOString().replace(/[-:]|\.\d{3}/g,'');
-  return'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('⛏ Raffinage prêt : '+r.mat)+
-    '&dates='+z(r.ready)+'/'+z(r.ready+15*60000)+'&details='+encodeURIComponent(`${r.mat} ${r.scu||''} SCU – ${r.place} (${r.method})`);
+function tick(){
+  const now=Date.now();
+  $('#clock').textContent=new Date().toLocaleTimeString('fr-FR');
+  $('#timer').textContent=dur(elapsed(db.active&&db.active.type===curType()?db.active:null));
+  $('#timer').classList.toggle('idle',!(db.active&&db.active.running&&db.active.type===curType()));
+  const tt=$('#tTimer');if(tt)tt.textContent=dur(elapsed(db.active));
+  $$('[data-ready]').forEach(el=>{
+    const left=+el.dataset.ready-now;
+    el.textContent=left<=0?'Prêt !':dur(left);
+    el.className=left<=0?'tag ok':'tag warn';
+  });
+  $$('[data-prog]').forEach(el=>{
+    const [s,e]=el.dataset.prog.split('-').map(Number);
+    const p=e<=s?100:Math.min(100,Math.max(0,(now-s)/(e-s)*100));
+    el.style.setProperty('--p',p+'%');el.classList.toggle('ok',p>=100);
+  });
+  checkReady();
 }
-setInterval(checkReady,1000);
+setInterval(tick,1000);
 
-/* ---------- init ---------- */
-function renderAll(){renderFleet();renderSession();renderRefining();renderIndKpis();renderSessions();renderOpps()}
-renderAll();alertLabel();checkReady();loadFeed(false);
+/* =====================================================
+   SYNCHRONISATION (Gist GitHub secret)
+   ===================================================== */
+const SYNC_KEY=KEY+'.sync',GIST_FILE='sc-dashboard.json';
+let sync=Object.assign({token:'',gistId:'',stamp:0,auto:true,last:0,err:''},lget(SYNC_KEY,{}));
+const saveSync=()=>lset(SYNC_KEY,sync);
+let syncBusy=false,syncTimer;
+function setPill(state,txt){const p=$('#syncPill');p.className=state;p.querySelector('span').textContent=txt}
+function renderSync(){
+  const on=!!sync.token;
+  $('#syncForm').style.display=on?'none':'';$('#syncInfo').style.display=on?'':'none';
+  $('#syAuto').checked=sync.auto;
+  if(!on){setPill('','Sync · off');return}
+  $('#syStatus').innerHTML=`<span class="tag ${sync.err?'bad':'ok'}">${sync.err?'erreur':'connecté'}</span> `+
+    (sync.err?esc(sync.err):`dernière synchro ${sync.last?ago(sync.last):'jamais'}`)+
+    (sync.gistId?` · <a target="_blank" rel="noopener noreferrer" href="https://gist.github.com/${encodeURIComponent(sync.gistId)}">Gist ↗</a>`:' · Gist pas encore créé');
+  if(!syncBusy)setPill(sync.err?'err':'ok',sync.err?'Sync · erreur':'Sync · '+(sync.last?new Date(sync.last).toLocaleTimeString('fr-FR',{timeStyle:'short'}):'ok'));
+}
+const ghFetch=(path,opt={})=>fetch('https://api.github.com'+path,{...opt,headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+sync.token,'Content-Type':'application/json'}});
+const syncPayload=()=>{const {active,...rest}=db;return rest};
+async function ghJson(r){if(!r.ok){const e=new Error(r.status===401?'Token refusé (401)':r.status===403?'Accès refusé / limite d\'appels (403)':'Erreur GitHub '+r.status);throw e}return r.json()}
+async function findGist(){
+  for(let p=1;p<=3;p++){
+    const list=await ghJson(await ghFetch(`/gists?per_page=100&page=${p}`));
+    const g=list.find(x=>x.files&&x.files[GIST_FILE]);if(g)return g.id;
+    if(list.length<100)break;
+  }
+  return '';
+}
+async function readRemote(){
+  const g=await ghJson(await ghFetch('/gists/'+sync.gistId));
+  const f=g.files&&g.files[GIST_FILE];if(!f)throw new Error('Fichier '+GIST_FILE+' absent du Gist');
+  const txt=f.truncated?await (await fetch(f.raw_url)).text():f.content;
+  return JSON.parse(txt);
+}
+async function pushRemote(){
+  const body=JSON.stringify({description:'SC//OS dashboard – données',public:false,files:{[GIST_FILE]:{content:JSON.stringify(syncPayload())}}});
+  const g=await ghJson(sync.gistId?await ghFetch('/gists/'+sync.gistId,{method:'PATCH',body}):await ghFetch('/gists',{method:'POST',body}));
+  sync.gistId=g.id;sync.stamp=db.updatedAt;
+}
+function applyRemote(remote){
+  backup();
+  db=Object.assign({},defaults,remote,{active:db.active});
+  persist();sync.stamp=remote.updatedAt||0;renderAll();
+}
+async function syncNow(mode){ /* mode : undefined = auto, 'push' | 'pull' = forcé */
+  if(!sync.token||syncBusy)return;
+  syncBusy=true;setPill('busy','Sync · …');
+  try{
+    if(!sync.gistId)sync.gistId=await findGist();
+    if(!sync.gistId){await pushRemote()}
+    else if(mode==='push'){await pushRemote()}
+    else{
+      const remote=await readRemote(),rs=remote.updatedAt||0,ls=db.updatedAt||0;
+      if(mode==='pull'){applyRemote(remote)}
+      else if(rs===ls){sync.stamp=ls}
+      else if(rs>sync.stamp&&ls>sync.stamp){
+        if(confirm('Conflit de synchronisation : cet appareil ET le cloud ont changé depuis la dernière synchro.\n\nOK = garder les données de CET APPAREIL (écrase le cloud)\nAnnuler = garder celles du CLOUD (écrase cet appareil ; une sauvegarde locale est conservée)'))await pushRemote();
+        else applyRemote(remote);
+      }
+      else if(rs>sync.stamp)applyRemote(remote);
+      else if(ls>sync.stamp)await pushRemote();
+    }
+    sync.last=Date.now();sync.err='';
+  }catch(e){sync.err=e.message||'Erreur réseau'}
+  syncBusy=false;saveSync();renderSync();
+}
+function queueSync(){
+  if(!sync.token||!sync.auto)return;
+  clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(),8000);
+}
+$('#syConnect').onclick=async()=>{
+  const t=$('#syToken').value.trim();if(!t)return;
+  sync={...sync,token:t,gistId:'',stamp:0,err:''};saveSync();$('#syToken').value='';renderSync();await syncNow();
+};
+$('#syNow').onclick=()=>syncNow();
+$('#syPush').onclick=()=>{if(confirm('Écraser le cloud avec les données de cet appareil ?'))syncNow('push')};
+$('#syPull').onclick=()=>{if(confirm('Écraser les données de cet appareil avec celles du cloud ?'))syncNow('pull')};
+$('#syOff').onclick=()=>{if(confirm('Déconnecter la synchronisation de ce navigateur ? (le Gist n\'est pas supprimé)')){sync={token:'',gistId:'',stamp:0,auto:true,last:0,err:''};saveSync();renderSync()}};
+$('#syAuto').onchange=e=>{sync.auto=e.target.checked;saveSync()};
+$('#syncPill').onclick=()=>go('system');
+setInterval(()=>{if(sync.token&&sync.auto&&document.visibilityState==='visible')syncNow()},3e5);
+
+/* export / import / sauvegarde */
+$('#exportAll').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'}));
+  a.download='sc-dashboard-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+};
+$('#importAll').onchange=async e=>{
+  try{const d=JSON.parse(await e.target.files[0].text());backup();db=Object.assign({},defaults,d);save();renderAll()}
+  catch(err){alert('Fichier invalide')}
+  e.target.value='';
+};
+$('#restoreBk').onclick=()=>{
+  const b=lget(KEY+'.backup',null);
+  if(!b)return alert('Aucune sauvegarde disponible.');
+  if(confirm('Restaurer la sauvegarde du '+new Date(b.t).toLocaleString('fr-FR')+' ?')){db=Object.assign({},defaults,b.db);save();renderAll()}
+};
+
+/* =====================================================
+   PALETTE DE COMMANDES + RACCOURCIS
+   ===================================================== */
+let palSel=0,palItems=[];
+function commands(){
+  const c=[];
+  PAGES.forEach((p,i)=>{
+    c.push({t:'Aller à : '+ROUTES[p].label,k:String(i+1),run:()=>go(p)});
+    Object.entries(ROUTES[p].subs||{}).forEach(([s,l])=>c.push({t:`Aller à : ${ROUTES[p].label} › ${l}`,run:()=>go(p+'/'+s)}));
+  });
+  const a=db.active;
+  if(!a){c.push({t:'Session : démarrer un minage',run:()=>{go('industry/mining');setTimeout(sessStart,50)}});
+         c.push({t:'Session : démarrer un salvage',run:()=>{go('industry/salvage');setTimeout(sessStart,50)}})}
+  else{c.push({t:a.running?'Session : pause':'Session : reprendre',run:()=>a.running?sessPause():sessStart()});c.push({t:'Session : terminer et enregistrer',run:sessStop})}
+  c.push({t:'Raffinage : lancer un nouvel ordre',run:()=>{go('industry/refining');setTimeout(()=>$('#rMat').focus(),80)}});
+  c.push({t:'Actualiser : flux Comm-Link',run:()=>loadFeed(true)});
+  c.push({t:'Actualiser : prix UEX',run:async()=>{await loadUex(true);renderAll()}});
+  c.push({t:'Actualiser : enrichir la flotte',run:()=>enrichFleet(false)});
+  if(sync.token)c.push({t:'Synchroniser maintenant',run:()=>syncNow()});
+  c.push({t:'Exporter les données (JSON)',run:()=>$('#exportAll').click()});
+  c.push({t:'Activer les alertes de raffinage',run:askAlerts});
+  return c;
+}
+function palRender(){
+  const q=$('#palIn').value.toLowerCase().split(/\s+/).filter(Boolean);
+  palItems=commands().filter(c=>q.every(w=>c.t.toLowerCase().includes(w)));
+  palSel=Math.min(palSel,Math.max(0,palItems.length-1));
+  $('#palList').innerHTML=palItems.map((c,i)=>`<li class="${i===palSel?'sel':''}" data-i="${i}"><b>${esc(c.t)}</b>${c.k?`<kbd>${c.k}</kbd>`:''}</li>`).join('')||'<li>Aucune commande</li>';
+  $$('#palList li[data-i]').forEach(li=>{li.onmouseenter=()=>{palSel=+li.dataset.i;$$('#palList li').forEach(x=>x.classList.toggle('sel',x===li))};li.onclick=()=>palRun()});
+  const s=$('#palList .sel');if(s)s.scrollIntoView({block:'nearest'});
+}
+function palOpen(){$('#pal').classList.add('on');$('#palIn').value='';palSel=0;palRender();$('#palIn').focus()}
+function palClose(){$('#pal').classList.remove('on')}
+function palRun(){const c=palItems[palSel];palClose();if(c)c.run()}
+$('#palBtn').onclick=palOpen;$('#palBtn2').onclick=palOpen;
+$('#pal').onclick=e=>{if(e.target.id==='pal')palClose()};
+$('#palIn').oninput=()=>{palSel=0;palRender()};
+$('#palIn').onkeydown=e=>{
+  if(e.key==='ArrowDown'){e.preventDefault();palSel=Math.min(palItems.length-1,palSel+1);palRender()}
+  else if(e.key==='ArrowUp'){e.preventDefault();palSel=Math.max(0,palSel-1);palRender()}
+  else if(e.key==='Enter'){e.preventDefault();palRun()}
+  else if(e.key==='Escape'){palClose()}
+};
+document.addEventListener('keydown',e=>{
+  const typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#pal').classList.contains('on')?palClose():palOpen();return}
+  if(typing||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.key==='/'){e.preventDefault();palOpen()}
+  else if(/^[1-5]$/.test(e.key))go(PAGES[+e.key-1]);
+});
+
+/* =====================================================
+   INIT
+   ===================================================== */
+function renderAllLight(){renderToday();renderSession();renderIndKpis();renderSessions()}
+function renderAll(){
+  renderFleet();renderCcu();renderSession();renderRefining();renderIndKpis();renderSessions();
+  renderProfit();renderOpps();renderFeed();renderToday();renderSync();alertLabel();checkReady();
+}
+buildNav();
+if(!location.hash)location.replace('#/'+lget(KEY+'.page','today'));
+window.addEventListener('hashchange',()=>lset(KEY+'.page',cur.page));
+route();tick();
+ensureModels().then(()=>{renderFleet();renderCcu()}).catch(()=>{});
+loadFeed(false);
+loadUex(false).then(()=>{renderProfit();renderToday();renderSessions()});
+if(sync.token)syncNow();
 </script>
 </body>
 </html>
