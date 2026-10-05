@@ -213,6 +213,73 @@ details{margin-top:10px}details summary{cursor:pointer;color:var(--muted);font-s
 tr.pick{cursor:pointer}
 @media(max-width:900px){#tabbar{padding-bottom:env(safe-area-inset-bottom)}}
 kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-dim)}
+
+/* ---------- repli (import de flotte) ---------- */
+details.fold{margin:0 0 16px;border:1px solid var(--line);background:var(--panel)}
+details.fold>summary{padding:13px 16px;cursor:pointer;color:var(--accent);text-transform:uppercase;letter-spacing:.14em;font-size:11px;list-style:none}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::before{content:"▸ ";color:var(--accent-dim)}details.fold[open]>summary::before{content:"▾ "}
+details.fold>.inner{padding:0 14px 14px}
+details.fold .panel{margin-bottom:0}
+
+/* ---------- mobile ---------- */
+@media(max-width:700px){
+  body{font-size:14px}
+  #crumb{font-size:10px;letter-spacing:.1em}
+  #top{gap:8px;padding:8px 14px;padding-top:calc(8px + env(safe-area-inset-top))}
+  #clock,#top .tx{display:none}
+  #top .btn{padding:6px 11px;font-size:15px}
+  input:not([type=checkbox]),select,textarea{font-size:16px;min-height:42px}
+  .btn{min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+  .btn.sm{min-height:36px}
+  .panel{padding:14px 14px 12px}
+  h2{margin-bottom:12px}
+  .kpis{display:flex;overflow-x:auto;scrollbar-width:none;margin-left:-14px;margin-right:-14px;border-left:0;border-right:0;gap:0}
+  .kpis::-webkit-scrollbar{display:none}
+  .kpi{flex:0 0 auto;min-width:122px;padding:10px 14px}
+  .kpi .v{font-size:20px}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:-14px;margin-right:-14px;padding:0 6px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs a{white-space:nowrap;padding:11px 12px;font-size:11px;letter-spacing:.08em}
+  .tabs a::before,.tabs a::after{content:none}
+  .timer{font-size:36px}
+  .sec-head .row{width:100%}
+  #fleetSearch{flex:1 1 100%}
+  .ships{grid-template-columns:repeat(2,1fr);gap:10px}
+  .ship-img{aspect-ratio:4/3}
+  .ship-body{padding:9px 10px;gap:4px}
+  .ship-body b{font-size:13px}
+  .ship-meta{gap:8px;font-size:10.5px}
+  .ship-foot{flex-wrap:wrap}
+  .noimg{font-size:22px}
+  .ccu{grid-template-columns:1fr;gap:4px}.ccu .arrow{transform:rotate(90deg);justify-self:start}
+  .hb{grid-template-columns:1fr auto;gap:2px 10px}.hb .t{grid-column:1/-1;order:3}
+  .feed-item .x{display:none}
+  /* tableaux -> cartes */
+  table.cards,table.cards tbody{display:block}
+  table.cards tr.hd{display:none}
+  table.cards tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px;padding:13px 0;border-bottom:1px solid var(--line2)}
+  table.cards tr:hover td{background:none}
+  table.cards td{display:block;border:0;padding:0;min-width:0}
+  table.cards td[data-l]::before{content:attr(data-l);display:block;font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+  table.cards td.t{grid-column:1/-1;order:-1;font-size:14px}
+  table.cards td.t::before{display:none}
+  table.cards td.f{grid-column:1/-1}
+  table.cards td.act{grid-column:1/-1;display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+  table.cards td.hm{display:none}
+  table.cards tr{position:relative}
+  table.cards td.act.x{position:absolute;top:9px;right:0;grid-column:auto}
+  table.cards td.t.px{padding-right:44px}
+  table.cards td.pt{grid-column:1/3}
+  table.cards td.pr{order:-1;grid-column:3;justify-self:end;font-size:17px;font-weight:700}
+  table.cards td.pr::before,table.cards td.nl::before{display:none}
+  table.cards td.nl{order:-1;font-size:12px;color:var(--muted)}
+  table.cards td.empty{grid-column:1/-1}
+  .row>input:not([type=checkbox])[style*="width"]{width:auto!important;flex:1 1 130px;min-width:0}
+}
+.fl{display:flex;flex-direction:column;gap:3px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;flex:1 1 130px;min-width:0}
+.fl input,.fl select{width:100%}
+@media(max-width:700px){.kpis{-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent)}}
 </style>
 </head>
 <body>
@@ -231,9 +298,9 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
     <span class="sp"></span>
     <span id="clock"></span>
     <span id="netTag" class="tag warn" style="display:none">Hors ligne</span>
-    <button class="btn sm" id="installBtn" style="display:none" title="Installer SC//OS comme application">⤓ Installer</button>
+    <button class="btn sm" id="installBtn" style="display:none" title="Installer SC//OS comme application">⤓<span class="tx"> Installer</span></button>
     <button class="btn sm" id="alertBtn" title="Notification + son quand un raffinage est prêt"></button>
-    <button class="btn sm" id="palBtn2" title="Palette de commandes (Ctrl+K ou /)">⌘ Cmd</button>
+    <button class="btn sm" id="palBtn2" title="Palette de commandes (Ctrl+K ou /)">⌘<span class="tx"> Cmd</span></button>
   </header>
 
   <div id="view">
@@ -258,7 +325,8 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
 
       <div data-sub="hangar">
         <div class="kpis grid" id="fleetKpis"></div>
-        <div class="grid two" style="margin-bottom:16px">
+        <details class="fold" id="importFold"><summary>Importer ou ajouter des vaisseaux</summary><div class="inner">
+        <div class="grid two" style="margin-bottom:0">
           <div class="panel">
             <h2>Importer ma flotte</h2>
             <p class="small" style="margin-top:0">RSI n'a pas d'API officielle : un token/cookie RSI serait risqué et bloqué par le navigateur. Deux méthodes sûres :</p>
@@ -286,6 +354,7 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
             </div>
           </div>
         </div>
+        </div></details>
         <div class="panel">
           <div class="sec-head">
             <h2>Hangar</h2>
@@ -384,7 +453,7 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
         </div>
         <div class="panel">
           <div class="sec-head"><h2 id="histTitle">Historique</h2><button class="btn sm" id="sessCsv">⬇ CSV</button></div>
-          <div style="overflow-x:auto"><table id="sessTable"></table></div>
+          <div style="overflow-x:auto"><table id="sessTable" class="cards"></table></div>
         </div>
       </div>
 
@@ -410,7 +479,7 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
         <div class="panel">
           <div class="sec-head"><h2>Ordres de raffinage</h2>
             <div class="row"><label class="small"><input type="checkbox" id="rHideDone"> masquer les récupérés</label><button class="btn sm" id="refCsv">⬇ CSV</button></div></div>
-          <div style="overflow-x:auto"><table id="refTable"></table></div>
+          <div style="overflow-x:auto"><table id="refTable" class="cards"></table></div>
         </div>
       </div>
 
@@ -440,7 +509,7 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
             <h2>Prix de vente en direct</h2>
             <div class="row">
               <select id="pCat"></select>
-              <input id="pCap" type="number" min="1" placeholder="Cargo SCU" style="width:110px">
+              <label class="fl" style="flex:0 1 120px">Cargo (SCU)<input id="pCap" type="number" min="1" placeholder="ex. 46"></label>
               <select id="pShip"><option value="">Mon vaisseau…</option></select>
               <button class="btn sm" id="pRefresh">↻ Actualiser</button>
               <button class="btn sm" id="pCsv">⬇ CSV prix</button>
@@ -448,7 +517,7 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
             </div>
           </div>
           <div class="small" id="pStatus" style="margin-bottom:10px"></div>
-          <div style="overflow-x:auto"><table id="pTable"></table></div>
+          <div style="overflow-x:auto"><table id="pTable" class="cards"></table></div>
         </div>
         <div class="panel" id="pDetail" style="display:none">
           <div class="sec-head"><h2 id="pdTitle">Historique</h2><button class="btn sm" id="pdClose">Fermer</button></div>
@@ -461,11 +530,11 @@ kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-d
         <div class="panel">
           <h2>Simulateur de rentabilité</h2>
           <div class="row">
-            <select id="xMat" style="min-width:200px"></select>
-            <input id="xScu" type="number" min="0" step="0.1" placeholder="SCU minés (bruts)" style="width:150px">
-            <input id="xYield" type="number" min="1" max="100" placeholder="Rendement %" style="width:120px" value="50">
-            <input id="xCost" type="number" min="0" placeholder="Coût raffinage aUEC" style="width:160px" value="0">
-            <input id="xMin" type="number" min="1" placeholder="Durée cycle (min)" style="width:150px" value="60">
+            <label class="fl" style="flex:2 1 220px">Matériau<select id="xMat"></select></label>
+            <label class="fl">SCU minés (bruts)<input id="xScu" type="number" min="0" step="0.1" placeholder="ex. 64"></label>
+            <label class="fl">Rendement %<input id="xYield" type="number" min="1" max="100" value="50"></label>
+            <label class="fl">Coût raffinage aUEC<input id="xCost" type="number" min="0" value="0"></label>
+            <label class="fl">Durée du cycle (min)<input id="xMin" type="number" min="1" value="60"></label>
           </div>
           <div id="xOut" style="margin-top:14px"></div>
           <p class="small">Le rendement dépend de la méthode, du lieu et de la qualité du minerai : saisis celui que tu observes en jeu. Les prix viennent de UEX Corp (relevés communautaires, parfois anciens).</p>
@@ -790,6 +859,7 @@ $('#fleetSortSel').onchange=e=>{const k=e.target.value;fleetSort={k,d:k==='model
 const insTag=s=>s.insurance?`<span class="tag ${s.insurance==='LTI'?'ok':''}">${esc(s.insurance)}</span>`:'';
 function renderFleet(){
   const f=db.fleet;
+  const fold=$('#importFold');if(fold&&!fold.dataset.init){fold.open=f.length===0;fold.dataset.init='1'}
   const roles=[...new Set(f.map(s=>s.role).filter(Boolean))].sort();
   const cur=$('#fleetRole').value;
   $('#fleetRole').innerHTML='<option value="">Tous les rôles</option>'+roles.map(r=>`<option${r===cur?' selected':''}>${esc(r)}</option>`).join('');
@@ -952,11 +1022,11 @@ function renderIndKpis(){
 function renderSessions(){
   const t=curType(),s=db.sessions.filter(x=>x.type===t);
   $('#sessTable').innerHTML=s.length?
-    '<tr><th>Date</th><th>Lieu</th><th>Vaisseau</th><th>Durée</th><th>SCU</th><th>aUEC</th><th>aUEC/h</th><th>Détail</th><th></th></tr>'+
-    s.map(x=>{const h=x.ms/3600000;return`<tr><td>${new Date(x.date).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</td>
-      <td>${esc(x.place)||'–'}</td><td>${esc(x.ship)||'–'}</td><td>${dur(x.ms)}</td><td>${x.scu}</td><td>${fmt(x.val)}</td><td>${h>0.005?fmt(x.val/h):'–'}</td>
-      <td class="small">${x.log.map(l=>`${esc(l.mat)} ${l.scu}`).join(', ')}</td>
-      <td><button class="btn sm danger" data-sdel="${x.id}">✕</button></td></tr>`}).join(''):'<tr><td class="empty">Aucune session de ce type.</td></tr>';
+    '<tr class="hd"><th>Date</th><th>Lieu</th><th>Vaisseau</th><th>Durée</th><th>SCU</th><th>aUEC</th><th>aUEC/h</th><th>Détail</th><th></th></tr>'+
+    s.map(x=>{const h=x.ms/3600000;return`<tr><td class="t px">${new Date(x.date).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</td>
+      <td data-l="Lieu">${esc(x.place)||'–'}</td><td data-l="Vaisseau">${esc(x.ship)||'–'}</td><td data-l="Durée">${dur(x.ms)}</td><td data-l="SCU">${x.scu}</td><td data-l="aUEC">${fmt(x.val)}</td><td data-l="aUEC / h">${h>0.005?fmt(x.val/h):'–'}</td>
+      <td class="small f">${x.log.map(l=>`${esc(l.mat)} ${l.scu}`).join(', ')}</td>
+      <td class="act x"><button class="btn sm danger" data-sdel="${x.id}">✕</button></td></tr>`}).join(''):'<tr><td class="empty">Aucune session de ce type.</td></tr>';
   $$('[data-sdel]').forEach(b=>b.onclick=()=>{db.sessions=db.sessions.filter(x=>x.id!==b.dataset.sdel);save();renderAll()});
   const last=s.slice(0,20).reverse(),max=Math.max(1,...last.map(x=>x.val));
   $('#sessBars').innerHTML=last.map(x=>`<div style="height:${Math.max(2,x.val/max*100)}%" title="${fmt(x.val)} aUEC"></div>`).join('')||'<span class="small" style="align-self:center;padding:0 8px">Pas encore de données.</span>';
@@ -979,11 +1049,11 @@ $('#rHideDone').onchange=renderRefining;
 function renderRefining(){
   const rows=db.refining.filter(r=>!($('#rHideDone').checked&&r.collected));
   $('#refTable').innerHTML=rows.length?
-    '<tr><th>Lieu</th><th>Matériau</th><th>Méthode</th><th>SCU</th><th>Coût</th><th>Valeur est.</th><th>Statut</th><th></th></tr>'+
-    rows.map(r=>`<tr><td>${esc(r.place)}</td><td><b>${esc(r.mat)}</b></td><td>${esc(r.method)}</td><td>${r.scu||'–'}</td>
-      <td>${fmt(r.cost)}</td><td>${fmt(r.val)}</td>
-      <td>${r.collected?'<span class="tag">Récupéré</span>':`<span data-ready="${r.ready}" class="tag warn">…</span>`}</td>
-      <td class="row">${r.collected?'':`<a class="btn sm" title="Ajouter à Google Agenda (alerte même onglet fermé)" target="_blank" rel="noopener noreferrer" href="${esc(gcalUrl(r))}">📅</a><button class="btn sm" data-col="${r.id}">Récupéré</button>`}<button class="btn sm danger" data-rdel="${r.id}">✕</button></td></tr>`).join('')
+    '<tr class="hd"><th>Lieu</th><th>Matériau</th><th>Méthode</th><th>SCU</th><th>Coût</th><th>Valeur est.</th><th>Statut</th><th></th></tr>'+
+    rows.map(r=>`<tr><td data-l="Lieu" class="f">${esc(r.place)}</td><td class="t"><b>${esc(r.mat)}</b></td><td data-l="Méthode">${esc(r.method)}</td><td data-l="SCU">${r.scu||'–'}</td>
+      <td data-l="Coût">${fmt(r.cost)}</td><td data-l="Valeur est." class="f">${fmt(r.val)}</td>
+      <td data-l="Statut">${r.collected?'<span class="tag">Récupéré</span>':`<span data-ready="${r.ready}" class="tag warn">…</span>`}</td>
+      <td class="act">${r.collected?'':`<a class="btn sm" title="Ajouter à Google Agenda (alerte même onglet fermé)" target="_blank" rel="noopener noreferrer" href="${esc(gcalUrl(r))}">📅</a><button class="btn sm" data-col="${r.id}">Récupéré</button>`}<button class="btn sm danger" data-rdel="${r.id}">✕</button></td></tr>`).join('')
     :'<tr><td class="empty">Aucun ordre de raffinage.</td></tr>';
   $$('[data-col]').forEach(b=>b.onclick=()=>{const r=db.refining.find(r=>r.id===b.dataset.col);r.collected=true;ntfyCancel(r);save();renderAll()});
   $$('[data-rdel]').forEach(b=>b.onclick=()=>{const r=db.refining.find(r=>r.id===b.dataset.rdel);if(r)ntfyCancel(r);db.refining=db.refining.filter(r=>r.id!==b.dataset.rdel);save();renderAll()});
@@ -1040,10 +1110,10 @@ function renderProfit(){
     const d=(sr[sr.length-1].v-sr[0].v)/sr[0].v*100;
     return sparkline(sr.map(p=>p.v))+` <span class="tag ${d>0.5?'ok':d<-0.5?'warn':''}">${d>0.5?'▲':d<-0.5?'▼':'='} ${Math.abs(d).toFixed(1)}%</span>`;
   };
-  $('#pTable').innerHTML=rows.length?'<tr><th>Matériau</th><th>Catégorie</th><th>aUEC / SCU</th><th>Tendance 7 j</th><th>Meilleur terminal</th><th>Demande moy. (SCU)</th><th>Relevé</th>'+(cap?'<th>Cargaison</th>':'')+'<th>Autres terminaux</th></tr>'+
-    rows.map(i=>`<tr class="pick" data-pid="${i.id}" title="Cliquer pour l'historique"><td><b>${esc(i.name)}</b></td><td><span class="tag">${UEX_CATS[i.cat]}</span></td><td style="color:var(--accent)"><b>${fmt(i.best.price)}</b></td>
-      <td>${trend(i)}</td><td>${esc(i.best.terminal)}</td><td>${fmt(i.best.demand)}</td><td>${ageTag(i.best.t)}</td>${cap?`<td><b>${fmt(i.best.price*cap)}</b></td>`:''}
-      <td class="small">${i.top.slice(1).map(t=>`${esc(t.terminal)} ${fmt(t.price)}`).join('<br>')||'–'}</td></tr>`).join(''):'<tr><td class="empty">Aucune donnée pour cette catégorie.</td></tr>';
+  $('#pTable').innerHTML=rows.length?'<tr class="hd"><th>Matériau</th><th>Catégorie</th><th>aUEC / SCU</th><th>Tendance 7 j</th><th>Meilleur terminal</th><th>Demande moy. (SCU)</th><th>Relevé</th>'+(cap?'<th>Cargaison</th>':'')+'<th>Autres terminaux</th></tr>'+
+    rows.map(i=>`<tr class="pick" data-pid="${i.id}" title="Cliquer pour l'historique"><td class="t pt"><b>${esc(i.name)}</b></td><td class="hm"><span class="tag">${UEX_CATS[i.cat]}</span></td><td data-l="aUEC / SCU" class="pr" style="color:var(--accent)">${fmt(i.best.price)}</td>
+      <td data-l="Tendance 7 j">${trend(i)}</td><td class="f nl">${esc(i.best.terminal)}</td><td data-l="Demande (SCU)">${fmt(i.best.demand)}</td><td data-l="Relevé">${ageTag(i.best.t)}</td>${cap?`<td data-l="Cargaison"><b>${fmt(i.best.price*cap)}</b></td>`:''}
+      <td class="small hm">${i.top.slice(1).map(t=>`${esc(t.terminal)} ${fmt(t.price)}`).join('<br>')||'–'}</td></tr>`).join(''):'<tr><td class="empty">Aucune donnée pour cette catégorie.</td></tr>';
   $$('#pTable tr[data-pid]').forEach(tr=>tr.onclick=()=>{selProfit=+tr.dataset.pid;renderProfitDetail();$('#pDetail').scrollIntoView({behavior:'smooth',block:'nearest'})});
   renderProfitDetail();
   const sel=$('#xMat'),curx=sel.value;
@@ -1198,8 +1268,8 @@ function renderToday(){
    ===================================================== */
 function alertLabel(){
   const p=('Notification' in window)?Notification.permission:'unsupported';
-  const t=p==='granted'?'🔔 Alertes on':p==='denied'?'🔕 Alertes bloquées':'🔔 Activer les alertes';
-  $('#alertBtn').textContent=t;$('#alertBtn2').textContent=t;
+  const ic=p==='denied'?'🔕':'🔔',tx=p==='granted'?' Alertes on':p==='denied'?' Alertes bloquées':' Activer les alertes';
+  [$('#alertBtn'),$('#alertBtn2')].forEach(b=>{b.innerHTML=`${ic}<span class="tx">${tx}</span>`});
 }
 const askAlerts=async()=>{if('Notification' in window&&Notification.permission==='default')await Notification.requestPermission();beep();alertLabel()};
 $('#alertBtn').onclick=askAlerts;$('#alertBtn2').onclick=askAlerts;
