@@ -23,3 +23,19 @@ synchronisables entre appareils via un Gist GitHub secret.
 ## Sources de données
 FleetYards (catalogue, images, hangars publics) · Star Citizen Wiki API (Comm-Link) · UEX Corp (prix)
 · ntfy.sh (notifications téléphone, optionnel) · Gist GitHub (synchronisation, optionnelle).
+
+## Alertes 24 h/24 (robot GitHub, gratuit)
+`.github/workflows/sc-alerts.yml` lance toutes les ~15 minutes `.github/scripts/sc-alerts.mjs` (Node, sans dépendance) :
+nouvelles promos et événements RSI, nouveaux patchs, seuils de prix UEX → notification ntfy sur le téléphone,
+**application fermée et PC éteint**. Les réglages (règles de prix, cases promos/patchs, sujet ntfy) sont lus dans le Gist
+de synchronisation de l'application ; la déduplication s'appuie sur l'historique ntfy des 12 dernières heures
+(aucun état, aucune écriture dans le dépôt).
+
+Activation (une fois) :
+1. Dans l'application : connecter la synchronisation GitHub, activer ntfy, créer les règles (Système).
+2. Dépôt → *Settings → Secrets and variables → Actions → Variables* : créer `SC_DATA_URL` avec l'adresse affichée dans l'application.
+3. **Fusionner la branche dans la branche par défaut** : GitHub n'exécute les workflows planifiés que depuis celle-ci.
+
+Limites : le déclenchement peut être retardé de quelques minutes ; GitHub désactive les workflows planifiés d'un dépôt public
+après 60 jours sans activité ; `workflow_dispatch` permet un lancement manuel depuis l'onglet *Actions*.
+Test local sans rien envoyer : `SC_DATA_URL=<url> node .github/scripts/sc-alerts.mjs --dry-run`.

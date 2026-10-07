@@ -279,6 +279,7 @@ details.fold .panel{margin-bottom:0}
 }
 .fl{display:flex;flex-direction:column;gap:3px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;flex:1 1 130px;min-width:0}
 .fl input,.fl select{width:100%}
+.row:has(>.fl){align-items:flex-end}
 @media(max-width:700px){.kpis{-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent)}}
 </style>
 </head>
@@ -451,6 +452,22 @@ details.fold .panel{margin-bottom:0}
             <div id="indRef" class="small"></div>
           </div>
         </div>
+        <div class="panel" id="crewPanel">
+          <div class="sec-head"><h2>Partage d'équipage</h2><button class="btn sm" id="cwFrom" title="Reprend le total de la session en cours ou de la dernière session">↻ Total de la session</button></div>
+          <div class="row">
+            <label class="fl">Total à partager (aUEC)<input id="cwTotal" type="number" min="0"></label>
+            <label class="fl">Frais (carburant, raffinage…)<input id="cwFees" type="number" min="0"></label>
+            <label class="fl">Prélevé pour le vaisseau (%)<input id="cwShip" type="number" min="0" max="100"></label>
+          </div>
+          <div id="cwRoster" style="margin-top:12px"></div>
+          <div class="row" style="margin-top:8px">
+            <input id="cwName" placeholder="Nom du joueur" style="flex:2 1 150px">
+            <input id="cwParts" type="number" min="0" step="0.5" value="1" style="flex:0 1 90px" title="Nombre de parts">
+            <button class="btn" id="cwAdd">+ Ajouter</button>
+          </div>
+          <div id="cwOut" style="margin-top:14px"></div>
+          <div class="row" style="margin-top:10px"><button class="btn" id="cwCopy">Copier le récapitulatif</button><span class="small" id="cwMsg"></span></div>
+        </div>
         <div class="panel">
           <div class="sec-head"><h2 id="histTitle">Historique</h2><button class="btn sm" id="sessCsv">⬇ CSV</button></div>
           <div style="overflow-x:auto"><table id="sessTable" class="cards"></table></div>
@@ -538,6 +555,83 @@ details.fold .panel{margin-bottom:0}
           </div>
           <div id="xOut" style="margin-top:14px"></div>
           <p class="small">Le rendement dépend de la méthode, du lieu et de la qualité du minerai : saisis celui que tu observes en jeu. Les prix viennent de UEX Corp (relevés communautaires, parfois anciens).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROJETS ============ -->
+    <section class="page" id="page-projects" data-page="projects">
+      <div class="tabs" data-tabs="projects"></div>
+
+      <div data-sub="goals">
+        <div class="kpis grid" id="gKpis"></div>
+        <div class="grid two" style="margin-bottom:16px">
+          <div class="panel">
+            <h2>Mon solde</h2>
+            <div class="row">
+              <label class="fl" style="flex:1 1 150px">Solde actuel (aUEC)<input id="gBalance" type="number" min="0"></label>
+              <label class="fl" style="flex:1 1 120px">Heures de jeu / semaine<input id="gHours" type="number" min="1" max="120"></label>
+              <label class="fl" style="flex:1 1 120px">aUEC / h (vide = réel)<input id="gRate" type="number" min="0" placeholder="auto"></label>
+            </div>
+            <div class="row" style="margin-top:12px">
+              <input id="gAdj" type="number" min="0" placeholder="Montant" style="flex:1 1 120px">
+              <button class="btn" id="gPlus">+ Gain</button><button class="btn" id="gMinus">− Dépense</button>
+            </div>
+            <label class="small" style="display:block;margin-top:12px"><input type="checkbox" id="gAuto"> Créditer automatiquement le solde avec les gains de chaque session terminée</label>
+          </div>
+          <div class="panel">
+            <h2>Nouvel objectif</h2>
+            <div class="row">
+              <input id="gTitle" list="shipNames" placeholder="Objectif (ex. Prospector)" style="flex:2 1 180px">
+              <input id="gTarget" type="number" min="0" placeholder="Coût aUEC" style="flex:1 1 120px">
+            </div>
+            <div class="row" style="margin-top:8px"><button class="btn primary" id="gAdd">Ajouter</button></div>
+            <p class="small">Choisis un nom de vaisseau dans la liste : son prix en jeu (aUEC) est rempli automatiquement quand il est connu.</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Mes objectifs · dans l'ordre d'achat</h2>
+          <div id="gList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))"></div>
+        </div>
+      </div>
+
+      <div data-sub="needs">
+        <div class="grid two" style="margin-bottom:16px">
+          <div class="panel">
+            <h2 id="nFormTitle">Nouveau projet</h2>
+            <div class="row">
+              <input id="nTitle" placeholder="Titre (ex. Contrat Wikelo – …)" style="flex:2 1 200px">
+              <select id="nKind"><option>Contrat</option><option>Craft</option><option>Vaisseau</option><option>Autre</option></select>
+            </div>
+            <textarea id="nReqs" rows="5" placeholder="Une ressource par ligne : nom + quantité&#10;Quantanium 200&#10;Agricium x50&#10;12 Riccite" style="width:100%;margin-top:8px"></textarea>
+            <input id="nNote" placeholder="Notes (facultatif)" style="width:100%;margin-top:8px">
+            <div class="row" style="margin-top:8px"><button class="btn primary" id="nSave">Enregistrer</button><button class="btn" id="nCancel" style="display:none">Annuler</button></div>
+          </div>
+          <div class="panel">
+            <div class="sec-head"><h2>Liste de courses</h2><button class="btn sm" id="nCsv">⬇ CSV</button></div>
+            <div id="nShop"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="sec-head"><h2>Mes projets</h2><label class="small"><input type="checkbox" id="nHide"> masquer les terminés</label></div>
+          <p class="small" style="margin-top:0">La progression de chaque projet est comparée à ton inventaire complet ; la liste de courses additionne tous les projets en cours pour montrer ce qu'il manque vraiment.</p>
+          <div id="nList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))"></div>
+        </div>
+      </div>
+
+      <div data-sub="stock">
+        <div class="panel">
+          <h2>Ajouter au stock</h2>
+          <div class="row">
+            <input id="sName" list="stockNames" placeholder="Ressource / objet" style="flex:2 1 200px">
+            <input id="sQty" type="number" min="0" step="0.1" placeholder="Quantité" style="flex:1 1 110px">
+            <button class="btn primary" id="sAddStock">Ajouter</button>
+          </div>
+          <datalist id="stockNames"></datalist>
+        </div>
+        <div class="panel">
+          <div class="sec-head"><h2>Inventaire</h2><input id="sSearch" placeholder="Rechercher…"></div>
+          <div id="sList"></div>
         </div>
       </div>
     </section>
@@ -639,6 +733,28 @@ details.fold .panel{margin-bottom:0}
           <p class="small">Séparateur « ; », encodage UTF-8 : s'ouvre directement dans Excel ou LibreOffice en français.</p>
         </div>
       </div>
+      <div class="panel" id="alertPanel" style="margin-top:16px">
+        <h2>Alertes 24 h/24 (robot GitHub)</h2>
+        <p class="small" style="margin-top:0">Un petit robot gratuit consulte les prix UEX et le Comm-Link RSI environ toutes les 15 minutes et t'envoie une notification ntfy, <b>même application fermée et PC éteint</b>. Il lit tes réglages dans ton Gist de synchronisation (les mêmes que ci-dessus).</p>
+        <div class="grid two">
+          <div>
+            <label class="small" style="display:block"><input type="checkbox" id="alPromos"> Nouvelles promos et événements RSI</label>
+            <label class="small" style="display:block;margin-top:6px"><input type="checkbox" id="alPatches"> Nouveaux patchs du jeu</label>
+            <h3>Alertes de prix</h3>
+            <div class="row">
+              <select id="alMat" style="flex:2 1 180px"></select>
+              <select id="alDir"><option value="above">au-dessus de</option><option value="below">en dessous de</option></select>
+              <input id="alVal" type="number" min="0" placeholder="aUEC / SCU" style="flex:1 1 110px">
+              <button class="btn primary" id="alAdd">Ajouter</button>
+            </div>
+            <div id="alList" style="margin-top:8px"></div>
+          </div>
+          <div>
+            <h3 style="margin-top:0">Activation (une seule fois)</h3>
+            <div id="alSetup" class="small"></div>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 </div>
@@ -648,7 +764,7 @@ details.fold .panel{margin-bottom:0}
 <div id="pal"><div id="palBox">
   <input id="palIn" placeholder="Aller à… ou lancer une action" autocomplete="off">
   <ul id="palList"></ul>
-  <div id="palFoot"><kbd>↑↓</kbd> choisir · <kbd>Entrée</kbd> valider · <kbd>Échap</kbd> fermer · raccourcis : <kbd>1</kbd>–<kbd>5</kbd> pages, <kbd>/</kbd> commandes</div>
+  <div id="palFoot"><kbd>↑↓</kbd> choisir · <kbd>Entrée</kbd> valider · <kbd>Échap</kbd> fermer · raccourcis : <kbd>1</kbd>–<kbd>6</kbd> pages, <kbd>/</kbd> commandes</div>
 </div></div>
 
 <script>
@@ -680,8 +796,8 @@ const lset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
    STOCKAGE
    ===================================================== */
 const KEY='scdash.v1';
-const defaults={fleet:[],sessions:[],refining:[],opps:null,active:null,ccus:[],ntfy:null,updatedAt:0};
-let db=Object.assign({},defaults,lget(KEY,{}));
+const mkDefaults=()=>({fleet:[],sessions:[],refining:[],opps:null,active:null,ccus:[],ntfy:null,alerts:null,goals:[],balance:0,autoBalance:false,hoursWeek:8,rateManual:0,stock:[],needs:[],crew:[],crewCfg:{fees:0,shipPct:0},updatedAt:0});
+let db=Object.assign(mkDefaults(),lget(KEY,{}));
 const persist=()=>lset(KEY,db);
 function save(){db.updatedAt=Date.now();persist();queueSync()}
 function backup(){lset(KEY+'.backup',{t:Date.now(),db})}
@@ -693,6 +809,7 @@ const ROUTES={
   today:{label:"Aujourd'hui"},
   fleet:{label:'Flotte',subs:{hangar:'Hangar',ccu:'CCU'}},
   industry:{label:'Industrie',subs:{mining:'Minage',salvage:'Salvage',refining:'Raffinage',profit:'Rentabilité',analysis:'Analyse'}},
+  projects:{label:'Projets',subs:{goals:'Objectifs',needs:'Besoins',stock:'Inventaire'}},
   opps:{label:'Opportunités'},
   system:{label:'Système'}
 };
@@ -988,8 +1105,11 @@ function sessStart(){
 function sessPause(){const a=db.active;if(!a||!a.running)return;a.acc+=Date.now()-a.since;a.running=false;save();renderSession()}
 function sessStop(){
   const a=db.active;if(!a)return;
-  db.sessions.unshift({id:uid(),type:a.type,place:a.place,ship:a.ship,date:a.start,ms:elapsed(a),
-    scu:a.log.reduce((t,l)=>t+l.scu,0),val:a.log.reduce((t,l)=>t+l.val,0),log:a.log});
+  const val=a.log.reduce((t,l)=>t+l.val,0);
+  const rec={id:uid(),type:a.type,place:a.place,ship:a.ship,date:a.start,ms:elapsed(a),scu:a.log.reduce((t,l)=>t+l.scu,0),val,log:a.log};
+  if(db.crew.length>=2){const c=crewCalc(val);rec.split={fees:c.fees,shipPct:c.shipPct,pay:c.pay.map(x=>({name:x.name,amount:Math.round(x.amount)})),ship:Math.round(c.ship)}}
+  db.sessions.unshift(rec);
+  if(db.autoBalance)db.balance=(db.balance||0)+val;
   db.active=null;save();renderAll();
 }
 $('#sStart').onclick=sessStart;$('#sPause').onclick=sessPause;$('#sStop').onclick=sessStop;
@@ -1025,7 +1145,7 @@ function renderSessions(){
     '<tr class="hd"><th>Date</th><th>Lieu</th><th>Vaisseau</th><th>Durée</th><th>SCU</th><th>aUEC</th><th>aUEC/h</th><th>Détail</th><th></th></tr>'+
     s.map(x=>{const h=x.ms/3600000;return`<tr><td class="t px">${new Date(x.date).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</td>
       <td data-l="Lieu">${esc(x.place)||'–'}</td><td data-l="Vaisseau">${esc(x.ship)||'–'}</td><td data-l="Durée">${dur(x.ms)}</td><td data-l="SCU">${x.scu}</td><td data-l="aUEC">${fmt(x.val)}</td><td data-l="aUEC / h">${h>0.005?fmt(x.val/h):'–'}</td>
-      <td class="small f">${x.log.map(l=>`${esc(l.mat)} ${l.scu}`).join(', ')}</td>
+      <td class="small f">${x.log.map(l=>`${esc(l.mat)} ${l.scu}`).join(', ')}${x.split?`<br>Partage : ${x.split.pay.map(m=>`${esc(m.name)} ${fmt(m.amount)}`).join(' · ')}${x.split.ship?` · vaisseau ${fmt(x.split.ship)}`:''}`:''}</td>
       <td class="act x"><button class="btn sm danger" data-sdel="${x.id}">✕</button></td></tr>`}).join(''):'<tr><td class="empty">Aucune session de ce type.</td></tr>';
   $$('[data-sdel]').forEach(b=>b.onclick=()=>{db.sessions=db.sessions.filter(x=>x.id!==b.dataset.sdel);save();renderAll()});
   const last=s.slice(0,20).reverse(),max=Math.max(1,...last.map(x=>x.val));
@@ -1362,8 +1482,9 @@ async function findGist(){
   }
   return '';
 }
+function setRaw(g){const f=g.files&&g.files[GIST_FILE];if(f&&f.raw_url){sync.rawUrl=f.raw_url.replace(/\/raw\/[0-9a-f]{40}\//,'/raw/');saveSync()}}
 async function readRemote(){
-  const g=await ghJson(await ghFetch('/gists/'+sync.gistId));
+  const g=await ghJson(await ghFetch('/gists/'+sync.gistId));setRaw(g);
   const f=g.files&&g.files[GIST_FILE];if(!f)throw new Error('Fichier '+GIST_FILE+' absent du Gist');
   const txt=f.truncated?await (await fetch(f.raw_url)).text():f.content;
   return JSON.parse(txt);
@@ -1371,11 +1492,11 @@ async function readRemote(){
 async function pushRemote(){
   const body=JSON.stringify({description:'SC//OS dashboard – données',public:false,files:{[GIST_FILE]:{content:JSON.stringify(syncPayload())}}});
   const g=await ghJson(sync.gistId?await ghFetch('/gists/'+sync.gistId,{method:'PATCH',body}):await ghFetch('/gists',{method:'POST',body}));
-  sync.gistId=g.id;sync.stamp=db.updatedAt;
+  sync.gistId=g.id;sync.stamp=db.updatedAt;setRaw(g);
 }
 function applyRemote(remote){
   backup();
-  db=Object.assign({},defaults,remote,{active:db.active});
+  db=Object.assign(mkDefaults(),remote,{active:db.active});
   persist();sync.stamp=remote.updatedAt||0;renderAll();
 }
 async function syncNow(mode){ /* mode : undefined = auto, 'push' | 'pull' = forcé */
@@ -1423,14 +1544,14 @@ $('#exportAll').onclick=()=>{
   a.download='sc-dashboard-'+new Date().toISOString().slice(0,10)+'.json';a.click();
 };
 $('#importAll').onchange=async e=>{
-  try{const d=JSON.parse(await e.target.files[0].text());backup();db=Object.assign({},defaults,d);save();renderAll()}
+  try{const d=JSON.parse(await e.target.files[0].text());backup();db=Object.assign(mkDefaults(),d);save();renderAll()}
   catch(err){alert('Fichier invalide')}
   e.target.value='';
 };
 $('#restoreBk').onclick=()=>{
   const b=lget(KEY+'.backup',null);
   if(!b)return alert('Aucune sauvegarde disponible.');
-  if(confirm('Restaurer la sauvegarde du '+new Date(b.t).toLocaleString('fr-FR')+' ?')){db=Object.assign({},defaults,b.db);save();renderAll()}
+  if(confirm('Restaurer la sauvegarde du '+new Date(b.t).toLocaleString('fr-FR')+' ?')){db=Object.assign(mkDefaults(),b.db);save();renderAll()}
 };
 
 /* =====================================================
@@ -1484,7 +1605,7 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#pal').classList.contains('on')?palClose():palOpen();return}
   if(typing||e.ctrlKey||e.metaKey||e.altKey)return;
   if(e.key==='/'){e.preventDefault();palOpen()}
-  else if(/^[1-5]$/.test(e.key))go(PAGES[+e.key-1]);
+  else if(/^[1-6]$/.test(e.key)&&PAGES[+e.key-1])go(PAGES[+e.key-1]);
 });
 
 
@@ -1764,13 +1885,275 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
   navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(renderApp).catch(()=>{});
 }
 
+
+/* =====================================================
+   PROJETS : OBJECTIFS aUEC
+   ===================================================== */
+function ratePerHour(){
+  const m=num(db.rateManual);if(m>0)return m;
+  const ms=db.sessions.reduce((t,x)=>t+x.ms,0);
+  return ms>18e5?db.sessions.reduce((t,x)=>t+x.val,0)/(ms/36e5):0;
+}
+const h1=n=>(Math.round(n*10)/10).toLocaleString('fr-FR');
+$('#gBalance').onchange=e=>{db.balance=Math.max(0,num(e.target.value));save();renderGoals()};
+$('#gHours').onchange=e=>{db.hoursWeek=Math.min(120,Math.max(1,num(e.target.value)||8));save();renderGoals()};
+$('#gRate').onchange=e=>{db.rateManual=Math.max(0,num(e.target.value));save();renderGoals()};
+$('#gAuto').onchange=e=>{db.autoBalance=e.target.checked;save()};
+$('#gPlus').onclick=()=>{const v=num($('#gAdj').value);if(!v)return;db.balance=(db.balance||0)+v;$('#gAdj').value='';save();renderGoals()};
+$('#gMinus').onclick=()=>{const v=num($('#gAdj').value);if(!v)return;db.balance=Math.max(0,(db.balance||0)-v);$('#gAdj').value='';save();renderGoals()};
+$('#gTitle').oninput=()=>{
+  const t=$('#gTitle').value.trim(),m=MODELS.find(x=>x.name.toLowerCase()===t.toLowerCase());
+  if(m&&m.price>0&&!num($('#gTarget').value))$('#gTarget').value=Math.round(m.price);
+};
+$('#gAdd').onclick=()=>{
+  const title=$('#gTitle').value.trim(),target=num($('#gTarget').value);
+  if(!title||!target)return;
+  db.goals.push({id:uid(),title,target,done:false});
+  $('#gTitle').value='';$('#gTarget').value='';save();renderGoals();
+};
+function renderGoals(){
+  const bal=db.balance||0,hw=db.hoursWeek||8,rate=ratePerHour();
+  if(document.activeElement!==$('#gBalance'))$('#gBalance').value=bal||'';
+  if(document.activeElement!==$('#gHours'))$('#gHours').value=hw;
+  if(document.activeElement!==$('#gRate'))$('#gRate').value=db.rateManual||'';
+  $('#gAuto').checked=!!db.autoBalance;
+  const open=db.goals.filter(g=>!g.done),total=open.reduce((t,g)=>t+g.target,0),remaining=Math.max(0,total-bal);
+  const hrs=rate?remaining/rate:null;
+  $('#gKpis').innerHTML=[['Solde',fmt(bal)],['aUEC / heure',rate?fmt(rate):'–'],['Objectifs en cours',open.length],['Reste à gagner',fmt(remaining)],
+    ['Temps estimé',hrs==null?'–':remaining?`${h1(hrs)} h`:'0 h']].map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  let cum=0;
+  $('#gList').innerHTML=db.goals.map((g,i)=>{
+    if(g.done)return`<div class="opp done"><div class="row"><b>${esc(g.title)}</b><span class="tag ok">Atteint</span><span class="sp"></span><button class="btn sm danger" data-g="del" data-id="${g.id}">✕</button></div><div class="small">${fmt(g.target)} aUEC</div></div>`;
+    const before=cum;cum+=g.target;
+    const pct=Math.max(0,Math.min(100,(bal-before)/g.target*100)),rem=Math.max(0,cum-bal);
+    const eta=rem===0?'<span class="tag ok">Finançable maintenant</span>':rate?`≈ ${h1(rem/rate)} h de jeu · ~${h1(rem/rate/hw)} sem.`:'Joue quelques sessions pour estimer la durée';
+    return`<div class="opp"><div class="row"><b>${esc(g.title)}</b><span class="sp"></span><span class="tag acc">${fmt(g.target)} aUEC</span></div>
+      <div class="gauge ${pct>=100?'ok':''}" style="--p:${pct}%"><i></i></div>
+      <div class="small">Financé à ${Math.round(pct)} % · reste ${fmt(rem)} (cumul dans l'ordre)</div>
+      <div class="small">${eta}</div>
+      <div class="row"><button class="btn sm" data-g="up" data-id="${g.id}" ${i===0?'disabled':''}>▲</button><button class="btn sm" data-g="down" data-id="${g.id}" ${i===db.goals.length-1?'disabled':''}>▼</button>
+        <span class="sp"></span><button class="btn sm" data-g="done" data-id="${g.id}">Acheté ✔</button><button class="btn sm danger" data-g="del" data-id="${g.id}">✕</button></div></div>`;
+  }).join('')||'<div class="empty">Aucun objectif. Ajoute le vaisseau ou l\'équipement que tu vises.</div>';
+}
+$('#gList').onclick=e=>{
+  const b=e.target.closest('[data-g]');if(!b)return;
+  const i=db.goals.findIndex(g=>g.id===b.dataset.id);if(i<0)return;
+  const a=b.dataset.g,g=db.goals[i];
+  if(a==='del'){db.goals.splice(i,1)}
+  else if(a==='up'&&i>0){[db.goals[i-1],db.goals[i]]=[db.goals[i],db.goals[i-1]]}
+  else if(a==='down'&&i<db.goals.length-1){[db.goals[i+1],db.goals[i]]=[db.goals[i],db.goals[i+1]]}
+  else if(a==='done'){g.done=true;if(confirm(`Déduire ${fmt(g.target)} aUEC du solde ?`))db.balance=Math.max(0,(db.balance||0)-g.target)}
+  save();renderGoals();
+};
+
+/* =====================================================
+   PROJETS : INVENTAIRE + BESOINS
+   ===================================================== */
+const stockMap=()=>{const m={};db.stock.forEach(i=>{m[nk(i.name)]=(m[nk(i.name)]||0)+i.qty});return m};
+function parseReqs(txt){
+  const out=[];
+  txt.split(/\n/).map(l=>l.trim()).filter(Boolean).forEach(l=>{
+    let m=l.match(/^(\d+(?:[.,]\d+)?)\s*(?:[x×*]\s*)?(.+)$/i),name,qty;
+    if(m){qty=parseFloat(m[1].replace(',','.'));name=m[2]}
+    else if((m=l.match(/^(.+?)\s*[:\-–]?\s*(?:[x×*]\s*)?(\d+(?:[.,]\d+)?)\s*(?:scu|u|pcs)?$/i))){name=m[1];qty=parseFloat(m[2].replace(',','.'))}
+    else{name=l;qty=1}
+    name=name.replace(/[:\-–]\s*$/,'').trim();if(name&&qty>0)out.push({name,qty});
+  });
+  return out;
+}
+let nEditing=null;
+$('#nSave').onclick=()=>{
+  const title=$('#nTitle').value.trim(),reqs=parseReqs($('#nReqs').value);
+  if(!title)return;
+  if(!reqs.length)return alert('Ajoute au moins une ressource (une par ligne : nom + quantité).');
+  const o=nEditing&&db.needs.find(n=>n.id===nEditing);
+  if(o){o.title=title;o.kind=$('#nKind').value;o.reqs=reqs;o.note=$('#nNote').value.trim()}
+  else db.needs.unshift({id:uid(),title,kind:$('#nKind').value,reqs,note:$('#nNote').value.trim(),done:false});
+  nResetForm();save();renderNeeds();
+};
+function nResetForm(){nEditing=null;['#nTitle','#nReqs','#nNote'].forEach(s=>$(s).value='');$('#nFormTitle').textContent='Nouveau projet';$('#nCancel').style.display='none'}
+$('#nCancel').onclick=nResetForm;
+$('#nHide').onchange=renderNeeds;
+$('#nCsv').onclick=()=>CSV.needs();
+function shopList(){
+  const sm=stockMap(),tot={};
+  db.needs.filter(n=>!n.done).forEach(n=>n.reqs.forEach(r=>{const k=nk(r.name);(tot[k]=tot[k]||{name:r.name,need:0}).need+=r.qty}));
+  return Object.entries(tot).map(([k,t])=>({name:t.name,need:t.need,have:sm[k]||0,miss:Math.max(0,t.need-(sm[k]||0))})).sort((a,b)=>b.miss-a.miss||a.name.localeCompare(b.name));
+}
+function renderNeeds(){
+  const sm=stockMap(),shop=shopList();
+  $('#nShop').innerHTML=shop.length?'<table class="cards"><tr class="hd"><th>Ressource</th><th>Requis</th><th>Stock</th><th>Manque</th></tr>'+
+    shop.map(r=>`<tr><td class="t"><b>${esc(r.name)}</b></td><td data-l="Requis">${h1(r.need)}</td><td data-l="Stock">${h1(r.have)}</td><td data-l="Manque">${r.miss?`<span class="tag warn">${h1(r.miss)}</span>`:'<span class="tag ok">OK</span>'}</td></tr>`).join('')+'</table>':
+    '<div class="empty">Aucun projet en cours.</div>';
+  const rows=db.needs.filter(n=>!($('#nHide').checked&&n.done));
+  $('#nList').innerHTML=rows.map(n=>{
+    const all=n.reqs.reduce((t,r)=>t+r.qty,0),got=n.reqs.reduce((t,r)=>t+Math.min(sm[nk(r.name)]||0,r.qty),0),pct=all?got/all*100:0;
+    return`<div class="opp ${n.done?'done':''}"><div class="row"><span class="tag">${esc(n.kind)}</span>${n.done?'<span class="tag ok">Terminé</span>':pct>=100?'<span class="tag ok">Prêt</span>':''}</div>
+      <b>${esc(n.title)}</b>
+      <div class="gauge ${pct>=100?'ok':''}" style="--p:${pct}%"><i></i></div>
+      ${n.reqs.map(r=>{const have=Math.min(sm[nk(r.name)]||0,r.qty);return`<div class="row" style="padding:2px 0"><span>${esc(r.name)}</span><span class="sp"></span>${have>=r.qty?`<span class="tag ok">✔ ${h1(r.qty)}</span>`:`<span class="small">${h1(have)} / ${h1(r.qty)}</span><span class="tag warn">−${h1(r.qty-have)}</span>`}</div>`}).join('')}
+      ${n.note?`<div class="small">${esc(n.note)}</div>`:''}
+      <div class="row" style="margin-top:4px">${n.done?'':`<button class="btn sm" data-n="edit" data-id="${n.id}">Modifier</button>`}<span class="sp"></span>
+        ${n.done?'':`<button class="btn sm" data-n="done" data-id="${n.id}">Terminé ✔</button>`}<button class="btn sm danger" data-n="del" data-id="${n.id}">✕</button></div></div>`}).join('')||'<div class="empty">Aucun projet. Ajoute un contrat ou un craft avec ses ressources.</div>';
+  renderStock();
+}
+$('#nList').onclick=e=>{
+  const b=e.target.closest('[data-n]');if(!b)return;
+  const n=db.needs.find(x=>x.id===b.dataset.id);if(!n)return;
+  const a=b.dataset.n;
+  if(a==='del'){if(confirm('Supprimer ce projet ?'))db.needs=db.needs.filter(x=>x!==n)}
+  else if(a==='edit'){nEditing=n.id;$('#nTitle').value=n.title;$('#nKind').value=n.kind;$('#nReqs').value=n.reqs.map(r=>`${r.name} ${r.qty}`).join('\n');$('#nNote').value=n.note||'';$('#nFormTitle').textContent='Modifier le projet';$('#nCancel').style.display='';window.scrollTo({top:0,behavior:'smooth'});return}
+  else if(a==='done'){
+    n.done=true;
+    if(confirm('Retirer les ressources de ce projet de ton inventaire ?')){
+      n.reqs.forEach(r=>{let left=r.qty;db.stock.filter(i=>nk(i.name)===nk(r.name)).forEach(i=>{const t=Math.min(i.qty,left);i.qty-=t;left-=t})});
+      db.stock=db.stock.filter(i=>i.qty>0);
+    }
+  }
+  save();renderNeeds();
+};
+CSV.needs=()=>downloadCsv('sc-liste-de-courses',['ressource','requis','stock','manque'],shopList().map(r=>[r.name,r.need,r.have,r.miss]));
+$('#sAddStock').onclick=()=>{
+  const name=$('#sName').value.trim(),qty=num($('#sQty').value);if(!name||!qty)return;
+  const ex=db.stock.find(i=>nk(i.name)===nk(name));
+  if(ex)ex.qty+=qty;else db.stock.push({id:uid(),name,qty});
+  $('#sName').value='';$('#sQty').value='';save();renderNeeds();
+};
+$('#sSearch').oninput=renderStock;
+function renderStock(){
+  const need={};db.needs.filter(n=>!n.done).forEach(n=>n.reqs.forEach(r=>{need[nk(r.name)]=(need[nk(r.name)]||0)+r.qty}));
+  const q=$('#sSearch').value.toLowerCase();
+  const rows=[...db.stock].filter(i=>!q||i.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name));
+  $('#sList').innerHTML=rows.length?rows.map(i=>{const nd=need[nk(i.name)]||0;
+    return`<div class="row" style="padding:9px 0"><div class="t" style="flex:1;min-width:0"><b>${esc(i.name)}</b>${nd?`<div class="small">requis par tes projets : ${h1(nd)} ${nd>i.qty?`<span class="tag warn">manque ${h1(nd-i.qty)}</span>`:'<span class="tag ok">couvert</span>'}</div>`:''}</div>
+      <button class="btn sm" data-s="-10" data-id="${i.id}">−10</button><button class="btn sm" data-s="-1" data-id="${i.id}">−1</button>
+      <input type="number" min="0" step="0.1" value="${i.qty}" data-sq="${i.id}" style="width:84px;text-align:center">
+      <button class="btn sm" data-s="1" data-id="${i.id}">+1</button><button class="btn sm" data-s="10" data-id="${i.id}">+10</button>
+      <button class="btn sm danger" data-s="del" data-id="${i.id}">✕</button></div>`}).join(''):'<div class="empty">Inventaire vide. Ajoute ce que tu possèdes.</div>';
+  const names=[...new Set([...MATS_MINING,...MATS_SALVAGE,...db.stock.map(i=>i.name),...db.needs.flatMap(n=>n.reqs.map(r=>r.name))])].sort();
+  $('#stockNames').innerHTML=names.map(n=>`<option value="${esc(n)}">`).join('');
+}
+$('#sList').onclick=e=>{
+  const b=e.target.closest('[data-s]');if(!b)return;
+  const i=db.stock.find(x=>x.id===b.dataset.id);if(!i)return;
+  if(b.dataset.s==='del'){db.stock=db.stock.filter(x=>x!==i)}else i.qty=Math.max(0,Math.round((i.qty+parseFloat(b.dataset.s))*100)/100);
+  save();renderNeeds();
+};
+$('#sList').onchange=e=>{
+  const inp=e.target.closest('[data-sq]');if(!inp)return;
+  const i=db.stock.find(x=>x.id===inp.dataset.sq);if(!i)return;
+  i.qty=Math.max(0,num(inp.value));save();renderNeeds();
+};
+
+/* =====================================================
+   PARTAGE D'ÉQUIPAGE
+   ===================================================== */
+function crewCalc(totalOverride){
+  const cfg=db.crewCfg||{fees:0,shipPct:0};
+  const total=totalOverride!=null?totalOverride:num($('#cwTotal').value);
+  const fees=cfg.fees||0,shipPct=Math.min(100,Math.max(0,cfg.shipPct||0));
+  const net=Math.max(0,total-fees),ship=net*shipPct/100,pool=net-ship,sum=db.crew.reduce((t,c)=>t+c.parts,0);
+  return{total,fees,shipPct,net,ship,pool,sum,pay:db.crew.map(c=>({name:c.name,parts:c.parts,amount:sum?pool*c.parts/sum:0}))};
+}
+$('#cwTotal').oninput=renderCrew;
+$('#cwFees').oninput=()=>{db.crewCfg={...db.crewCfg,fees:Math.max(0,num($('#cwFees').value))};save();renderCrew()};
+$('#cwShip').oninput=()=>{db.crewCfg={...db.crewCfg,shipPct:Math.min(100,Math.max(0,num($('#cwShip').value)))};save();renderCrew()};
+$('#cwFrom').onclick=()=>{
+  const a=db.active&&db.active.type===curType()?db.active:null;
+  const v=a?a.log.reduce((t,l)=>t+l.val,0):((db.sessions.find(x=>x.type===curType())||{}).val||0);
+  $('#cwTotal').value=Math.round(v)||'';renderCrew();
+};
+$('#cwAdd').onclick=()=>{
+  const name=$('#cwName').value.trim(),parts=num($('#cwParts').value);if(!name||!(parts>0))return;
+  db.crew.push({id:uid(),name,parts});$('#cwName').value='';$('#cwParts').value=1;save();renderCrew();
+};
+$('#cwRoster').onclick=e=>{
+  const b=e.target.closest('[data-cw]');if(!b)return;
+  db.crew=db.crew.filter(c=>c.id!==b.dataset.cw);save();renderCrew();
+};
+$('#cwRoster').onchange=e=>{
+  const inp=e.target.closest('[data-cp]');if(!inp)return;
+  const c=db.crew.find(x=>x.id===inp.dataset.cp);if(c){c.parts=Math.max(0,num(inp.value));save();renderCrew()}
+};
+function crewText(){
+  const c=crewCalc();
+  return `Partage ${curType().toLowerCase()} : total ${fmt(c.total)} aUEC, frais ${fmt(c.fees)}, net ${fmt(c.net)}`+(c.ship?`, vaisseau (${c.shipPct} %) ${fmt(c.ship)}`:'')+'\n'+c.pay.map(p=>`- ${p.name} : ${fmt(p.amount)} aUEC (${p.parts} part${p.parts>1?'s':''})`).join('\n');
+}
+$('#cwCopy').onclick=async()=>{
+  try{await navigator.clipboard.writeText(crewText());$('#cwMsg').textContent='Copié.'}catch(e){$('#cwMsg').textContent='Copie impossible.'}
+  setTimeout(()=>{$('#cwMsg').textContent=''},2500);
+};
+function renderCrew(){
+  if(!$('#crewPanel'))return;
+  const cfg=db.crewCfg||{fees:0,shipPct:0};
+  if(document.activeElement!==$('#cwFees'))$('#cwFees').value=cfg.fees||'';
+  if(document.activeElement!==$('#cwShip'))$('#cwShip').value=cfg.shipPct||'';
+  if(!$('#cwRoster').contains(document.activeElement)){
+    $('#cwRoster').innerHTML=db.crew.length?db.crew.map(c=>`<div class="row" style="padding:5px 0"><b style="flex:1">${esc(c.name)}</b><span class="small">parts</span><input type="number" min="0" step="0.5" value="${c.parts}" data-cp="${c.id}" style="width:80px"><button class="btn sm danger" data-cw="${c.id}">✕</button></div>`).join(''):
+      '<div class="small">Ajoute les joueurs de l\'équipage (toi compris) avec leur nombre de parts.</div>';
+  }
+  const c=crewCalc();
+  $('#cwOut').innerHTML=c.total&&c.pay.length?`<table class="cards"><tr class="hd"><th>Joueur</th><th>Parts</th><th>Reçoit (aUEC)</th></tr>`+
+    c.pay.map(p=>`<tr><td class="t"><b>${esc(p.name)}</b></td><td data-l="Parts">${p.parts}</td><td data-l="Reçoit" class="pr" style="color:var(--accent)">${fmt(p.amount)}</td></tr>`).join('')+
+    (c.ship?`<tr><td class="t"><b>Vaisseau (${c.shipPct} %)</b></td><td data-l="Parts">–</td><td data-l="Reçoit" class="pr">${fmt(c.ship)}</td></tr>`:'')+'</table>'+
+    `<div class="small" style="margin-top:6px">Net après frais : ${fmt(c.net)} aUEC${c.sum?'':' · aucune part saisie'}</div>`:
+    '<div class="small">Saisis un total et au moins un joueur pour voir la répartition.</div>';
+}
+
+/* =====================================================
+   ALERTES 24/7 (réglages lus par le robot GitHub)
+   ===================================================== */
+const alc=()=>db.alerts=db.alerts||{promos:true,patches:true,prices:[]};
+$('#alPromos').onchange=e=>{alc().promos=e.target.checked;save()};
+$('#alPatches').onchange=e=>{alc().patches=e.target.checked;save()};
+$('#alAdd').onclick=()=>{
+  const id=+$('#alMat').value,v=num($('#alVal').value),it=UEX&&UEX.items.find(i=>i.id===id);
+  if(!it||!v)return;
+  alc().prices.push({id,name:it.name,dir:$('#alDir').value,value:v});
+  $('#alVal').value='';save();renderAlerts();
+};
+$('#alList').onclick=e=>{
+  const b=e.target.closest('[data-ar]');if(!b)return;
+  alc().prices.splice(+b.dataset.ar,1);save();renderAlerts();
+};
+function repoInfo(){
+  const h=location.hostname;
+  if(/\.github\.io$/.test(h)){const owner=h.split('.')[0],repo=location.pathname.split('/')[1];if(repo)return{owner,repo}}
+  return null;
+}
+function renderAlerts(){
+  if(!$('#alertPanel'))return;
+  const a=db.alerts||{promos:true,patches:true,prices:[]};
+  $('#alPromos').checked=a.promos!==false;$('#alPatches').checked=a.patches!==false;
+  const sel=$('#alMat'),cur=sel.value;
+  const ord={refined:0,salvage:1,hand:2,raw:3};
+  const items=(UEX?UEX.items:[]).filter(i=>i.cat in ord).sort((x,y)=>ord[x.cat]-ord[y.cat]||y.best.price-x.best.price);
+  sel.innerHTML=items.length?items.map(i=>`<option value="${i.id}"${String(i.id)===cur?' selected':''}>${esc(i.name)} · ${fmt(i.best.price)} actuel</option>`).join(''):'<option value="">Prix UEX non chargés</option>';
+  $('#alList').innerHTML=a.prices.length?a.prices.map((r,i)=>{
+    const it=UEX&&UEX.items.find(x=>x.id===r.id),now=it?it.best.price:null;
+    const hit=now!=null&&(r.dir==='above'?now>=r.value:now<=r.value);
+    return`<div class="row"><b>${esc(r.name)}</b><span class="small">${r.dir==='above'?'≥':'≤'} ${fmt(r.value)}</span><span class="sp"></span>${now!=null?`<span class="tag ${hit?'ok':''}">${fmt(now)} ${hit?'· atteint':''}</span>`:''}<button class="btn sm danger" data-ar="${i}">✕</button></div>`}).join(''):
+    '<div class="small">Aucune alerte de prix. Exemple : Quantainium au-dessus de 160 000.</div>';
+  const ri=repoInfo(),raw=sync.rawUrl,nt=db.ntfy;
+  const step=(ok,t)=>`<div style="margin:5px 0">${ok?'<span class="tag ok">✔</span>':'<span class="tag warn">à faire</span>'} ${t}</div>`;
+  $('#alSetup').innerHTML=
+    step(!!(sync.token&&raw),'Synchronisation GitHub connectée (panneau « Synchronisation » plus haut).')+
+    step(!!(nt&&nt.on&&nt.topic),'Notifications téléphone activées (panneau « ntfy »).')+
+    step(false,`Dans le dépôt${ri?` <b>${esc(ri.owner)}/${esc(ri.repo)}</b>`:''} : <i>Settings → Secrets and variables → Actions → Variables</i>, crée la variable <code>SC_DATA_URL</code> avec la valeur suivante :`)+
+    (raw?`<div class="row" style="margin:4px 0"><input readonly value="${esc(raw)}" style="flex:1;min-width:0;font-size:11px" id="alRaw" onclick="this.select()"><button class="btn sm" id="alCopyRaw">Copier</button></div>`:'<div class="small">(apparaît une fois la synchronisation connectée)</div>')+
+    step(false,'Le robot ne tourne que depuis la <b>branche par défaut</b> du dépôt : le fichier <code>.github/workflows/sc-alerts.yml</code> doit y être présent (fusionne la branche).')+
+    (ri?`<div style="margin-top:6px"><a target="_blank" rel="noopener noreferrer" href="https://github.com/${esc(ri.owner)}/${esc(ri.repo)}/settings/variables/actions">Variables du dépôt ↗</a> · <a target="_blank" rel="noopener noreferrer" href="https://github.com/${esc(ri.owner)}/${esc(ri.repo)}/actions/workflows/sc-alerts.yml">Lancer / voir le robot ↗</a></div>`:'')+
+    '<div style="margin-top:6px">Les notifications sont dédupliquées sur 12 h : une alerte de prix ne se répète pas plus d\'une fois par 12 h.</div>';
+  const cp=$('#alCopyRaw');if(cp)cp.onclick=async()=>{try{await navigator.clipboard.writeText(raw);cp.textContent='Copié'}catch(e){$('#alRaw').select()}};
+}
+
 /* =====================================================
    INIT
    ===================================================== */
 function renderAllLight(){renderToday();renderSession();renderIndKpis();renderSessions()}
 function renderAll(){
   renderFleet();renderCcu();renderSession();renderRefining();renderIndKpis();renderSessions();
-  renderProfit();renderAnalysis();renderOpps();renderFeed();renderToday();renderSync();renderNtfy();renderApp();alertLabel();checkReady();
+  renderProfit();renderAnalysis();renderGoals();renderNeeds();renderCrew();renderOpps();renderFeed();renderToday();renderSync();renderNtfy();renderAlerts();renderApp();alertLabel();checkReady();
 }
 buildNav();
 if(!location.hash)location.replace('#/'+lget(KEY+'.page','today'));

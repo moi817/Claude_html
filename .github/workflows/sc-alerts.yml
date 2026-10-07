@@ -1,0 +1,30 @@
+name: SC alerts
+
+# Robot d'alertes SC//OS : notifications ntfy pour les promos RSI, les patchs et les seuils de prix UEX.
+# - Gratuit sur un dépôt public. Les exécutions planifiées ne tournent QUE depuis la branche par défaut.
+# - Inactif tant que la variable de dépôt SC_DATA_URL n'est pas définie (Settings > Secrets and variables > Actions > Variables).
+# - GitHub désactive les workflows planifiés d'un dépôt public sans aucune activité pendant 60 jours.
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'   # toutes les 15 minutes environ (GitHub peut retarder l'exécution)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sc-alerts
+  cancel-in-progress: false
+
+jobs:
+  check:
+    if: ${{ vars.SC_DATA_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vérifier les alertes
+        run: node .github/scripts/sc-alerts.mjs
+        env:
+          SC_DATA_URL: ${{ vars.SC_DATA_URL }}
+          SC_APP_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/sc-os/
