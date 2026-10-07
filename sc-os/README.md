@@ -33,7 +33,7 @@ de synchronisation de l'application ; la déduplication s'appuie sur l'historiqu
 
 Activation (une fois) :
 1. Dans l'application : connecter la synchronisation GitHub, activer ntfy, créer les règles (Système).
-2. Dépôt → *Settings → Secrets and variables → Actions → Variables* : créer `SC_DATA_URL` avec l'adresse affichée dans l'application.
+2. Dépôt → *Settings → Secrets and variables → Actions → **Secrets** → New repository secret* : nom `SC_DATA_URL`, valeur = l'adresse affichée dans l'application. **Secret, pas variable** : sur un dépôt public les journaux d'exécution sont publics et les variables n'y sont pas masquées (l'adresse de ton Gist, donc tes données et ton sujet ntfy, seraient exposées).
 3. **Fusionner la branche dans la branche par défaut** : GitHub n'exécute les workflows planifiés que depuis celle-ci.
 
 Limites : le déclenchement peut être retardé de quelques minutes ; GitHub désactive les workflows planifiés d'un dépôt public

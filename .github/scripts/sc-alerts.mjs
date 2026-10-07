@@ -4,7 +4,7 @@
 // seuils de prix UEX. La déduplication s'appuie sur l'historique ntfy des 12 dernières heures
 // (identifiants de séquence), donc le robot n'a besoin d'aucun état ni d'aucune écriture dans le dépôt.
 //
-// Variables d'environnement : SC_DATA_URL (obligatoire) · SC_APP_URL (lien cliquable, facultatif)
+// Variables d'environnement : SC_DATA_URL (obligatoire ; fournie par un SECRET de dépôt, jamais affichée) · SC_APP_URL (lien cliquable, facultatif)
 // Options : --dry-run (n'envoie rien, affiche ce qui serait envoyé)
 // Surcharges de test : SC_WIKI_URL, SC_UEX_PRICES_URL, SC_ALLOW_HTTP=1, SC_MAX_AGE_H
 
@@ -25,7 +25,7 @@ async function getJson(url, { tries = 3 } = {}) {
     try {
       const r = await fetch(url, { signal: AbortSignal.timeout(25000), headers: { 'user-agent': 'sc-os-alerts' } });
       if (r.ok) return await r.json();
-      err = new Error(`HTTP ${r.status} sur ${url.split('?')[0]}`);
+      err = new Error(`HTTP ${r.status} sur ${new URL(url).host}`);   // jamais l'adresse complète (peut être secrète)
     } catch (e) { err = e; }
     await new Promise(ok => setTimeout(ok, 1500 * (i + 1)));
   }

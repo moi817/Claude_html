@@ -2,7 +2,10 @@ name: SC alerts
 
 # Robot d'alertes SC//OS : notifications ntfy pour les promos RSI, les patchs et les seuils de prix UEX.
 # - Gratuit sur un dépôt public. Les exécutions planifiées ne tournent QUE depuis la branche par défaut.
-# - Inactif tant que la variable de dépôt SC_DATA_URL n'est pas définie (Settings > Secrets and variables > Actions > Variables).
+# - Inactif tant que le SECRET de dépôt SC_DATA_URL n'est pas défini
+#   (Settings > Secrets and variables > Actions > Secrets > New repository secret).
+#   Pourquoi un secret et pas une variable : sur un dépôt public, les journaux d'exécution sont publics et les
+#   variables n'y sont pas masquées ; l'adresse du Gist (donc tes données et ton sujet ntfy) serait exposée.
 # - GitHub désactive les workflows planifiés d'un dépôt public sans aucune activité pendant 60 jours.
 on:
   schedule:
@@ -18,13 +21,18 @@ concurrency:
 
 jobs:
   check:
-    if: ${{ vars.SC_DATA_URL != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 4
+    env:
+      SC_DATA_URL: ${{ secrets.SC_DATA_URL }}
+      SC_APP_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/sc-os/
     steps:
+      - name: Secret SC_DATA_URL absent
+        if: ${{ env.SC_DATA_URL == '' }}
+        run: |
+          echo "Robot non configure - secret SC_DATA_URL absent, rien a faire."
       - uses: actions/checkout@v4
+        if: ${{ env.SC_DATA_URL != '' }}
       - name: Vérifier les alertes
+        if: ${{ env.SC_DATA_URL != '' }}
         run: node .github/scripts/sc-alerts.mjs
-        env:
-          SC_DATA_URL: ${{ vars.SC_DATA_URL }}
-          SC_APP_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/sc-os/

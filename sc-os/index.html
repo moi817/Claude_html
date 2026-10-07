@@ -2309,10 +2309,10 @@ function renderAlerts(){
   $('#alSetup').innerHTML=
     step(!!(sync.token&&raw),'Synchronisation GitHub connectée (panneau « Synchronisation » plus haut).')+
     step(!!(nt&&nt.on&&nt.topic),'Notifications téléphone activées (panneau « ntfy »).')+
-    step(false,`Dans le dépôt${ri?` <b>${esc(ri.owner)}/${esc(ri.repo)}</b>`:''} : <i>Settings → Secrets and variables → Actions → Variables</i>, crée la variable <code>SC_DATA_URL</code> avec la valeur suivante :`)+
+    step(false,`Dans le dépôt${ri?` <b>${esc(ri.owner)}/${esc(ri.repo)}</b>`:''} : <i>Settings → Secrets and variables → Actions → Secrets → New repository secret</i>. Nom : <code>SC_DATA_URL</code> (un <b>secret</b>, pas une variable : les journaux sont publics), valeur :`)+
     (raw?`<div class="row" style="margin:4px 0"><input readonly value="${esc(raw)}" style="flex:1;min-width:0;font-size:11px" id="alRaw" onclick="this.select()"><button class="btn sm" id="alCopyRaw">Copier</button></div>`:'<div class="small">(apparaît une fois la synchronisation connectée)</div>')+
     step(false,'Le robot ne tourne que depuis la <b>branche par défaut</b> du dépôt : le fichier <code>.github/workflows/sc-alerts.yml</code> doit y être présent (fusionne la branche).')+
-    (ri?`<div style="margin-top:6px"><a target="_blank" rel="noopener noreferrer" href="https://github.com/${esc(ri.owner)}/${esc(ri.repo)}/settings/variables/actions">Variables du dépôt ↗</a> · <a target="_blank" rel="noopener noreferrer" href="https://github.com/${esc(ri.owner)}/${esc(ri.repo)}/actions/workflows/sc-alerts.yml">Lancer / voir le robot ↗</a></div>`:'')+
+    (ri?`<div style="margin-top:6px"><a target="_blank" rel="noopener noreferrer" href="https://github.com/${esc(ri.owner)}/${esc(ri.repo)}/settings/secrets/actions">Secrets du dépôt ↗</a> · <a target="_blank" rel="noopener noreferrer" href="https://github.com/${esc(ri.owner)}/${esc(ri.repo)}/actions/workflows/sc-alerts.yml">Lancer / voir le robot ↗</a></div>`:'')+
     '<div style="margin-top:6px">Les notifications sont dédupliquées sur 12 h : une alerte de prix ne se répète pas plus d\'une fois par 12 h.</div>';
   const cp=$('#alCopyRaw');if(cp)cp.onclick=async()=>{try{await navigator.clipboard.writeText(raw);cp.textContent='Copié'}catch(e){$('#alRaw').select()}};
 }
