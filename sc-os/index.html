@@ -589,14 +589,15 @@ html[data-theme="calm"] .tabs{background:#e3e3e8}
             <div class="row">
               <input id="lMat" list="logMats" placeholder="Matériau" style="flex:1;min-width:110px">
               <input id="lScu" type="number" min="0" step="0.1" placeholder="SCU" style="width:80px">
-              <input id="lVal" type="number" min="0" placeholder="Valeur aUEC" style="width:110px">
+              <input id="lVal" type="number" min="0" placeholder="Valeur (facultatif)" style="width:150px" title="Facultatif : tu pourras saisir le montant réel de la vente plus tard, depuis l'historique">
               <button class="btn" id="lAdd" disabled>+ Ajouter</button>
             </div>
+            <div class="small" style="margin-top:6px">Matériau et SCU suffisent. La valeur en aUEC est facultative : saisis la vente réelle après coup, depuis l'historique (« Saisir la vente »).</div>
             <div id="logList" class="small" style="margin-top:8px"></div>
             <datalist id="logMats"></datalist>
           </div>
           <div class="panel">
-            <h2>aUEC par session</h2>
+            <h2>SCU par session</h2>
             <div class="bars" id="sessBars"></div><div class="small" id="sessBarsLegend" style="margin-top:6px"></div>
             <h3>Prix de référence (UEX)</h3>
             <div id="indRef" class="small"></div>
@@ -653,20 +654,20 @@ html[data-theme="calm"] .tabs{background:#e3e3e8}
       <div data-sub="analysis">
         <div class="panel">
           <div class="sec-head"><h2>Analyse des sessions</h2>
-            <div class="row"><span class="row" id="anType"></span><span class="row" id="anPeriod"></span><button class="btn sm" id="anCsv">⬇ CSV sessions</button></div></div>
+            <div class="row"><span class="row" id="anMetric"></span><span class="row" id="anType"></span><span class="row" id="anPeriod"></span><button class="btn sm" id="anCsv">⬇ CSV sessions</button></div></div>
           <div id="anEmpty" class="empty" style="display:none">Aucune session sur cette période. Termine une session de minage ou de salvage pour alimenter l'analyse.</div>
         </div>
         <div id="anBody">
           <div class="kpis grid" id="anKpis"></div>
           <div class="grid two" style="margin-bottom:16px">
-            <div class="panel"><h2>aUEC / heure par lieu</h2><div id="anPlace"></div></div>
-            <div class="panel"><h2>aUEC / heure par vaisseau</h2><div id="anShip"></div></div>
+            <div class="panel"><h2 id="anTPlace">SCU / heure par lieu</h2><div id="anPlace"></div></div>
+            <div class="panel"><h2 id="anTShip">SCU / heure par vaisseau</h2><div id="anShip"></div></div>
           </div>
           <div class="grid two" style="margin-bottom:16px">
-            <div class="panel"><h2>aUEC par semaine</h2><div id="anWeek"></div></div>
-            <div class="panel"><h2>Meilleurs créneaux · aUEC/h moyen</h2><div id="anHeat"></div></div>
+            <div class="panel"><h2 id="anTWeek">SCU par semaine</h2><div id="anWeek"></div></div>
+            <div class="panel"><h2 id="anTHeat">Meilleurs créneaux · SCU/h moyen</h2><div id="anHeat"></div></div>
           </div>
-          <div class="panel"><h2>Matériaux récoltés · valeur totale</h2><div id="anMat"></div></div>
+          <div class="panel"><h2>Matériaux récoltés · SCU</h2><div id="anMat"></div></div>
         </div>
       </div>
 
@@ -727,7 +728,7 @@ html[data-theme="calm"] .tabs{background:#e3e3e8}
               <input id="gAdj" type="number" min="0" placeholder="Montant" style="flex:1 1 120px">
               <button class="btn" id="gPlus">+ Gain</button><button class="btn" id="gMinus">− Dépense</button>
             </div>
-            <label class="small" style="display:block;margin-top:12px"><input type="checkbox" id="gAuto"> Créditer automatiquement le solde avec les gains de chaque session terminée</label>
+            <label class="small" style="display:block;margin-top:12px"><input type="checkbox" id="gAuto"> Créditer automatiquement le solde à chaque vente saisie (bouton « Saisir la vente » dans l'historique des sessions)</label>
           </div>
           <div class="panel">
             <h2>Nouvel objectif</h2>
@@ -1274,9 +1275,10 @@ function sessStop(){
   const a=db.active;if(!a)return;
   const val=a.log.reduce((t,l)=>t+l.val,0);
   const rec={id:uid(),type:a.type,place:a.place,ship:a.ship,date:a.start,ms:elapsed(a),scu:a.log.reduce((t,l)=>t+l.scu,0),val,log:a.log};
-  if(db.crew.length>=2){const c=crewCalc(val);rec.split={fees:c.fees,shipPct:c.shipPct,pay:c.pay.map(x=>({name:x.name,amount:Math.round(x.amount)})),ship:Math.round(c.ship)}}
+  /* équipage : on garde la composition ; la répartition se calcule dès que la vente est saisie (voir splitOf) */
+  if(db.crew.length>=2)rec.crew={members:db.crew.map(c=>({name:c.name,parts:c.parts})),fees:(db.crewCfg||{}).fees||0,shipPct:(db.crewCfg||{}).shipPct||0};
   db.sessions.unshift(rec);
-  if(db.autoBalance)db.balance=(db.balance||0)+val;
+  if(db.autoBalance&&val>0)db.balance=(db.balance||0)+val;
   db.active=null;save();renderAll();
 }
 $('#sStart').onclick=sessStart;$('#sPause').onclick=sessPause;$('#sStop').onclick=sessStop;
@@ -1301,23 +1303,43 @@ function renderSession(){
     a?`En cours : <span class="tag acc">${esc(a.type)}</span> ${a.running?'':'<span class="tag warn">pause</span>'}`:'';
   $('#logList').innerHTML=a&&mine&&a.log.length?a.log.map(l=>`${esc(l.mat)} · ${l.scu} SCU · ${fmt(l.val)} aUEC`).join('<br>'):(a&&mine?'Aucune récolte saisie.':'');
 }
+/* répartition d'équipage d'une session : calculée sur la vente réelle, une fois saisie */
+function splitOf(x){
+  if(x.split)return x.split;                        /* anciennes sessions */
+  const c=x.crew;if(!c||!(x.val>0))return null;
+  const net=Math.max(0,x.val-(c.fees||0)),ship=net*(c.shipPct||0)/100,pool=net-ship,sum=c.members.reduce((t,m)=>t+m.parts,0);
+  return{ship:Math.round(ship),pay:c.members.map(m=>({name:m.name,amount:Math.round(sum?pool*m.parts/sum:0)}))};
+}
 function renderIndKpis(){
-  const t=curType(),s=db.sessions.filter(x=>x.type===t),ms=s.reduce((a,x)=>a+x.ms,0),val=s.reduce((a,x)=>a+x.val,0),scu=s.reduce((a,x)=>a+x.scu,0),h=ms/3600000;
-  $('#indKpis').innerHTML=[['Sessions',s.length],['Temps total',h.toFixed(1)+' h'],['SCU récoltés',fmt(scu)],['aUEC générés',fmt(val)],['aUEC / heure',h>.01?fmt(val/h):'–']]
-    .map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  const t=curType(),s=db.sessions.filter(x=>x.type===t),ms=s.reduce((a,x)=>a+x.ms,0),scu=s.reduce((a,x)=>a+x.scu,0),h=ms/3600000;
+  /* les aUEC ne comptent que pour les sessions dont la vente a été saisie (la valeur n'existe qu'après raffinage et revente) */
+  const sv=s.filter(x=>x.val>0),vms=sv.reduce((a,x)=>a+x.ms,0),vval=sv.reduce((a,x)=>a+x.val,0);
+  const k=[['Sessions',s.length],['Temps total',h.toFixed(1)+' h'],['SCU récoltés',fmt(scu)],['SCU / heure',h>.01?h1(scu/h):'–']];
+  if(sv.length)k.push(['aUEC vendus',fmt(vval)],['aUEC / h (ventes saisies)',vms>.01*36e5?fmt(vval/(vms/36e5)):'–']);
+  $('#indKpis').innerHTML=k.map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
 }
 function renderSessions(){
   const t=curType(),s=db.sessions.filter(x=>x.type===t);
   $('#sessTable').innerHTML=s.length?
-    '<tr class="hd"><th>Date</th><th>Lieu</th><th>Vaisseau</th><th>Durée</th><th>SCU</th><th>aUEC</th><th>aUEC/h</th><th>Détail</th><th></th></tr>'+
-    s.map(x=>{const h=x.ms/3600000;return`<tr><td class="t px">${new Date(x.date).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</td>
-      <td data-l="Lieu">${esc(x.place)||'–'}</td><td data-l="Vaisseau">${esc(x.ship)||'–'}</td><td data-l="Durée">${dur(x.ms)}</td><td data-l="SCU">${x.scu}</td><td data-l="aUEC">${fmt(x.val)}</td><td data-l="aUEC / h">${h>0.005?fmt(x.val/h):'–'}</td>
-      <td class="small f">${x.log.map(l=>`${esc(l.mat)} ${l.scu}`).join(', ')}${x.split?`<br>Partage : ${x.split.pay.map(m=>`${esc(m.name)} ${fmt(m.amount)}`).join(' · ')}${x.split.ship?` · vaisseau ${fmt(x.split.ship)}`:''}`:''}</td>
+    '<tr class="hd"><th>Date</th><th>Lieu</th><th>Vaisseau</th><th>Durée</th><th>SCU</th><th>SCU/h</th><th>Vente (aUEC)</th><th>aUEC/h</th><th>Détail</th><th></th></tr>'+
+    s.map(x=>{const h=x.ms/3600000,sp=splitOf(x);return`<tr><td class="t px">${new Date(x.date).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</td>
+      <td data-l="Lieu">${esc(x.place)||'–'}</td><td data-l="Vaisseau">${esc(x.ship)||'–'}</td><td data-l="Durée">${dur(x.ms)}</td><td data-l="SCU">${h1(x.scu)}</td><td data-l="SCU / h">${h>0.005?h1(x.scu/h):'–'}</td>
+      <td data-l="Vente (aUEC)">${x.val>0?`${fmt(x.val)} <button class="btn sm" data-sval="${x.id}" title="Modifier le montant">✎</button>`:`<button class="btn sm" data-sval="${x.id}" title="Saisir le montant réellement obtenu après raffinage et revente">Saisir la vente</button>`}</td>
+      <td data-l="aUEC / h">${x.val>0&&h>0.005?fmt(x.val/h):'–'}</td>
+      <td class="small f">${x.log.map(l=>`${esc(l.mat)} ${l.scu}`).join(', ')}${sp?`<br>Partage : ${sp.pay.map(m=>`${esc(m.name)} ${fmt(m.amount)}`).join(' · ')}${sp.ship?` · vaisseau ${fmt(sp.ship)}`:''}`:(x.crew?'<br>Partage : à calculer dès que la vente est saisie':'')}</td>
       <td class="act x"><button class="btn sm danger" data-sdel="${x.id}">✕</button></td></tr>`}).join(''):'<tr><td class="empty">Aucune session de ce type.</td></tr>';
   $$('[data-sdel]').forEach(b=>b.onclick=()=>{db.sessions=db.sessions.filter(x=>x.id!==b.dataset.sdel);save();renderAll()});
-  const last=s.slice(0,20).reverse(),max=Math.max(1,...last.map(x=>x.val));
-  $('#sessBars').innerHTML=last.map(x=>`<div style="height:${Math.max(2,x.val/max*100)}%" title="${fmt(x.val)} aUEC"></div>`).join('')||'<span class="small" style="align-self:center;padding:0 8px">Pas encore de données.</span>';
-  $('#sessBarsLegend').textContent=last.length?`${last.length} dernières sessions (max ${fmt(max)} aUEC)`:'';
+  $$('[data-sval]').forEach(b=>b.onclick=()=>{
+    const x=db.sessions.find(z=>z.id===b.dataset.sval);if(!x)return;
+    const v=prompt('Montant réellement obtenu à la vente pour cette session (aUEC) ?\n0 ou vide = effacer.',x.val||'');
+    if(v===null)return;
+    const nv=Math.max(0,num(v));
+    if(db.autoBalance)db.balance=Math.max(0,(db.balance||0)+nv-(x.val||0));   /* le solde suit les ventes saisies */
+    x.val=nv;save();renderAll();
+  });
+  const last=s.slice(0,20).reverse(),max=Math.max(1,...last.map(x=>x.scu));
+  $('#sessBars').innerHTML=last.map(x=>`<div style="height:${Math.max(2,x.scu/max*100)}%" title="${h1(x.scu)} SCU"></div>`).join('')||'<span class="small" style="align-self:center;padding:0 8px">Pas encore de données.</span>';
+  $('#sessBarsLegend').textContent=last.length?`${last.length} dernières sessions (max ${fmt(max)} SCU)`:'';
   /* prix de référence rapides */
   const cats=t==='Salvage'?['salvage']:['refined'];
   const items=(UEX?UEX.items:[]).filter(i=>cats.includes(i.cat)).slice(0,5);
@@ -1528,10 +1550,10 @@ $('#feedRefresh').onclick=()=>loadFeed(true);
 function renderToday(){
   const now=Date.now(),a=db.active;
   const pend=db.refining.filter(r=>!r.collected),ready=pend.filter(r=>r.ready<=now);
-  const ms=db.sessions.reduce((t,x)=>t+x.ms,0),val=db.sessions.reduce((t,x)=>t+x.val,0);
+  const ms=db.sessions.reduce((t,x)=>t+x.ms,0),scu=db.sessions.reduce((t,x)=>t+x.scu,0);
   $('#tKpis').innerHTML=[['Vaisseaux',db.fleet.length],['CCU en stock',db.ccus.filter(c=>c.status==='stock').length],
     ['Raffinages prêts',`${ready.length}<span style="font-size:13px;color:var(--muted)"> / ${pend.length}</span>`],
-    ['aUEC générés',fmt(val)],['aUEC / heure',ms>36e3?fmt(val/(ms/36e5)):'–']].map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+    ['SCU récoltés',fmt(scu)],['SCU / heure',ms>36e3?h1(scu/(ms/36e5)):'–']].map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
   $('#tSession').innerHTML=a?`<div class="timer" id="tTimer">${dur(elapsed(a))}</div>
       <div class="small">${esc(a.type)}${a.place?' · '+esc(a.place):''}${a.ship?' · '+esc(a.ship):''} ${a.running?'':'<span class="tag warn">pause</span>'}</div>
       <div class="row" style="margin-top:12px"><a class="btn sm primary" href="#/industry/${a.type==='Salvage'?'salvage':'mining'}">Ouvrir la session</a></div>`:
@@ -1797,8 +1819,8 @@ function downloadCsv(name,header,rows){
 }
 const isoT=t=>t?new Date(t).toISOString():'';
 const CSV={
-  sessions:()=>downloadCsv('sc-sessions',['date','type','lieu','vaisseau','duree_min','scu','auec','auec_par_h','details'],
-    db.sessions.map(x=>[isoT(x.date),x.type,x.place,x.ship,Math.round(x.ms/6e4),x.scu,x.val,x.ms>18e3?Math.round(x.val/(x.ms/36e5)):'',x.log.map(l=>`${l.mat}:${l.scu}SCU:${l.val}`).join(' | ')])),
+  sessions:()=>downloadCsv('sc-sessions',['date','type','lieu','vaisseau','duree_min','scu','scu_par_h','vente_auec','auec_par_h','details'],
+    db.sessions.map(x=>[isoT(x.date),x.type,x.place,x.ship,Math.round(x.ms/6e4),x.scu,x.ms>18e3?Math.round(x.scu/(x.ms/36e5)*10)/10:'',x.val||'',x.val>0&&x.ms>18e3?Math.round(x.val/(x.ms/36e5)):'',x.log.map(l=>`${l.mat}:${l.scu}SCU${l.val?':'+l.val:''}`).join(' | ')])),
   refining:()=>downloadCsv('sc-raffinages',['lieu','materiau','methode','scu','cout_auec','valeur_estimee_auec','lance','pret','recupere'],
     db.refining.map(r=>[r.place,r.mat,r.method,r.scu,r.cost,r.val,isoT(r.started),isoT(r.ready),r.collected?'oui':'non'])),
   fleet:()=>downloadCsv('sc-flotte',['modele','surnom','constructeur','role','cargo_scu','equipage','assurance','valeur_usd','prix_auec'],
@@ -1835,25 +1857,25 @@ const kfmt=v=>v>=1e6?(v/1e6).toFixed(1).replace('.0','')+' M':v>=1e4?Math.round(
 function tableDetails(head,rows){
   return`<details><summary>Voir en tableau</summary><div style="overflow-x:auto"><table><tr>${head.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div></details>`;
 }
-function hbars(el,rows,unit){
+function hbars(el,rows,unit,fm=fmt){
   if(!rows.length){el.innerHTML='<div class="small">Pas assez de données (sessions de plus de 5 min).</div>';return}
   const max=Math.max(...rows.map(r=>r.value),1);
-  el.innerHTML=rows.map(r=>`<div class="hb" data-tip="${esc(r.tip||'')}"><span class="l" title="${esc(r.label)}">${esc(r.label)}</span><span class="t"><i style="--w:${Math.max(1,r.value/max*100)}%"></i></span><span class="v">${fmt(r.value)}${unit||''}</span></div>`).join('')+
-    tableDetails(['Libellé','Valeur','Détail'],rows.map(r=>[r.label,fmt(r.value)+(unit||''),(r.tip||'').replace(/\n/g,' · ')]));
+  el.innerHTML=rows.map(r=>`<div class="hb" data-tip="${esc(r.tip||'')}"><span class="l" title="${esc(r.label)}">${esc(r.label)}</span><span class="t"><i style="--w:${Math.max(1,r.value/max*100)}%"></i></span><span class="v">${fm(r.value)}${unit||''}</span></div>`).join('')+
+    tableDetails(['Libellé','Valeur','Détail'],rows.map(r=>[r.label,fm(r.value)+(unit||''),(r.tip||'').replace(/\n/g,' · ')]));
 }
-function vbars(el,rows){
+function vbars(el,rows,unit='aUEC'){
   const max=Math.max(...rows.map(r=>r.value),1);
   el.innerHTML=`<div class="vb">${rows.map(r=>`<div data-tip="${esc(r.tip||'')}"><i style="height:${r.value/max*100}%"></i></div>`).join('')}</div><div class="vb-l">${rows.map(r=>`<span>${esc(r.label)}</span>`).join('')}</div>`+
-    tableDetails(['Semaine','aUEC'],rows.map(r=>[r.label,fmt(r.value)]));
+    tableDetails(['Semaine',unit],rows.map(r=>[r.label,h1(r.value)]));
 }
 const DAYS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'],SLOTS=['Nuit 0-6h','Matin 6-12h','Aprèm 12-18h','Soir 18-24h'];
-function heat(el,grid){
+function heat(el,grid,unit='aUEC'){
   const all=grid.flat().filter(Boolean),max=Math.max(...all.map(c=>c.v),1);
   if(!all.length){el.innerHTML='<div class="small">Pas assez de données.</div>';return}
   let h='<div class="heat"><span class="c h"></span>'+SLOTS.map(x=>`<span class="c h">${x}</span>`).join('');
   grid.forEach((row,i)=>{h+=`<span class="c h" style="text-align:left">${DAYS[i]}</span>`;
-    row.forEach((c,j)=>{h+=c?`<span class="c" data-tip="${esc(`${DAYS[i]} · ${SLOTS[j]}\n${fmt(c.v)} aUEC/h · ${c.n} session${c.n>1?'s':''}`)}" style="background:color-mix(in srgb,var(--accent) ${Math.round((.14+.72*c.v/max)*100)}%,transparent);color:${c.v/max>.55?'var(--on)':'var(--text)'}">${kfmt(c.v)}</span>`:'<span class="c" style="color:var(--line)">·</span>'})});
-  el.innerHTML=h+'</div>'+tableDetails(['Jour','Créneau','aUEC/h','Sessions'],grid.flatMap((row,i)=>row.map((c,j)=>c?[DAYS[i],SLOTS[j],fmt(c.v),c.n]:null).filter(Boolean)));
+    row.forEach((c,j)=>{h+=c?`<span class="c" data-tip="${esc(`${DAYS[i]} · ${SLOTS[j]}\n${h1(c.v)} ${unit}/h · ${c.n} session${c.n>1?'s':''}`)}" style="background:color-mix(in srgb,var(--accent) ${Math.round((.14+.72*c.v/max)*100)}%,transparent);color:${c.v/max>.55?'var(--on)':'var(--text)'}">${kfmt(c.v)}</span>`:'<span class="c" style="color:var(--line)">·</span>'})});
+  el.innerHTML=h+'</div>'+tableDetails(['Jour','Créneau',unit+'/h','Sessions'],grid.flatMap((row,i)=>row.map((c,j)=>c?[DAYS[i],SLOTS[j],h1(c.v),c.n]:null).filter(Boolean)));
 }
 const fmtDay=t=>new Date(t).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
 function lineChart(el,pts){
@@ -1923,46 +1945,54 @@ $('#pdClose').onclick=()=>{selProfit=null;renderProfitDetail()};
 /* =====================================================
    ANALYSE DES SESSIONS
    ===================================================== */
-let an={type:'all',period:30};
+let an={type:'all',period:30,metric:'scu'};
 function anSessions(){
   const lim=an.period?Date.now()-an.period*864e5:0;
   return db.sessions.filter(x=>(an.type==='all'||x.type===an.type)&&x.date>=lim);
 }
 const rateOf=(val,ms)=>ms>0?val/(ms/36e5):0;
-function groupBy(list,key){
+function groupBy(list,key,metric){
   const m={};
   list.forEach(x=>{const k=key(x)||'(non renseigné)',g=m[k]=m[k]||{k,n:0,ms:0,val:0,scu:0};g.n++;g.ms+=x.ms;g.val+=x.val;g.scu+=x.scu});
-  return Object.values(m).filter(g=>g.ms>3e5).map(g=>({...g,rate:rateOf(g.val,g.ms)})).sort((a,b)=>b.rate-a.rate);
+  return Object.values(m).filter(g=>g.ms>3e5).map(g=>({...g,rate:rateOf(metric==='auec'?g.val:g.scu,g.ms)})).sort((a,b)=>b.rate-a.rate);
 }
 function renderAnalysis(){
   if(cur.page!=='industry'||cur.sub!=='analysis')return;
   const btn=(grp,val,label,on)=>`<button class="btn sm ${on?'on':''}" data-an="${grp}:${val}">${label}</button>`;
+  const M=an.metric==='auec'?'auec':'scu',unit=M==='auec'?'aUEC':'SCU',vf=x=>M==='auec'?x.val:x.scu;
+  $('#anMetric').innerHTML=[['scu','SCU récoltés'],['auec','aUEC vendus']].map(([v,l])=>btn('metric',v,l,M===v)).join('');
   $('#anType').innerHTML=[['all','Tout'],['Minage','Minage'],['Salvage','Salvage']].map(([v,l])=>btn('type',v,l,an.type===v)).join('');
   $('#anPeriod').innerHTML=[[7,'7 j'],[30,'30 j'],[90,'90 j'],[0,'Tout']].map(([v,l])=>btn('period',v,l,an.period===v)).join('');
   $$('[data-an]').forEach(b=>b.onclick=()=>{const[g,v]=b.dataset.an.split(':');an[g]=g==='period'?+v:v;renderAnalysis()});
-  const s=anSessions();
+  const all=anSessions();
+  /* en mode aUEC, seules comptent les sessions dont la vente a été saisie (la valeur n'existe qu'après raffinage et revente) */
+  const s=M==='auec'?all.filter(x=>x.val>0):all;
+  $('#anEmpty').textContent=!all.length?'Aucune session sur cette période. Termine une session de minage ou de salvage pour alimenter l\'analyse.':
+    'Aucune vente saisie sur cette période. Renseigne le montant réel dans l\'historique (« Saisir la vente »), ou passe en SCU.';
   $('#anEmpty').style.display=s.length?'none':'';$('#anBody').style.display=s.length?'':'none';
   if(!s.length)return;
-  const ms=s.reduce((t,x)=>t+x.ms,0),val=s.reduce((t,x)=>t+x.val,0);
-  const best=[...s].filter(x=>x.ms>3e5).sort((a,b)=>rateOf(b.val,b.ms)-rateOf(a.val,a.ms))[0];
-  const places=groupBy(s,x=>x.place),ships=groupBy(s,x=>x.ship);
-  $('#anKpis').innerHTML=[['Sessions',s.length],['Temps total',(ms/36e5).toFixed(1)+' h'],['aUEC générés',kfmt(val)],['aUEC / heure',ms>3e5?fmt(rateOf(val,ms)):'–'],
-    ['Meilleure session',best?fmt(rateOf(best.val,best.ms))+' /h':'–'],['Meilleur lieu',places[0]?places[0].k:'–']].map(([l,v])=>`<div class="kpi"><div class="v" style="${String(v).length>12?'font-size:16px;line-height:1.9':''}">${esc(v)}</div><div class="l">${l}</div></div>`).join('');
-  const tipOf=g=>`${g.k}\n${fmt(g.rate)} aUEC/h\n${g.n} session${g.n>1?'s':''} · ${(g.ms/36e5).toFixed(1)} h · ${fmt(g.scu)} SCU`;
-  hbars($('#anPlace'),places.slice(0,10).map(g=>({label:g.k,value:g.rate,tip:tipOf(g)})),' /h');
-  hbars($('#anShip'),ships.slice(0,10).map(g=>({label:g.k,value:g.rate,tip:tipOf(g)})),' /h');
-  /* aUEC par semaine (12 dernières, lundi → dimanche) */
+  const ms=s.reduce((t,x)=>t+x.ms,0),tot=s.reduce((t,x)=>t+vf(x),0);
+  const best=[...s].filter(x=>x.ms>3e5).sort((a,b)=>rateOf(vf(b),b.ms)-rateOf(vf(a),a.ms))[0];
+  const places=groupBy(s,x=>x.place,M),ships=groupBy(s,x=>x.ship,M);
+  $('#anTPlace').textContent=`${unit} / heure par lieu`;$('#anTShip').textContent=`${unit} / heure par vaisseau`;
+  $('#anTWeek').textContent=`${unit} par semaine`;$('#anTHeat').textContent=`Meilleurs créneaux · ${unit}/h moyen`;
+  $('#anKpis').innerHTML=[['Sessions',s.length],['Temps total',(ms/36e5).toFixed(1)+' h'],[M==='auec'?'aUEC vendus':'SCU récoltés',kfmt(tot)],[`${unit} / heure`,ms>3e5?h1(rateOf(tot,ms)):'–'],
+    ['Meilleure session',best?h1(rateOf(vf(best),best.ms))+' /h':'–'],['Meilleur lieu',places[0]?places[0].k:'–']].map(([l,v])=>`<div class="kpi"><div class="v" style="${String(v).length>12?'font-size:16px;line-height:1.9':''}">${esc(v)}</div><div class="l">${l}</div></div>`).join('');
+  const tipOf=g=>`${g.k}\n${h1(g.rate)} ${unit}/h\n${g.n} session${g.n>1?'s':''} · ${(g.ms/36e5).toFixed(1)} h · ${h1(g.scu)} SCU`;
+  hbars($('#anPlace'),places.slice(0,10).map(g=>({label:g.k,value:g.rate,tip:tipOf(g)})),' /h',h1);
+  hbars($('#anShip'),ships.slice(0,10).map(g=>({label:g.k,value:g.rate,tip:tipOf(g)})),' /h',h1);
+  /* par semaine (12 dernières, lundi → dimanche) */
   const wk=t=>{const d=new Date(t);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getTime()};
   const w0=wk(Date.now()),weeks=[];for(let i=11;i>=0;i--){const d=new Date(w0);d.setDate(d.getDate()-7*i);weeks.push({t:d.getTime(),v:0,n:0})}
-  s.forEach(x=>{const w=weeks.find(w=>w.t===wk(x.date));if(w){w.v+=x.val;w.n++}});
-  vbars($('#anWeek'),weeks.map(w=>({label:new Date(w.t).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),value:w.v,tip:`Semaine du ${new Date(w.t).toLocaleDateString('fr-FR')}\n${fmt(w.v)} aUEC · ${w.n} session${w.n>1?'s':''}`})));
+  s.forEach(x=>{const w=weeks.find(w=>w.t===wk(x.date));if(w){w.v+=vf(x);w.n++}});
+  vbars($('#anWeek'),weeks.map(w=>({label:new Date(w.t).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),value:w.v,tip:`Semaine du ${new Date(w.t).toLocaleDateString('fr-FR')}\n${h1(w.v)} ${unit} · ${w.n} session${w.n>1?'s':''}`})),unit);
   /* créneaux : jour de semaine × tranche de 6 h (selon l'heure de début) */
-  const cell=Array.from({length:7},()=>Array.from({length:4},()=>({ms:0,val:0,n:0})));
-  s.forEach(x=>{const d=new Date(x.date),c=cell[(d.getDay()+6)%7][Math.floor(d.getHours()/6)];c.ms+=x.ms;c.val+=x.val;c.n++});
-  heat($('#anHeat'),cell.map(r=>r.map(c=>c.ms>3e5?{v:rateOf(c.val,c.ms),n:c.n}:null)));
-  /* matériaux */
-  const mats={};s.forEach(x=>x.log.forEach(l=>{const m=mats[l.mat]=mats[l.mat]||{k:l.mat,scu:0,val:0};m.scu+=l.scu;m.val+=l.val}));
-  hbars($('#anMat'),Object.values(mats).sort((a,b)=>b.val-a.val).slice(0,10).map(m=>({label:m.k,value:m.val,tip:`${m.k}\n${fmt(m.val)} aUEC · ${fmt(m.scu)} SCU\n${m.scu?fmt(m.val/m.scu):'–'} aUEC/SCU`})),' aUEC');
+  const cell=Array.from({length:7},()=>Array.from({length:4},()=>({ms:0,v:0,n:0})));
+  s.forEach(x=>{const d=new Date(x.date),c=cell[(d.getDay()+6)%7][Math.floor(d.getHours()/6)];c.ms+=x.ms;c.v+=vf(x);c.n++});
+  heat($('#anHeat'),cell.map(r=>r.map(c=>c.ms>3e5?{v:rateOf(c.v,c.ms),n:c.n}:null)),unit);
+  /* matériaux : toujours en SCU (la vente est saisie par session, pas par matériau) */
+  const mats={};all.forEach(x=>x.log.forEach(l=>{const m=mats[l.mat]=mats[l.mat]||{k:l.mat,scu:0};m.scu+=l.scu}));
+  hbars($('#anMat'),Object.values(mats).sort((a,b)=>b.scu-a.scu).slice(0,10).map(m=>({label:m.k,value:m.scu,tip:`${m.k}\n${h1(m.scu)} SCU`})),' SCU',h1);
 }
 
 /* =====================================================
@@ -2061,8 +2091,9 @@ if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127
    ===================================================== */
 function ratePerHour(){
   const m=num(db.rateManual);if(m>0)return m;
-  const ms=db.sessions.reduce((t,x)=>t+x.ms,0);
-  return ms>18e5?db.sessions.reduce((t,x)=>t+x.val,0)/(ms/36e5):0;
+  /* seulement les sessions dont la vente est saisie : sinon une session non vendue compterait pour 0 aUEC */
+  const sv=db.sessions.filter(x=>x.val>0),ms=sv.reduce((t,x)=>t+x.ms,0);
+  return ms>18e5?sv.reduce((t,x)=>t+x.val,0)/(ms/36e5):0;
 }
 const h1=n=>(Math.round(n*10)/10).toLocaleString('fr-FR');
 $('#gBalance').onchange=e=>{db.balance=Math.max(0,num(e.target.value));save();renderGoals()};
