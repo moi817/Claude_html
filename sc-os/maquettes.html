@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SC//OS – Maquettes de style</title>
+<meta name="theme-color" content="#0d0d12">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+html{-webkit-text-size-adjust:100%}
+body{background:#0d0d12;color:#ecebf3;font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+
+/* ===== page de présentation ===== */
+.intro{max-width:1500px;margin:0 auto;padding:28px 22px 6px}
+.intro h1{font-size:clamp(24px,4vw,34px);letter-spacing:-.02em;font-weight:650}
+.intro p{color:#9a99ab;max-width:62ch;margin-top:6px}
+.ctrl{display:flex;flex-wrap:wrap;gap:18px 32px;align-items:center;margin-top:20px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid #2b2b38;background:#15151d;color:#c8c7d6;padding:9px 14px;border-radius:99px;font:inherit;font-size:13px;cursor:pointer;transition:.15s}
+.chip:hover{border-color:#4a4a60}
+.chip.on{background:#ecebf3;color:#0d0d12;border-color:#ecebf3;font-weight:600}
+.sw{display:flex;align-items:center;gap:9px}
+.sw span{font-size:12px;color:#9a99ab;margin-right:2px}
+.sw button{width:26px;height:26px;border-radius:50%;border:2px solid #0d0d12;box-shadow:0 0 0 1px #3a3a4a;cursor:pointer;padding:0}
+.sw button.on{box-shadow:0 0 0 2px #ecebf3}
+.sw button.auto{background:conic-gradient(#6c5ce7,#2563eb,#34d399,#ffb000,#f472b6,#6c5ce7);}
+.desc{color:#8a899b;font-size:13px;margin-top:14px;min-height:20px}
+
+/* ===== scène : cadres de téléphone ===== */
+.stage{max-width:1700px;margin:0 auto;padding:22px;display:flex;gap:22px;align-items:flex-start;overflow-x:auto;scroll-snap-type:x proximity}
+.cap{display:none}
+.col{flex:0 0 auto;scroll-snap-align:center}
+.col>h2{font-size:13px;font-weight:600;color:#c8c7d6;margin:0 4px 10px;letter-spacing:.02em}
+.col>h2 small{display:block;color:#7c7b8d;font-weight:400;margin-top:1px}
+.frame{width:372px;height:790px;border-radius:46px;border:9px solid #000;box-shadow:0 0 0 1px #2c2c38,0 30px 70px rgba(0,0,0,.55);overflow:hidden;position:relative;background:var(--bg);color:var(--text)}
+.col.on .frame{box-shadow:0 0 0 2px #ecebf3,0 30px 70px rgba(0,0,0,.55)}
+.scr{height:100%;display:flex;flex-direction:column}
+.body{flex:1;overflow-y:auto;scrollbar-width:none}
+.body::-webkit-scrollbar{display:none}
+.foot{max-width:1500px;margin:0 auto;padding:6px 22px 60px;color:#7c7b8d;font-size:13px}
+
+@media(max-width:900px){
+  .intro{padding:20px 16px 0}
+  .stage{display:block;padding:14px 0 0;overflow:visible}
+  .col{display:none}.col.on{display:block}
+  .col>h2{display:none}
+  .frame{width:100%;height:auto;min-height:100vh;border:0;border-radius:0;box-shadow:none!important}
+  .col.on .frame{box-shadow:none}
+  .scr{height:auto;min-height:100vh}.body{overflow:visible}
+  .dock{position:fixed!important;left:12px!important;right:12px!important;bottom:calc(10px + env(safe-area-inset-bottom))!important}
+  .t-calm .dock,.t-editorial .dock{left:0!important;right:0!important;bottom:0!important;padding-bottom:env(safe-area-inset-bottom)}
+}
+
+/* ===== contenu commun (structure partagée par les 4 styles) ===== */
+.hd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.eyebrow{font-size:12px;color:var(--muted)}
+.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:14px;background:var(--accent);color:var(--on)}
+.grid{display:grid;gap:12px}
+.card{position:relative}
+.label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.dotlive{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 25%,transparent);animation:p 1.8s infinite}
+@keyframes p{50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){.dotlive{animation:none}}
+.timer{font-variant-numeric:tabular-nums;line-height:1.05;font-weight:650}
+.sub{color:var(--muted);font-size:13px}
+.actions{display:flex;gap:8px;margin-top:14px}
+.b{border:0;font:inherit;font-weight:600;font-size:14px;padding:11px 16px;cursor:pointer;color:inherit}
+.b.solid{background:var(--accent);color:var(--on)}
+.b.ghost{background:color-mix(in srgb,var(--text) 10%,transparent)}
+.mini{display:flex;gap:16px;margin-top:14px;font-size:12px;color:var(--muted)}
+.mini b{display:block;font-size:17px;color:var(--text);font-weight:650;font-variant-numeric:tabular-nums}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0}
+.row+.row{border-top:1px solid var(--line)}
+.row .t{flex:1;min-width:0}
+.row .t b{display:block;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .t span{font-size:12px;color:var(--muted)}
+.row .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:14px}
+.row .v small{display:block;font-weight:500;font-size:11.5px}
+.up{color:#3ecf8e}.down{color:#ff6b6b}
+.pill{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:99px;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);white-space:nowrap}
+.pill.ok{background:rgba(62,207,142,.16);color:#3ecf8e}
+.pbar{height:7px;border-radius:99px;background:color-mix(in srgb,var(--text) 12%,transparent);overflow:hidden;margin-top:7px}
+.pbar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.ringwrap{display:flex;align-items:center;gap:14px}
+.ring{width:74px;height:74px;flex:0 0 auto;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:3.4}
+.ring .rg{stroke:color-mix(in srgb,var(--text) 12%,transparent)}
+.ring .rv{stroke:var(--accent);stroke-linecap:round}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:17px;font-weight:650}
+.big{font-weight:650;font-variant-numeric:tabular-nums}
+.week{display:flex;align-items:flex-end;gap:6px;height:64px;margin-top:10px}
+.week i{flex:1;border-radius:6px;background:color-mix(in srgb,var(--accent) 35%,transparent);min-height:6px}
+.week i.cur{background:var(--accent)}
+.dock{display:flex;justify-content:space-around;align-items:center}
+.dock a{display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;font-size:10.5px;color:var(--muted);padding:6px 10px}
+.dock svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.dock a.on{color:var(--accent)}
+.spark{width:54px;height:20px}.spark polyline{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* ===== 1. BENTO SOMBRE ===== */
+.t-bento{--bg:#09090d;--card:#14141b;--text:#f4f4f8;--muted:#8d8da0;--line:rgba(255,255,255,.07);--accent:var(--user,#6c5ce7);--on:var(--user-on,#fff);font-family:Inter,system-ui,sans-serif}
+.t-bento .body{padding:26px 16px 112px}
+.t-bento .hd h1{font-size:27px;letter-spacing:-.025em;font-weight:650;margin-top:2px}
+.t-bento .grid{margin-top:20px;grid-template-columns:1fr 1fr;grid-template-areas:"session session" "goal week" "refine refine" "market market" "promos promos"}
+.t-bento .card{background:var(--card);border:1px solid var(--line);border-radius:28px;padding:18px}
+.t-bento .session{grid-area:session;background:linear-gradient(155deg,color-mix(in srgb,var(--accent) 42%,#14141b) 0%,#14141b 72%);padding:20px}
+.t-bento .timer{font-size:54px;letter-spacing:-.03em;margin:10px 0 4px}
+.t-bento .b{border-radius:16px}
+.t-bento .goal{grid-area:goal}.t-bento .week-c{grid-area:week}.t-bento .refine{grid-area:refine}.t-bento .market{grid-area:market}.t-bento .promos{grid-area:promos}
+.t-bento .ringwrap{flex-direction:column;align-items:flex-start;gap:10px;margin-top:12px}
+.t-bento .big{font-size:26px;letter-spacing:-.02em}
+.t-bento h3{font-size:15px;font-weight:650;margin-bottom:6px}
+.t-bento .dock{position:absolute;left:14px;right:14px;bottom:14px;height:66px;border-radius:24px;background:rgba(28,28,38,.82);backdrop-filter:blur(18px);border:1px solid var(--line)}
+.t-bento .dock a.on{background:color-mix(in srgb,var(--accent) 20%,transparent);border-radius:16px}
+
+/* ===== 2. VERRE GIVRÉ ===== */
+.t-glass{--bg:#080a1c;--text:#fff;--muted:rgba(255,255,255,.66);--line:rgba(255,255,255,.14);--accent:var(--user,#5eb0ff);--on:var(--user-on,#04122a);font-family:Inter,system-ui,sans-serif;
+  background:radial-gradient(70% 45% at 12% 6%,#5b3df5 0,transparent 62%),radial-gradient(55% 40% at 95% 18%,#14b8ff 0,transparent 60%),radial-gradient(70% 50% at 65% 100%,#ff4fa3 0,transparent 62%),radial-gradient(60% 40% at 0% 80%,#2c36d8 0,transparent 60%),#080a1c}
+.t-glass .body{padding:26px 16px 118px}
+.t-glass .hd h1{font-size:28px;letter-spacing:-.025em;font-weight:600}
+.t-glass .grid{margin-top:20px;grid-template-columns:1fr 1fr;grid-template-areas:"session session" "goal week" "refine refine" "market market" "promos promos"}
+.t-glass .card{background:rgba(255,255,255,.1);backdrop-filter:blur(28px) saturate(1.6);-webkit-backdrop-filter:blur(28px) saturate(1.6);border:1px solid rgba(255,255,255,.22);border-radius:30px;padding:18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 14px 34px rgba(0,0,0,.22)}
+.t-glass .session{grid-area:session;padding:20px}
+.t-glass .timer{font-size:56px;font-weight:300;letter-spacing:-.03em;margin:10px 0 4px}
+.t-glass .goal{grid-area:goal}.t-glass .week-c{grid-area:week}.t-glass .refine{grid-area:refine}.t-glass .market{grid-area:market}.t-glass .promos{grid-area:promos}
+.t-glass .b{border-radius:99px;padding:12px 20px}
+.t-glass .b.ghost{background:rgba(255,255,255,.16)}
+.t-glass .ringwrap{flex-direction:column;align-items:flex-start;gap:10px;margin-top:12px}
+.t-glass .big{font-size:24px;font-weight:600}
+.t-glass h3{font-size:15px;font-weight:600;margin-bottom:6px}
+.t-glass .ring .rg{stroke:rgba(255,255,255,.2)}
+.t-glass .pbar,.t-glass .week i{background:rgba(255,255,255,.2)}.t-glass .week i.cur{background:var(--accent)}
+.t-glass .row+.row{border-color:rgba(255,255,255,.14)}
+.t-glass .dock{position:absolute;left:36px;right:36px;bottom:16px;height:64px;border-radius:99px;background:rgba(255,255,255,.14);backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);border:1px solid rgba(255,255,255,.26);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 12px 30px rgba(0,0,0,.3)}
+.t-glass .dock a{color:rgba(255,255,255,.7)}.t-glass .dock a.on{color:#fff;background:rgba(255,255,255,.22);border-radius:99px}
+
+/* ===== 3. ÉDITORIAL CLAIR ===== */
+.t-editorial{--bg:#f5efe6;--card:#fffdf8;--text:#2a2420;--muted:#8c8075;--line:#ebe2d4;--accent:var(--user,#bd4a31);--on:var(--user-on,#fff);font-family:Inter,system-ui,sans-serif}
+.t-editorial .body{padding:30px 20px 100px}
+.t-editorial .hd h1{font:500 36px/1.08 Fraunces,Georgia,serif;letter-spacing:-.02em;margin-top:6px}
+.t-editorial .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px}
+.t-editorial .avatar{background:color-mix(in srgb,var(--accent) 14%,#fff);color:var(--accent);font-family:Fraunces,serif;font-size:17px}
+.t-editorial .grid{margin-top:26px;grid-template-columns:1fr 1fr;gap:14px;grid-template-areas:"session session" "goal week" "refine refine" "market market" "promos promos"}
+.t-editorial .card{background:var(--card);border-radius:24px;padding:20px;box-shadow:0 1px 0 rgba(0,0,0,.03),0 12px 30px rgba(110,80,40,.08)}
+.t-editorial .session{grid-area:session;background:none;box-shadow:none;padding:4px 2px 8px}
+.t-editorial .timer{font:500 74px/1 Fraunces,Georgia,serif;letter-spacing:-.03em;margin:14px 0 8px;color:var(--text)}
+.t-editorial .b{border-radius:99px;padding:12px 20px}
+.t-editorial .b.ghost{background:#fff;box-shadow:inset 0 0 0 1px var(--line)}
+.t-editorial .goal{grid-area:goal}.t-editorial .week-c{grid-area:week}.t-editorial .refine{grid-area:refine}.t-editorial .market{grid-area:market}.t-editorial .promos{grid-area:promos}
+.t-editorial .ringwrap{flex-direction:column;align-items:flex-start;gap:10px;margin-top:12px}
+.t-editorial .big{font:500 27px Fraunces,Georgia,serif}
+.t-editorial h3{font:500 20px Fraunces,Georgia,serif;margin-bottom:8px}
+.t-editorial .mini b{font-family:Fraunces,serif;font-weight:500;font-size:20px}
+.t-editorial .pill{border-radius:99px}
+.t-editorial .dock{border-top:1px solid var(--line);background:rgba(245,239,230,.92);backdrop-filter:blur(12px);padding:6px 6px 14px}
+.t-editorial .up{color:#5e8a63}.t-editorial .down{color:#bd4a31}
+
+/* ===== 4. SOBRE iOS (listes groupées) ===== */
+.t-calm{--bg:#f2f2f7;--card:#fff;--text:#111114;--muted:#86868b;--line:#e5e5ea;--accent:var(--user,#0071e3);--on:var(--user-on,#fff);font-family:-apple-system,"SF Pro Text",Inter,system-ui,sans-serif}
+.t-calm .body{padding:28px 16px 90px}
+.t-calm .hd h1{font-size:32px;letter-spacing:-.022em;font-weight:700;margin-top:2px}
+.t-calm .grid{margin-top:18px;grid-template-columns:1fr;gap:20px}
+.t-calm .card{background:var(--card);border-radius:14px;padding:4px 16px 14px}
+.t-calm .card>.label,.t-calm .card>h3{margin:0 0 0;padding-top:12px}
+.t-calm h3{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.t-calm .session{padding-bottom:16px}
+.t-calm .timer{font-size:46px;font-weight:600;letter-spacing:-.02em;margin:6px 0 2px}
+.t-calm .b{border-radius:12px;flex:1}
+.t-calm .actions .b.ghost{background:#f2f2f7;color:var(--accent)}
+.t-calm .ringwrap{padding:12px 0}
+.t-calm .big{font-size:22px}
+.t-calm .mini{border-top:1px solid var(--line);padding-top:12px}
+.t-calm .week{height:56px}
+.t-calm .dock{background:rgba(249,249,251,.94);backdrop-filter:blur(16px);border-top:1px solid var(--line);padding:6px 4px 12px}
+.t-calm .pill{border-radius:7px}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>Choisis ton interface</h1>
+  <p>Quatre directions modernes pour la même page « Aujourd'hui », avec des données d'exemple. Dans l'application finale, tu pourras changer de style à tout moment (et ta couleur d'accent) depuis les réglages.</p>
+  <div class="ctrl">
+    <div class="chips" id="chips"></div>
+    <div class="sw" id="sw"><span>Couleur d'accent</span></div>
+  </div>
+  <p class="desc" id="desc"></p>
+</div>
+
+<main class="stage" id="stage"></main>
+
+<p class="foot">Maquettes statiques : aucun bouton n'est actif. Sur ordinateur, les quatre styles sont affichés côte à côte (fais défiler horizontalement si besoin) ; sur téléphone, passe de l'un à l'autre avec les pastilles du haut.</p>
+
+<script>
+const THEMES=[
+  {id:'bento',name:'Bento sombre',desc:'Cartes en grille de tailles différentes, très grands chiffres, un seul accent. Le plus lisible sur téléphone.'},
+  {id:'glass',name:'Verre givré',desc:'Cartes translucides sur un fond en dégradé « aurore », barre de navigation flottante en pilule. Le plus spectaculaire.'},
+  {id:'editorial',name:'Éditorial clair',desc:'Fond crème, titres et chiffres en serif, couleurs douces. À l\'opposé du look « jeu vidéo ».'},
+  {id:'calm',name:'Sobre iOS',desc:'Listes groupées comme dans les Réglages de l\'iPhone : très calme, très rapide à lire.'}
+];
+const ACCENTS=[['#6c5ce7','Violet'],['#2563eb','Bleu'],['#10b981','Menthe'],['#f5a524','Ambre'],['#db2777','Rose'],['#f97316','Orange']];
+const ic={
+  home:'<svg viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>',
+  ship:'<svg viewBox="0 0 24 24"><path d="M12 3c3 3 4 6 4 9l3 3v3l-4-1-3 3-3-3-4 1v-3l3-3c0-3 1-6 4-9z"/></svg>',
+  pick:'<svg viewBox="0 0 24 24"><path d="M5 7c3-3 11-3 14 0M12 5v15M9.5 20h5"/></svg>',
+  tag:'<svg viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/></svg>',
+  more:'<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg>'
+};
+const spark=(pts)=>`<svg class="spark" viewBox="0 0 54 20"><polyline points="${pts}"/></svg>`;
+const today=new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
+const cap=s=>s[0].toUpperCase()+s.slice(1);
+
+function screen(){return`
+<div class="scr"><div class="body">
+  <header class="hd"><div><p class="eyebrow">${cap(today)}</p><h1>Bonsoir, Capitaine</h1></div><span class="avatar">C</span></header>
+  <section class="grid">
+    <article class="card session">
+      <p class="label"><i class="dotlive"></i>Session en cours · Minage</p>
+      <p class="timer">01:42:07</p>
+      <p class="sub">Aaron Halo · Prospector</p>
+      <div class="actions"><button class="b ghost">Pause</button><button class="b solid">Terminer</button></div>
+      <div class="mini"><span><b>2,4 M</b>aUEC</span><span><b>38</b>SCU</span><span><b>94 k</b>aUEC / h</span></div>
+    </article>
+    <article class="card goal">
+      <p class="label">Objectif</p>
+      <div class="ringwrap">
+        <div class="ring"><svg viewBox="0 0 36 36"><circle class="rg" cx="18" cy="18" r="15.9"/><circle class="rv" cx="18" cy="18" r="15.9" pathLength="100" stroke-dasharray="62 100"/></svg><b>62%</b></div>
+        <div><p class="big" style="font-size:16px;font-weight:650">Prospector</p><p class="sub">1,7 M / 2,8 M · ≈ 11 h de jeu</p></div>
+      </div>
+    </article>
+    <article class="card week-c">
+      <p class="label">Cette semaine</p>
+      <p class="big" style="font-size:24px;margin-top:8px">3,1 M</p>
+      <div class="week"><i style="height:35%"></i><i style="height:60%"></i><i style="height:25%"></i><i style="height:80%"></i><i style="height:45%"></i><i style="height:15%"></i><i class="cur" style="height:100%"></i></div>
+    </article>
+    <article class="card refine">
+      <h3>Raffineries</h3>
+      <div class="row"><div class="t"><b>Quantanium · 32 SCU</b><span>ARC-L1 Wide Forest</span><div class="pbar"><i style="width:64%"></i></div></div><div class="v">1 h 12<small class="sub">restant</small></div></div>
+      <div class="row"><div class="t"><b>Bexalite · 46 SCU</b><span>Pyro Gateway</span></div><div class="v"><span class="pill ok">Prêt</span></div></div>
+    </article>
+    <article class="card market">
+      <h3>Marché</h3>
+      <div class="row"><div class="t"><b>Quantainium</b><span>TDD Orison</span></div><span class="up">${spark('1,15 10,12 20,13 30,8 42,6 53,3')}</span><div class="v">170 000<small class="up">▲ 3,2 %</small></div></div>
+      <div class="row"><div class="t"><b>Stileron</b><span>Deakins Research</span></div><span class="down">${spark('1,5 12,7 22,6 32,11 43,10 53,14')}</span><div class="v">150 000<small class="down">▼ 0,4 %</small></div></div>
+      <div class="row"><div class="t"><b>Agricium</b><span>Rod's Fuel</span></div><span class="up">${spark('1,14 14,12 24,12 34,9 44,9 53,7')}</span><div class="v">11 000<small class="up">▲ 1,1 %</small></div></div>
+    </article>
+    <article class="card promos">
+      <h3>Promos &amp; annonces</h3>
+      <div class="row"><div class="t"><b>Pirate Week 2026</b><span>9 sept. · événement</span></div><span class="pill">Nouveau</span></div>
+      <div class="row"><div class="t"><b>Subscriber Promotions</b><span>1 sept. · abonnés</span></div></div>
+      <div class="row"><div class="t"><b>Alpha 4.10.1</b><span>16 sept. · patch</span></div></div>
+    </article>
+  </section>
+</div>
+<nav class="dock">
+  <a class="on" href="#">${ic.home}Jour</a><a href="#">${ic.ship}Flotte</a><a href="#">${ic.pick}Industrie</a><a href="#">${ic.tag}Promos</a><a href="#">${ic.more}Plus</a>
+</nav></div>`}
+
+const stage=document.getElementById('stage'),chips=document.getElementById('chips'),desc=document.getElementById('desc'),sw=document.getElementById('sw');
+THEMES.forEach((t,i)=>{
+  stage.insertAdjacentHTML('beforeend',`<div class="col" data-t="${t.id}"><h2>${t.name}<small>${t.desc.split('.')[0]}</small></h2><div class="frame t-${t.id}">${screen()}</div></div>`);
+  const b=document.createElement('button');b.className='chip';b.textContent=t.name;b.onclick=()=>pick(t.id,true);b.dataset.t=t.id;chips.appendChild(b);
+});
+function pick(id,scroll){
+  const t=THEMES.find(x=>x.id===id);
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.t===id));
+  document.querySelectorAll('.col').forEach(c=>c.classList.toggle('on',c.dataset.t===id));
+  desc.textContent=t.desc;
+  try{localStorage.setItem('scos-mock-theme',id)}catch(e){}
+  if(scroll&&innerWidth>900)document.querySelector(`.col[data-t="${id}"]`).scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+}
+/* couleur d'accent : choisit aussi la couleur du texte posé dessus selon sa luminance */
+const lum=h=>{const n=parseInt(h.slice(1),16),f=c=>{c/=255;return c<=.03928?c/12.92:Math.pow((c+.055)/1.055,2.4)};return .2126*f(n>>16)+.7152*f(n>>8&255)+.0722*f(n&255)};
+function setAccent(hex){
+  const on=lum(hex)>.3?'#10101a':'#ffffff';
+  stage.querySelectorAll('.frame').forEach(f=>{
+    if(hex){f.style.setProperty('--user',hex);f.style.setProperty('--user-on',on)}
+    else{f.style.removeProperty('--user');f.style.removeProperty('--user-on')}});
+  sw.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.c===(hex||'')));
+}
+const auto=document.createElement('button');auto.className='auto on';auto.title='Couleur propre à chaque style';auto.dataset.c='';auto.onclick=()=>setAccent('');sw.appendChild(auto);
+ACCENTS.forEach(([hex,name])=>{const b=document.createElement('button');b.style.background=hex;b.title=name;b.dataset.c=hex;b.onclick=()=>setAccent(hex);sw.appendChild(b)});
+let saved;try{saved=localStorage.getItem('scos-mock-theme')}catch(e){}
+pick(THEMES.some(t=>t.id===saved)?saved:'bento',false);
+</script>
+</body>
+</html>

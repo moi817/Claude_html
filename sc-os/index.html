@@ -1,0 +1,2504 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0907">
+<meta name="description" content="Tableau de bord Star Citizen : flotte, CCU, minage, salvage, raffinage, marché.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="SC//OS">
+<script>
+/* applique le thème avant le premier affichage */
+try{var u=JSON.parse(localStorage.getItem('scos-ui')||'{}'),t=u.theme||'auto',d=document.documentElement;
+if(t==='auto')t=matchMedia('(prefers-color-scheme: light)').matches?'calm':'bento';
+if(!/^(terminal|bento|glass|editorial|calm)$/.test(t))t='bento';
+d.dataset.theme=t;if(t!=='terminal')d.dataset.modern='1';
+if(/^#[0-9a-f]{6}$/i.test(u.accent||''))d.style.setProperty('--accent',u.accent)}catch(e){}
+</script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>SC//OS – Star Citizen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0907;--panel:#12100b;--panel2:#1a160d;--line:#3a2f15;--line2:#251e0d;
+  --text:#efe3c4;--muted:#9a8b66;--accent:#ffb000;--accent-dim:color-mix(in srgb,var(--accent) 45%,var(--bg));
+  --ok:#9ccc65;--warn:#ff8a3d;--bad:#ff5a4d;
+  --on:#000;--accent-soft:color-mix(in srgb,var(--accent) 9%,transparent);--accent-soft2:color-mix(in srgb,var(--accent) 15%,transparent);
+  --field:var(--panel2);--track:color-mix(in srgb,var(--accent) 16%,var(--bg));--ph:#66593d;--tip-bg:var(--bg);--tip-fg:var(--text);--r:0px;--r2:0px;--rb:0px;--shadow:none;--rail-bg:var(--panel);
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --rail:196px;
+}
+*{box-sizing:border-box}
+html{scrollbar-color:var(--line) var(--bg)}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.55 var(--mono);-webkit-font-smoothing:antialiased}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:200;
+  background:repeating-linear-gradient(0deg,color-mix(in srgb,var(--accent) 2.4%,transparent) 0 1px,transparent 1px 3px)}
+a{color:var(--accent)}
+:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
+::selection{background:var(--accent);color:var(--on)}
+
+/* ---------- squelette : rail + contenu ---------- */
+#rail{position:fixed;inset:0 auto 0 0;width:var(--rail);border-right:1px solid var(--line);background:var(--panel);
+  display:flex;flex-direction:column;padding:18px 0 14px;z-index:20}
+.brand{display:flex;align-items:baseline;gap:2px;padding:0 20px 20px;text-decoration:none;color:var(--text);font-size:20px;font-weight:700;letter-spacing:.04em}
+.brand b{color:var(--accent)}.brand span{color:var(--muted);font-weight:400}
+#railNav{display:flex;flex-direction:column}
+#railNav a,#tabbar a{display:flex;align-items:center;gap:12px;padding:11px 20px;color:var(--muted);text-decoration:none;
+  text-transform:uppercase;letter-spacing:.1em;font-size:12px;border-left:2px solid transparent;position:relative}
+#railNav a i{font-style:normal;color:var(--accent-dim);font-size:11px}
+#railNav a:hover{color:var(--text);background:var(--panel2)}
+#railNav a.on{color:var(--accent);border-left-color:var(--accent);background:linear-gradient(90deg,var(--accent-soft),transparent)}
+#railNav a.on i{color:var(--accent)}
+.sig{margin-left:auto;min-width:8px;height:8px;font-style:normal;font-size:10px;color:var(--on);background:var(--accent);padding:0 5px;line-height:15px;height:15px}
+.sig:empty{display:none}
+.sig.dot{width:8px;min-width:8px;height:8px;padding:0;border-radius:50%;animation:pulse 1.4s infinite}
+.sig.ok{background:var(--ok)}
+@keyframes pulse{50%{opacity:.25}}
+#rail .spacer{flex:1}
+.railBtn{margin:0 14px 8px;background:none;border:1px solid var(--line);color:var(--muted);padding:8px 10px;font:inherit;font-size:11px;text-align:left;cursor:pointer;text-transform:uppercase;letter-spacing:.08em}
+.railBtn:hover{border-color:var(--accent);color:var(--accent)}
+.railBtn kbd{float:right;color:var(--accent-dim)}
+#syncPill{margin:0 14px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;cursor:pointer;padding:6px 0}
+#syncPill b{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:7px}
+#syncPill.ok b{background:var(--ok)}#syncPill.busy b{background:var(--accent);animation:pulse 1s infinite}#syncPill.err b{background:var(--bad)}
+
+#main{margin-left:var(--rail);min-height:100vh}
+#top{display:flex;align-items:center;gap:16px;padding:12px 28px;border-bottom:1px solid var(--line2);position:sticky;top:0;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(6px);z-index:10;flex-wrap:wrap}
+#crumb{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--muted)}
+#crumb b{color:var(--accent);font-weight:500}
+#top .sp{flex:1}
+#clock{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+#view{max-width:1240px;margin:0 auto;padding:22px 28px 80px}
+.page{display:none}.page.on{display:block;animation:enter .22s ease-out}
+@keyframes enter{from{opacity:0;transform:translateY(6px)}}
+@media(prefers-reduced-motion:reduce){.page.on{animation:none}.sig.dot,#syncPill.busy b{animation:none}}
+
+/* sous-navigation */
+.tabs{display:flex;gap:2px;margin-bottom:18px;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.tabs a{padding:9px 16px;color:var(--muted);text-decoration:none;text-transform:uppercase;letter-spacing:.12em;font-size:12px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a:hover{color:var(--text)}
+.tabs a.on{color:var(--accent);border-bottom-color:var(--accent)}
+.tabs a::before{content:"[ ";color:var(--accent-dim)}.tabs a::after{content:" ]";color:var(--accent-dim)}
+.tabs a.on::before,.tabs a.on::after{color:var(--accent)}
+
+/* mobile : barre basse */
+#tabbar{display:none}
+@media(max-width:900px){
+  #rail{display:none}#main{margin-left:0}
+  #tabbar{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);z-index:30}
+  #tabbar a{flex:1;flex-direction:column;gap:2px;padding:9px 2px;font-size:9.5px;letter-spacing:.04em;border-left:0;border-top:2px solid transparent;justify-content:center;text-align:center}
+  #tabbar a i{font-style:normal;font-size:12px;color:var(--accent-dim)}
+  #tabbar a.on{color:var(--accent);border-top-color:var(--accent)}#tabbar a.on i{color:var(--accent)}
+  #view{padding:16px 14px 90px}#top{padding:10px 14px}
+}
+
+/* ---------- panneaux ---------- */
+.grid{display:grid;gap:16px}
+.two{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px;gap:0;border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.kpi{background:var(--panel);padding:14px 16px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.kpi .v{font-size:24px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-top:2px}
+.panel{position:relative;border:1px solid var(--line);background:var(--panel);padding:18px 18px 16px;margin-bottom:16px}
+.grid>.panel{margin-bottom:0}
+.panel::before,.panel::after{content:"";position:absolute;width:10px;height:10px;border:2px solid var(--accent);pointer-events:none}
+.panel::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+.panel::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+h2{font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin:0 0 14px}
+h2::before{content:"// ";color:var(--accent-dim)}
+h3{font-size:12px;margin:14px 0 6px;color:var(--text);text-transform:uppercase;letter-spacing:.1em;font-weight:500}
+.sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.sec-head h2{margin:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.small{font-size:11.5px;color:var(--muted)}
+.empty{color:var(--muted);padding:20px;text-align:center}
+.sp{flex:1}
+
+/* ---------- champs & boutons ---------- */
+input,select,textarea{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:7px 10px;font:inherit;border-radius:0;max-width:100%}
+input::placeholder{color:var(--ph)}
+input:focus,select:focus{border-color:var(--accent);outline:0}
+input[type=checkbox]{accent-color:var(--accent)}
+select option{background:var(--panel2)}
+.btn{background:transparent;border:1px solid var(--line);color:var(--text);padding:7px 13px;font:inherit;font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:.08em;text-decoration:none;display:inline-block;border-radius:0}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on);font-weight:700}
+.btn.primary:hover{background:color-mix(in srgb,var(--accent) 82%,#fff);color:var(--on)}
+.btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.btn.sm{padding:3px 8px;font-size:11px}
+.btn.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+/* ---------- tableaux, tags, jauges ---------- */
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line2);vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;white-space:nowrap}
+th[data-k]{cursor:pointer}th[data-k]:hover{color:var(--accent)}
+tr:hover td{background:color-mix(in srgb,var(--accent) 4%,transparent)}
+.tag{display:inline-block;padding:0 7px;font-size:10.5px;border:1px solid var(--line);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;line-height:17px;white-space:nowrap}
+.tag.ok{color:var(--ok);border-color:var(--ok)}.tag.warn{color:var(--warn);border-color:var(--warn)}
+.tag.bad{color:var(--bad);border-color:var(--bad)}.tag.acc{color:var(--accent);border-color:var(--accent)}
+.gauge{height:9px;background:repeating-linear-gradient(90deg,var(--track) 0 6px,transparent 6px 9px)}
+.gauge i{display:block;height:100%;width:var(--p,0%);background:repeating-linear-gradient(90deg,var(--accent) 0 6px,transparent 6px 9px);transition:width .6s}
+.gauge.ok i{background:repeating-linear-gradient(90deg,var(--ok) 0 6px,transparent 6px 9px)}
+.timer{font-size:42px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent);letter-spacing:.03em;line-height:1.1}
+.timer.idle{color:var(--accent-dim)}
+.note{border:1px solid var(--line);border-left:3px solid var(--warn);padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--text);background:var(--panel)}
+.note.ready{border-left-color:var(--ok);color:var(--text)}
+.bars{display:flex;align-items:flex-end;gap:3px;height:96px;border-bottom:1px solid var(--line)}
+.bars div{flex:1;background:var(--accent);min-height:2px;opacity:.8}.bars div:hover{opacity:1}
+
+/* ---------- hangar : cartes ---------- */
+.ships{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.ship{border:1px solid var(--line);background:var(--panel2);display:flex;flex-direction:column;position:relative}
+.ship:hover{border-color:var(--accent)}
+.ship-img{aspect-ratio:16/9;background:
+  linear-gradient(var(--line2) 1px,transparent 1px) 0 0/100% 18px,linear-gradient(90deg,var(--line2) 1px,transparent 1px) 0 0/18px 100%,var(--bg);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.ship-img img{width:100%;height:100%;object-fit:contain;filter:saturate(.8) contrast(1.05);transition:.25s}
+.ship:hover .ship-img img{filter:none;transform:scale(1.04)}
+.noimg{font-size:30px;color:var(--accent-dim);font-weight:700;letter-spacing:.1em}
+.ship-img .tag{position:absolute;top:8px;left:8px;background:var(--bg)}
+.ship-body{padding:11px 12px 12px;display:flex;flex-direction:column;gap:6px;flex:1}
+.ship-body b{font-size:14px;line-height:1.25}
+.ship-meta{display:flex;gap:12px;font-size:11.5px;color:var(--muted);flex-wrap:wrap}
+.ship-meta span em{font-style:normal;color:var(--text)}
+.ship-foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:6px;padding-top:6px;border-top:1px solid var(--line2)}
+
+/* ---------- CCU ---------- */
+.ccu{display:grid;grid-template-columns:1fr auto 1fr;gap:6px 12px;align-items:center;border:1px solid var(--line);padding:11px 14px;background:var(--panel2)}
+.ccu .arrow{color:var(--accent);font-size:18px}
+.ccu .meta{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:var(--muted)}
+.ccu.applied{opacity:.5}
+.chain{color:var(--accent);font-weight:700}
+
+/* ---------- flux / opportunités ---------- */
+.feed-item{display:grid;grid-template-columns:84px 1fr auto;gap:3px 14px;padding:10px 0;border-bottom:1px solid var(--line2);align-items:start}
+.feed-item a{color:var(--text);text-decoration:none;font-weight:500}.feed-item a:hover{color:var(--accent)}
+.feed-item .x{grid-column:2;color:var(--muted);font-size:11.5px}
+.opp{display:flex;flex-direction:column;gap:7px;border:1px solid var(--line);padding:13px;background:var(--panel2);margin:0}
+.opp.done{opacity:.45}
+.opps{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+@media(max-width:600px){.feed-item{grid-template-columns:1fr auto}.feed-item .d,.feed-item .x{grid-column:1/-1}}
+
+/* ---------- palette de commandes ---------- */
+#pal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.65);display:none;align-items:flex-start;justify-content:center;padding-top:12vh}
+#pal.on{display:flex}
+#palBox{width:min(560px,92vw);background:var(--panel);border:1px solid var(--accent);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#palIn{width:100%;border:0;border-bottom:1px solid var(--line);padding:14px 16px;font-size:14px;background:var(--panel)}
+#palIn:focus{outline:0}
+#palList{max-height:50vh;overflow:auto;margin:0;padding:6px 0;list-style:none}
+#palList li{display:flex;justify-content:space-between;gap:12px;padding:8px 16px;cursor:pointer;color:var(--muted)}
+#palList li b{color:var(--text);font-weight:500}
+#palList li.sel{background:var(--accent-soft2);color:var(--accent)}#palList li.sel b{color:var(--accent)}
+#palFoot{border-top:1px solid var(--line);padding:7px 16px;font-size:11px;color:var(--muted)}
+#tip{position:fixed;z-index:400;pointer-events:none;background:var(--tip-bg);color:var(--tip-fg);border:1px solid var(--accent);padding:6px 10px;font-size:11.5px;display:none;max-width:260px;white-space:pre-line}
+.hb{display:grid;grid-template-columns:minmax(90px,170px) 1fr auto;gap:4px 12px;align-items:center;padding:5px 0}
+.hb .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+.hb .t{height:10px;background:var(--line2)}
+.hb .t i{display:block;height:100%;background:var(--accent);width:var(--w)}
+.hb .v{font-variant-numeric:tabular-nums;color:var(--accent);font-size:12px;text-align:right}
+.hb:hover .t i{background:color-mix(in srgb,var(--accent) 82%,#fff)}
+.vb{display:flex;align-items:flex-end;gap:6px;height:150px;border-bottom:1px solid var(--line);padding-top:8px}
+.vb div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;min-width:0}
+.vb i{display:block;background:var(--accent);min-height:2px}.vb div:hover i{background:color-mix(in srgb,var(--accent) 82%,#fff)}
+.vb-l{display:flex;gap:6px;margin-top:4px}.vb-l span{flex:1;text-align:center;font-size:10px;color:var(--muted);overflow:hidden;white-space:nowrap}
+.heat{display:grid;grid-template-columns:44px repeat(4,1fr);gap:3px;font-size:11px}
+.heat .c{padding:9px 4px;text-align:center;background:var(--line2);font-variant-numeric:tabular-nums}
+.heat .h{color:var(--muted);background:none;text-transform:uppercase;letter-spacing:.05em;font-size:10px;padding:4px 2px}
+.lc{width:100%;height:auto;display:block}
+.lc text{fill:var(--muted);font-family:var(--mono);font-size:10px}
+.lc .gr{stroke:var(--line2);stroke-width:1}
+.lc .ln{fill:none;stroke:var(--accent);stroke-width:2}
+.lc .cr{stroke:var(--accent-dim);stroke-width:1}
+.lc .dot{fill:var(--accent);stroke:var(--bg);stroke-width:2}
+.spark{width:78px;height:22px;vertical-align:middle}.spark polyline{fill:none;stroke:var(--accent);stroke-width:1.5}
+details{margin-top:10px}details summary{cursor:pointer;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.1em}
+tr.pick{cursor:pointer}
+@media(max-width:900px){#tabbar{padding-bottom:env(safe-area-inset-bottom)}}
+kbd{font:inherit;border:1px solid var(--line);padding:0 5px;color:var(--accent-dim)}
+
+/* ---------- repli (import de flotte) ---------- */
+details.fold{margin:0 0 16px;border:1px solid var(--line);background:var(--panel)}
+details.fold>summary{padding:13px 16px;cursor:pointer;color:var(--accent);text-transform:uppercase;letter-spacing:.14em;font-size:11px;list-style:none}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::before{content:"▸ ";color:var(--accent-dim)}details.fold[open]>summary::before{content:"▾ "}
+details.fold>.inner{padding:0 14px 14px}
+details.fold .panel{margin-bottom:0}
+
+/* ---------- mobile ---------- */
+@media(max-width:700px){
+  body{font-size:14px}
+  #crumb{font-size:10px;letter-spacing:.1em}
+  #top{gap:8px;padding:8px 14px;padding-top:calc(8px + env(safe-area-inset-top))}
+  #clock,#top .tx{display:none}
+  #top .btn{padding:6px 11px;font-size:15px}
+  input:not([type=checkbox]),select,textarea{font-size:16px;min-height:42px}
+  .btn{min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+  .btn.sm{min-height:36px}
+  .panel{padding:14px 14px 12px}
+  h2{margin-bottom:12px}
+  .kpis{display:flex;overflow-x:auto;scrollbar-width:none;margin-left:-14px;margin-right:-14px;border-left:0;border-right:0;gap:0}
+  .kpis::-webkit-scrollbar{display:none}
+  .kpi{flex:0 0 auto;min-width:122px;padding:10px 14px}
+  .kpi .v{font-size:20px}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:-14px;margin-right:-14px;padding:0 6px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs a{white-space:nowrap;padding:11px 12px;font-size:11px;letter-spacing:.08em}
+  .tabs a::before,.tabs a::after{content:none}
+  .timer{font-size:36px}
+  .sec-head .row{width:100%}
+  #fleetSearch{flex:1 1 100%}
+  .ships{grid-template-columns:repeat(2,1fr);gap:10px}
+  .ship-img{aspect-ratio:4/3}
+  .ship-body{padding:9px 10px;gap:4px}
+  .ship-body b{font-size:13px}
+  .ship-meta{gap:8px;font-size:10.5px}
+  .ship-foot{flex-wrap:wrap}
+  .noimg{font-size:22px}
+  .ccu{grid-template-columns:1fr;gap:4px}.ccu .arrow{transform:rotate(90deg);justify-self:start}
+  .hb{grid-template-columns:1fr auto;gap:2px 10px}.hb .t{grid-column:1/-1;order:3}
+  .feed-item .x{display:none}
+  /* tableaux -> cartes */
+  table.cards,table.cards tbody{display:block}
+  table.cards tr.hd{display:none}
+  table.cards tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px;padding:13px 0;border-bottom:1px solid var(--line2)}
+  table.cards tr:hover td{background:none}
+  table.cards td{display:block;border:0;padding:0;min-width:0}
+  table.cards td[data-l]::before{content:attr(data-l);display:block;font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+  table.cards td.t{grid-column:1/-1;order:-1;font-size:14px}
+  table.cards td.t::before{display:none}
+  table.cards td.f{grid-column:1/-1}
+  table.cards td.act{grid-column:1/-1;display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+  table.cards td.hm{display:none}
+  table.cards tr{position:relative}
+  table.cards td.act.x{position:absolute;top:9px;right:0;grid-column:auto}
+  table.cards td.t.px{padding-right:44px}
+  table.cards td.pt{grid-column:1/3}
+  table.cards td.pr{order:-1;grid-column:3;justify-self:end;font-size:17px;font-weight:700}
+  table.cards td.pr::before,table.cards td.nl::before{display:none}
+  table.cards td.nl{order:-1;font-size:12px;color:var(--muted)}
+  table.cards td.empty{grid-column:1/-1}
+  .row>input:not([type=checkbox])[style*="width"]{width:auto!important;flex:1 1 130px;min-width:0}
+}
+.fl{display:flex;flex-direction:column;gap:3px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;flex:1 1 130px;min-width:0}
+.fl input,.fl select{width:100%}
+.row:has(>.fl){align-items:flex-end}
+@media(max-width:700px){.kpis{-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent)}}
+
+/* =====================================================================
+   THÈMES  (html[data-theme] = identifiant ; html[data-modern] = les 4 thèmes « modernes »)
+   ===================================================================== */
+.nav-ic{display:none;width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.tcard{background:var(--panel2);border:2px solid var(--line);color:var(--text);padding:8px 8px 10px;text-align:left;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:6px;border-radius:var(--r2,0)}
+.tcard:hover{border-color:var(--accent-dim)}
+.tcard.on{border-color:var(--accent)}
+.tcard b{font-size:13px;font-weight:650}.tcard small{color:var(--muted);font-size:11.5px;line-height:1.35}
+.tp{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:8px;border-radius:calc(var(--r2,0px) - 4px);background:var(--b);height:82px}
+.tp i{border-radius:7px;background:var(--c)}.tp .tpa{grid-column:1/-1;background:var(--a)}
+.tp.sq i{border-radius:0}
+.tp.split{background:linear-gradient(90deg,#09090d 50%,#f2f2f7 50%)}
+.tp.split i{background:rgba(127,127,127,.35)}
+.sw{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.sw button{width:30px;height:30px;border-radius:50%;border:2px solid var(--bg);box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+.sw button.on{box-shadow:0 0 0 2px var(--text)}
+.sw button.def{background:conic-gradient(#6c5ce7,#2563eb,#34d399,#ffb000,#f472b6,#6c5ce7)}
+
+/* ---------- structure commune des thèmes modernes ---------- */
+html[data-modern] body{font-family:var(--font);font-size:14px;letter-spacing:0}
+html[data-modern] body::after{display:none}
+html[data-modern] code,html[data-modern] kbd,html[data-modern] #syncPill{font-family:var(--mono)}
+html[data-modern] .panel{border-radius:var(--r);border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow);padding:20px}
+html[data-modern] .panel::before,html[data-modern] .panel::after{display:none}
+html[data-modern] h2{font-family:var(--font-display);font-size:16px;font-weight:650;letter-spacing:-.01em;text-transform:none;color:var(--text)}
+html[data-modern] h2::before{content:none}
+html[data-modern] h3{text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;color:var(--muted)}
+html[data-modern] .btn{border-radius:var(--rb);text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;padding:9px 16px;background:var(--field);border-color:var(--line)}
+html[data-modern] .btn.sm{padding:6px 12px;font-size:12px}
+html[data-modern] .btn:hover{border-color:var(--accent);color:var(--accent)}
+html[data-modern] .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on);font-weight:650}
+html[data-modern] .btn.primary:hover{filter:brightness(1.08);color:var(--on)}
+html[data-modern] .btn.on{background:var(--accent-soft2);border-color:var(--accent);color:var(--accent)}
+html[data-modern] input,html[data-modern] select,html[data-modern] textarea{border-radius:12px;background:var(--field);border:1px solid var(--line);font-family:var(--font);padding:9px 12px}
+html[data-modern] input:focus,html[data-modern] select:focus,html[data-modern] textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft2)}
+html[data-modern] .fl{font-size:12px;text-transform:none;letter-spacing:0;font-weight:500}
+html[data-modern] .tag{border-radius:99px;text-transform:none;letter-spacing:0;font-size:11.5px;font-weight:600;padding:1px 10px}
+html[data-modern] th{text-transform:none;letter-spacing:0;font-size:12px;font-weight:600}
+html[data-modern] td,html[data-modern] th{padding:10px 10px}
+html[data-modern] .kpis{background:none;border:0;gap:12px;margin-bottom:16px}
+html[data-modern] .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px 18px}
+html[data-modern] .kpi .l{text-transform:none;letter-spacing:0;font-size:12px;margin-top:4px}
+html[data-modern] .kpi .v{font-family:var(--font-display);color:var(--text);font-size:26px;font-weight:650;letter-spacing:-.02em}
+html[data-modern] .gauge{height:8px;border-radius:99px;background:var(--track);overflow:hidden}
+html[data-modern] .gauge i{background:var(--accent);border-radius:99px}
+html[data-modern] .gauge.ok i{background:var(--ok)}
+html[data-modern] .timer{font-family:var(--font-display);color:var(--text);letter-spacing:-.03em;font-weight:650}
+html[data-modern] .timer.idle{color:var(--muted)}
+html[data-modern] .note{border-radius:16px;border:1px solid var(--line);border-left-width:1px;background:var(--panel);color:var(--text)}
+html[data-modern] .note.ready{border-color:color-mix(in srgb,var(--ok) 45%,var(--line));background:color-mix(in srgb,var(--ok) 10%,var(--panel))}
+html[data-modern] .tabs{display:inline-flex;max-width:100%;gap:4px;padding:4px;border:0;border-radius:99px;background:var(--field);overflow-x:auto;scrollbar-width:none}
+html[data-modern] .tabs::-webkit-scrollbar{display:none}
+html[data-modern] .tabs a{margin:0;border:0;border-radius:99px;padding:8px 16px;text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;white-space:nowrap}
+html[data-modern] .tabs a::before,html[data-modern] .tabs a::after{content:none}
+html[data-modern] .tabs a.on{background:var(--panel);color:var(--text);box-shadow:var(--shadow)}
+html[data-modern] .ship{border-radius:20px;background:var(--panel);border:1px solid var(--line);overflow:hidden}
+html[data-modern] .ship:hover{border-color:var(--accent)}
+html[data-modern] .ship-img{background:var(--field)}
+html[data-modern] .ship-img .tag{background:var(--panel)}
+html[data-modern] .noimg{color:var(--muted)}
+html[data-modern] .ship-body b{font-family:var(--font-display);font-weight:650}
+html[data-modern] .opp,html[data-modern] .ccu{border-radius:18px;background:var(--field);border:1px solid var(--line)}
+html[data-modern] details.fold{border-radius:var(--r);background:var(--panel);border-color:var(--line)}
+html[data-modern] details.fold>summary{text-transform:none;letter-spacing:0;font-size:14px;font-weight:600;color:var(--text)}
+html[data-modern] .hb .t{border-radius:99px;height:8px}.hb .t i{border-radius:99px}
+html[data-modern] .vb i{border-radius:8px 8px 3px 3px}
+html[data-modern] .bars div{border-radius:6px 6px 2px 2px}
+html[data-modern] .heat .c{border-radius:8px}
+html[data-modern] .heat .h{text-transform:none;letter-spacing:0}
+html[data-modern] .sig{border-radius:99px}
+html[data-modern] .feed-item{padding:12px 0}
+html[data-modern] #palBox{border-radius:22px;border:1px solid var(--line);box-shadow:0 24px 70px rgba(0,0,0,.45);overflow:hidden}
+html[data-modern] #palList li{border-radius:12px;margin:0 8px}
+html[data-modern] #palList li b{font-weight:550}
+html[data-modern] #tip{border-radius:10px;border-color:transparent}
+html[data-modern] #rail{background:var(--rail-bg);border-right:1px solid var(--line);padding-top:26px}
+html[data-modern] .brand{font-family:var(--font-display);font-weight:700;font-size:21px}
+html[data-modern] #railNav{padding:0 12px;gap:2px}
+html[data-modern] #railNav a{border:0;border-radius:14px;text-transform:none;letter-spacing:0;font-size:14px;font-weight:550;padding:10px 12px}
+html[data-modern] #railNav a i{display:none}
+html[data-modern] #railNav a:hover{background:var(--accent-soft)}
+html[data-modern] #railNav a.on{background:var(--accent-soft2);color:var(--accent)}
+html[data-modern] .nav-ic{display:block}
+html[data-modern] .railBtn{border-radius:12px;text-transform:none;letter-spacing:0;font-size:12px}
+html[data-modern] #top{border-bottom:0}
+html[data-modern] #crumb{text-transform:none;letter-spacing:0;font-size:13px;font-weight:600}
+html[data-modern] #crumb b{color:var(--text)}
+html[data-modern] #tabbar{border-top:0}
+html[data-modern] #tabbar a{flex-direction:column;gap:3px;border:0;border-radius:16px;text-transform:none;letter-spacing:0;font-size:10.5px;font-weight:550;padding:8px 2px}
+html[data-modern] #tabbar a i{display:none}
+html[data-modern] #tabbar a.on{background:var(--accent-soft2);color:var(--accent)}
+html[data-modern] #tSessPanel .timer{font-size:54px;margin:4px 0}
+@media(max-width:700px){
+  html[data-modern] .kpis{padding:0 14px;gap:10px}
+  html[data-modern] .kpi{padding:12px 14px;border-radius:18px}
+  html[data-modern] .kpi .v{font-size:22px}
+  html[data-modern] .tabs{display:flex}
+  html[data-modern] #view{padding-bottom:104px}
+}
+
+/* ---------- 1. BENTO SOMBRE ---------- */
+html[data-theme="bento"]{--bg:#09090d;--panel:#14141b;--panel2:#1c1c26;--field:#1c1c26;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.05);--text:#f4f4f8;--muted:#8d8da0;--accent:#6c5ce7;--on:#fff;--ok:#3ecf8e;--warn:#ffb020;--bad:#ff6b6b;--track:rgba(255,255,255,.1);--ph:#5f5f72;--r:26px;--r2:18px;--rb:14px;--shadow:none;--font:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--font-display:Inter,system-ui,sans-serif;--rail-bg:#0d0d13;--tip-bg:#23232f;--tip-fg:#f4f4f8;color-scheme:dark}
+html[data-theme="bento"] #tSessPanel{background:linear-gradient(155deg,color-mix(in srgb,var(--accent) 42%,var(--panel)) 0%,var(--panel) 72%)}
+html[data-theme="bento"] #tabbar{left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));border-radius:26px;border:1px solid var(--line);background:rgba(28,28,38,.86);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);padding:5px}
+
+/* ---------- 2. VERRE GIVRÉ ---------- */
+html[data-theme="glass"]{--bg:#080a1c;--panel:rgba(255,255,255,.09);--panel2:rgba(255,255,255,.08);--field:rgba(255,255,255,.1);--line:rgba(255,255,255,.2);--line2:rgba(255,255,255,.12);--text:#fff;--muted:rgba(255,255,255,.64);--accent:#5eb0ff;--on:#04122a;--ok:#4be3a4;--warn:#ffc15e;--bad:#ff7a7a;--track:rgba(255,255,255,.2);--ph:rgba(255,255,255,.4);--r:30px;--r2:20px;--rb:99px;--shadow:inset 0 1px 0 rgba(255,255,255,.26),0 14px 34px rgba(0,0,0,.22);--font:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--font-display:Inter,system-ui,sans-serif;--rail-bg:rgba(255,255,255,.06);--tip-bg:rgba(20,22,52,.92);--tip-fg:#fff;color-scheme:dark}
+html[data-theme="glass"] body{background:radial-gradient(70% 45% at 12% 6%,#5b3df5 0,transparent 62%),radial-gradient(55% 40% at 95% 18%,#14b8ff 0,transparent 60%),radial-gradient(70% 50% at 65% 100%,#ff4fa3 0,transparent 62%),radial-gradient(60% 40% at 0% 80%,#2c36d8 0,transparent 60%),#080a1c;background-attachment:fixed}
+html[data-theme="glass"] .panel,html[data-theme="glass"] .kpi,html[data-theme="glass"] details.fold{backdrop-filter:blur(26px) saturate(1.5);-webkit-backdrop-filter:blur(26px) saturate(1.5)}
+html[data-theme="glass"] #rail,html[data-theme="glass"] #top,html[data-theme="glass"] #palBox{backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4)}
+html[data-theme="glass"] #top{background:transparent}
+html[data-theme="glass"] #palBox{background:rgba(20,22,52,.82)}
+html[data-theme="glass"] .tabs a.on{background:rgba(255,255,255,.2)}
+html[data-theme="glass"] select option{background:#12142e;color:#fff}
+html[data-theme="glass"] #tabbar{left:22px;right:22px;bottom:calc(12px + env(safe-area-inset-bottom));border-radius:99px;border:1px solid rgba(255,255,255,.26);background:rgba(255,255,255,.14);backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);box-shadow:var(--shadow);padding:5px}
+html[data-theme="glass"] #tabbar a{border-radius:99px}
+html[data-theme="glass"] #tabbar a.on{background:rgba(255,255,255,.22);color:#fff}
+
+/* ---------- 3. ÉDITORIAL CLAIR ---------- */
+html[data-theme="editorial"]{--bg:#f5efe6;--panel:#fffdf8;--panel2:#f3ece0;--field:#f3ece0;--line:#e8dfd0;--line2:#efe7da;--text:#2a2420;--muted:#8c8075;--accent:#bd4a31;--on:#fff;--ok:#5e8a63;--warn:#b9791f;--bad:#bd4a31;--track:#ebe2d4;--ph:#b3a898;--r:26px;--r2:18px;--rb:99px;--shadow:0 1px 0 rgba(0,0,0,.03),0 12px 30px rgba(110,80,40,.08);--font:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--font-display:Fraunces,Georgia,"Times New Roman",serif;--rail-bg:#efe7da;--tip-bg:#2a2420;--tip-fg:#fff;color-scheme:light}
+html[data-theme="editorial"] .panel,html[data-theme="editorial"] .kpi,html[data-theme="editorial"] .ship{border-color:transparent}
+html[data-theme="editorial"] h2{font-weight:500;font-size:20px}
+html[data-theme="editorial"] .kpi .v,html[data-theme="editorial"] .timer{font-weight:500}
+html[data-theme="editorial"] .btn.primary,html[data-theme="editorial"] .btn.on{box-shadow:none}
+html[data-theme="editorial"] .btn:not(.primary):not(.on){background:#fff}
+html[data-theme="editorial"] #top{background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px)}
+html[data-theme="editorial"] #tabbar{background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:5px 4px}
+
+/* ---------- 4. SOBRE iOS ---------- */
+html[data-theme="calm"]{--bg:#f2f2f7;--panel:#ffffff;--panel2:#f2f2f7;--field:#f2f2f7;--line:#e5e5ea;--line2:#efeff4;--text:#111114;--muted:#86868b;--accent:#0071e3;--on:#fff;--ok:#2fb350;--warn:#f08a00;--bad:#ff3b30;--track:#e6e6ec;--ph:#b0b0b8;--r:16px;--r2:12px;--rb:12px;--shadow:none;--font:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;--font-display:-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,system-ui,sans-serif;--rail-bg:rgba(250,250,252,.92);--tip-bg:#1c1c1e;--tip-fg:#fff;color-scheme:light}
+html[data-theme="calm"] .panel,html[data-theme="calm"] .kpi,html[data-theme="calm"] .ship{border-color:transparent}
+html[data-theme="calm"] h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+html[data-theme="calm"] .kpi .v{font-weight:700}
+html[data-theme="calm"] .btn:not(.primary):not(.on){background:#f2f2f7;border-color:transparent;color:var(--accent)}
+html[data-theme="calm"] .btn.danger{color:var(--bad)}
+html[data-theme="calm"] #top{background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(14px)}
+html[data-theme="calm"] #tabbar{background:rgba(249,249,251,.94);backdrop-filter:blur(16px);border-top:1px solid var(--line);padding:5px 4px}
+html[data-theme="calm"] .tabs{background:#e3e3e8}
+</style>
+</head>
+<body>
+
+<aside id="rail">
+  <a class="brand" href="#/today"><b>SC</b><span>//OS</span></a>
+  <nav id="railNav"></nav>
+  <span class="spacer"></span>
+  <button class="railBtn" id="palBtn">Commandes <kbd>Ctrl K</kbd></button>
+  <div id="syncPill" class="" title="État de la synchronisation"><b></b><span>Sync · off</span></div>
+</aside>
+
+<div id="main">
+  <header id="top">
+    <div id="crumb"></div>
+    <span class="sp"></span>
+    <span id="clock"></span>
+    <span id="netTag" class="tag warn" style="display:none">Hors ligne</span>
+    <button class="btn sm" id="installBtn" style="display:none" title="Installer SC//OS comme application">⤓<span class="tx"> Installer</span></button>
+    <button class="btn sm" id="alertBtn" title="Notification + son quand un raffinage est prêt"></button>
+    <button class="btn sm" id="palBtn2" title="Palette de commandes (Ctrl+K ou /)">⌘<span class="tx"> Cmd</span></button>
+  </header>
+
+  <div id="view">
+    <div id="readyBanner" class="note ready" style="display:none"></div>
+
+    <!-- ============ AUJOURD'HUI ============ -->
+    <section class="page" id="page-today" data-page="today">
+      <div class="kpis grid" id="tKpis"></div>
+      <div class="grid two" style="margin-bottom:16px">
+        <div class="panel" id="tSessPanel"><h2>Session</h2><div id="tSession"></div></div>
+        <div class="panel"><h2>Raffineries</h2><div id="tRefining"></div></div>
+      </div>
+      <div class="grid two">
+        <div class="panel"><h2>Promos &amp; annonces RSI</h2><div id="tPromos"></div></div>
+        <div class="panel"><h2>Marché · meilleurs prix de vente</h2><div id="tMarket"></div></div>
+      </div>
+    </section>
+
+    <!-- ============ FLOTTE ============ -->
+    <section class="page" id="page-fleet" data-page="fleet">
+      <div class="tabs" data-tabs="fleet"></div>
+
+      <div data-sub="hangar">
+        <div class="kpis grid" id="fleetKpis"></div>
+        <details class="fold" id="importFold"><summary>Importer ou ajouter des vaisseaux</summary><div class="inner">
+        <div class="grid two" style="margin-bottom:0">
+          <div class="panel">
+            <h2>Importer ma flotte</h2>
+            <p class="small" style="margin-top:0">RSI n'a pas d'API officielle : un token/cookie RSI serait risqué et bloqué par le navigateur. Deux méthodes sûres :</p>
+            <h3>1 · Hangar public FleetYards</h3>
+            <div class="row">
+              <input id="fyUser" placeholder="Pseudo FleetYards" style="flex:1;min-width:140px">
+              <button class="btn primary" id="fyLoad">Charger</button>
+            </div>
+            <h3>2 · Export JSON HangarXplor</h3>
+            <label class="btn" style="cursor:pointer">Choisir un fichier<input type="file" id="fleetFile" accept=".json" hidden></label>
+            <div id="fleetMsg" class="small" style="margin-top:10px"></div>
+          </div>
+          <div class="panel">
+            <h2>Ajout manuel</h2>
+            <div class="row">
+              <input id="mName" list="shipNames" placeholder="Modèle (ex. Cutlass Black)" style="flex:2;min-width:150px">
+              <input id="mMaker" placeholder="Constructeur" style="flex:1;min-width:100px">
+            </div>
+            <div class="row" style="margin-top:8px">
+              <input id="mCargo" type="number" min="0" placeholder="Cargo SCU" style="width:110px">
+              <input id="mCrew" type="number" min="1" placeholder="Équipage" style="width:100px">
+              <input id="mValue" type="number" min="0" placeholder="Valeur $" style="width:100px">
+              <select id="mIns"><option value="">Assurance ?</option><option>LTI</option><option>10 ans</option><option>6 mois</option><option>2 mois</option><option>Standard</option><option>In-game (aUEC)</option></select>
+              <button class="btn primary" id="mAdd">Ajouter</button>
+            </div>
+          </div>
+        </div>
+        </div></details>
+        <div class="panel">
+          <div class="sec-head">
+            <h2>Hangar</h2>
+            <div class="row">
+              <input id="fleetSearch" placeholder="Rechercher…">
+              <select id="fleetRole"><option value="">Tous les rôles</option></select>
+              <select id="fleetSortSel">
+                <option value="model">Tri : nom</option><option value="value">Tri : valeur</option>
+                <option value="cargo">Tri : cargo</option><option value="maker">Tri : constructeur</option>
+              </select>
+              <button class="btn sm" id="viewGrid">Grille</button><button class="btn sm" id="viewTable">Tableau</button>
+              <button class="btn sm" id="fleetEnrich" title="Complète cargo, équipage, rôle, prix via FleetYards">✨ Enrichir</button>
+              <button class="btn sm" id="fleetCsv">⬇ CSV</button>
+              <button class="btn sm danger" id="fleetClear">Vider</button>
+            </div>
+          </div>
+          <div id="fleetGrid" class="ships"></div>
+          <div style="overflow-x:auto"><table id="fleetTable"></table></div>
+        </div>
+      </div>
+
+      <div data-sub="ccu">
+        <div class="kpis grid" id="ccuKpis"></div>
+        <div class="grid two" style="margin-bottom:16px">
+          <div class="panel">
+            <h2>Enregistrer un CCU</h2>
+            <div class="row">
+              <input id="cFrom" list="shipNames" placeholder="De (vaisseau)" style="flex:1;min-width:140px">
+              <span class="chain">➜</span>
+              <input id="cTo" list="shipNames" placeholder="Vers (vaisseau)" style="flex:1;min-width:140px">
+            </div>
+            <div class="row" style="margin-top:8px">
+              <input id="cPaid" type="number" min="0" step="0.01" placeholder="Payé $" style="width:100px">
+              <select id="cType"><option value="std">Standard</option><option value="wb">Warbond</option><option value="cr">Crédit store</option></select>
+              <input id="cDate" type="date" title="Date d'achat">
+              <input id="cNote" placeholder="Notes" style="flex:1;min-width:120px">
+              <button class="btn primary" id="cAdd">Ajouter</button>
+            </div>
+            <p class="small">Statut « stocké » = CCU acheté non appliqué. Il sert au calcul de chemin du simulateur.</p>
+          </div>
+          <div class="panel">
+            <h2>Simulateur d'upgrade</h2>
+            <div class="row">
+              <input id="sFrom" list="shipNames" placeholder="Vaisseau actuel" style="flex:1;min-width:140px">
+              <span class="chain">➜</span>
+              <input id="sTo" list="shipNames" placeholder="Vaisseau visé" style="flex:1;min-width:140px">
+            </div>
+            <div id="sOut" style="margin-top:12px"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="sec-head"><h2>Mes CCU</h2>
+            <div class="row"><label class="small"><input type="checkbox" id="ccuHide"> masquer les appliqués</label><button class="btn sm" id="ccuCsv">⬇ CSV</button></div></div>
+          <div id="ccuList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr))"></div>
+        </div>
+      </div>
+      <datalist id="shipNames"></datalist>
+    </section>
+
+    <!-- ============ INDUSTRIE ============ -->
+    <section class="page" id="page-industry" data-page="industry">
+      <div class="tabs" data-tabs="industry"></div>
+
+      <div data-sub="mining salvage">
+        <div class="kpis grid" id="indKpis"></div>
+        <div class="grid two" style="margin-bottom:16px">
+          <div class="panel">
+            <h2 id="sessTitle">Session</h2>
+            <div class="timer idle" id="timer">00:00:00</div>
+            <div id="sessNotice" class="small" style="margin:6px 0"></div>
+            <div class="row" style="margin:12px 0">
+              <input id="sPlace" placeholder="Lieu" style="flex:1;min-width:140px">
+              <select id="sShip"><option value="">Vaisseau…</option></select>
+            </div>
+            <div class="row">
+              <button class="btn primary" id="sStart">▶ Démarrer</button>
+              <button class="btn" id="sPause" disabled>⏸ Pause</button>
+              <button class="btn danger" id="sStop" disabled>■ Terminer</button>
+            </div>
+            <h3>Journal de récolte</h3>
+            <div class="row">
+              <input id="lMat" list="logMats" placeholder="Matériau" style="flex:1;min-width:110px">
+              <input id="lScu" type="number" min="0" step="0.1" placeholder="SCU" style="width:80px">
+              <input id="lVal" type="number" min="0" placeholder="Valeur (facultatif)" style="width:150px" title="Facultatif : tu pourras saisir le montant réel de la vente plus tard, depuis l'historique">
+              <button class="btn" id="lAdd" disabled>+ Ajouter</button>
+            </div>
+            <div class="small" style="margin-top:6px">Matériau et SCU suffisent. La valeur en aUEC est facultative : saisis la vente réelle après coup, depuis l'historique (« Saisir la vente »).</div>
+            <div id="logList" class="small" style="margin-top:8px"></div>
+            <datalist id="logMats"></datalist>
+          </div>
+          <div class="panel">
+            <h2>SCU par session</h2>
+            <div class="bars" id="sessBars"></div><div class="small" id="sessBarsLegend" style="margin-top:6px"></div>
+            <h3>Prix de référence (UEX)</h3>
+            <div id="indRef" class="small"></div>
+          </div>
+        </div>
+        <div class="panel" id="crewPanel">
+          <div class="sec-head"><h2>Partage d'équipage</h2><button class="btn sm" id="cwFrom" title="Reprend le total de la session en cours ou de la dernière session">↻ Total de la session</button></div>
+          <div class="row">
+            <label class="fl">Total à partager (aUEC)<input id="cwTotal" type="number" min="0"></label>
+            <label class="fl">Frais (carburant, raffinage…)<input id="cwFees" type="number" min="0"></label>
+            <label class="fl">Prélevé pour le vaisseau (%)<input id="cwShip" type="number" min="0" max="100"></label>
+          </div>
+          <div id="cwRoster" style="margin-top:12px"></div>
+          <div class="row" style="margin-top:8px">
+            <input id="cwName" placeholder="Nom du joueur" style="flex:2 1 150px">
+            <input id="cwParts" type="number" min="0" step="0.5" value="1" style="flex:0 1 90px" title="Nombre de parts">
+            <button class="btn" id="cwAdd">+ Ajouter</button>
+          </div>
+          <div id="cwOut" style="margin-top:14px"></div>
+          <div class="row" style="margin-top:10px"><button class="btn" id="cwCopy">Copier le récapitulatif</button><span class="small" id="cwMsg"></span></div>
+        </div>
+        <div class="panel">
+          <div class="sec-head"><h2 id="histTitle">Historique</h2><button class="btn sm" id="sessCsv">⬇ CSV</button></div>
+          <div style="overflow-x:auto"><table id="sessTable" class="cards"></table></div>
+        </div>
+      </div>
+
+      <div data-sub="refining">
+        <div class="panel">
+          <h2>Lancer un raffinage</h2>
+          <div class="row" style="margin-bottom:8px">
+            <select id="rSess" style="flex:1 1 100%" title="Relie l'ordre à la session qui a produit la matière : la vente pourra ensuite être ajoutée à cette session"></select>
+          </div>
+          <div class="row">
+            <select id="rPlace" style="flex:1;min-width:170px"></select>
+            <input id="rMat" list="mats" placeholder="Minerai" style="flex:1;min-width:120px">
+            <select id="rMethod"></select>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <input id="rScu" type="number" min="0" step="0.1" placeholder="SCU" style="width:80px">
+            <input id="rCost" type="number" min="0" placeholder="Coût aUEC" style="width:110px">
+            <span class="small">Prêt dans</span>
+            <input id="rH" type="number" min="0" placeholder="h" style="width:64px">
+            <input id="rM" type="number" min="0" max="59" placeholder="min" style="width:64px">
+            <input id="rVal" type="number" min="0" placeholder="Valeur estimée aUEC" style="width:170px">
+            <button class="btn primary" id="rAdd">Lancer</button>
+          </div>
+          <datalist id="mats"></datalist>
+        </div>
+        <div class="panel">
+          <div class="sec-head"><h2>Ordres de raffinage</h2>
+            <div class="row"><label class="small"><input type="checkbox" id="rHideDone"> masquer les récupérés</label><button class="btn sm" id="refCsv">⬇ CSV</button></div></div>
+          <div style="overflow-x:auto"><table id="refTable" class="cards"></table></div>
+        </div>
+      </div>
+
+      <div data-sub="analysis">
+        <div class="panel">
+          <div class="sec-head"><h2>Analyse des sessions</h2>
+            <div class="row"><span class="row" id="anMetric"></span><span class="row" id="anType"></span><span class="row" id="anPeriod"></span><button class="btn sm" id="anCsv">⬇ CSV sessions</button></div></div>
+          <div id="anEmpty" class="empty" style="display:none">Aucune session sur cette période. Termine une session de minage ou de salvage pour alimenter l'analyse.</div>
+        </div>
+        <div id="anBody">
+          <div class="kpis grid" id="anKpis"></div>
+          <div class="grid two" style="margin-bottom:16px">
+            <div class="panel"><h2 id="anTPlace">SCU / heure par lieu</h2><div id="anPlace"></div></div>
+            <div class="panel"><h2 id="anTShip">SCU / heure par vaisseau</h2><div id="anShip"></div></div>
+          </div>
+          <div class="grid two" style="margin-bottom:16px">
+            <div class="panel"><h2 id="anTWeek">SCU par semaine</h2><div id="anWeek"></div></div>
+            <div class="panel"><h2 id="anTHeat">Meilleurs créneaux · SCU/h moyen</h2><div id="anHeat"></div></div>
+          </div>
+          <div class="panel"><h2>Matériaux récoltés · SCU</h2><div id="anMat"></div></div>
+        </div>
+      </div>
+
+      <div data-sub="profit">
+        <div class="panel">
+          <div class="sec-head">
+            <h2>Prix de vente en direct</h2>
+            <div class="row">
+              <select id="pCat"></select>
+              <label class="fl" style="flex:0 1 120px">Cargo (SCU)<input id="pCap" type="number" min="1" placeholder="ex. 46"></label>
+              <select id="pShip"><option value="">Mon vaisseau…</option></select>
+              <button class="btn sm" id="pRefresh">↻ Actualiser</button>
+              <button class="btn sm" id="pCsv">⬇ CSV prix</button>
+              <button class="btn sm" id="pHistCsv">⬇ CSV historique</button>
+            </div>
+          </div>
+          <div class="small" id="pStatus" style="margin-bottom:10px"></div>
+          <div style="overflow-x:auto"><table id="pTable" class="cards"></table></div>
+        </div>
+        <div class="panel" id="pDetail" style="display:none">
+          <div class="sec-head"><h2 id="pdTitle">Historique</h2><button class="btn sm" id="pdClose">Fermer</button></div>
+          <div class="grid two">
+            <div><h3>Meilleur prix du marché · relevés locaux</h3><div id="pdLocal"></div></div>
+            <div><h3>Terminal : <span id="pdTerm"></span> · historique UEX</h3><div id="pdUex"></div></div>
+          </div>
+          <p class="small">Les relevés locaux s'accumulent à chaque actualisation des prix (toutes les 3 h minimum, quand l'app est ouverte).</p>
+        </div>
+        <div class="panel">
+          <h2>Simulateur de rentabilité</h2>
+          <div class="row">
+            <label class="fl" style="flex:2 1 220px">Matériau<select id="xMat"></select></label>
+            <label class="fl">SCU minés (bruts)<input id="xScu" type="number" min="0" step="0.1" placeholder="ex. 64"></label>
+            <label class="fl">Rendement %<input id="xYield" type="number" min="1" max="100" value="50"></label>
+            <label class="fl">Coût raffinage aUEC<input id="xCost" type="number" min="0" value="0"></label>
+            <label class="fl">Durée du cycle (min)<input id="xMin" type="number" min="1" value="60"></label>
+          </div>
+          <div id="xOut" style="margin-top:14px"></div>
+          <p class="small">Le rendement dépend de la méthode, du lieu et de la qualité du minerai : saisis celui que tu observes en jeu. Les prix viennent de UEX Corp (relevés communautaires, parfois anciens).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROJETS ============ -->
+    <section class="page" id="page-projects" data-page="projects">
+      <div class="tabs" data-tabs="projects"></div>
+
+      <div data-sub="goals">
+        <div class="kpis grid" id="gKpis"></div>
+        <div class="grid two" style="margin-bottom:16px">
+          <div class="panel">
+            <h2>Mon solde</h2>
+            <div class="row">
+              <label class="fl" style="flex:1 1 150px">Solde actuel (aUEC)<input id="gBalance" type="number" min="0"></label>
+              <label class="fl" style="flex:1 1 120px">Heures de jeu / semaine<input id="gHours" type="number" min="1" max="120"></label>
+              <label class="fl" style="flex:1 1 120px">aUEC / h (vide = réel)<input id="gRate" type="number" min="0" placeholder="auto"></label>
+            </div>
+            <div class="row" style="margin-top:12px">
+              <input id="gAdj" type="number" min="0" placeholder="Montant" style="flex:1 1 120px">
+              <button class="btn" id="gPlus">+ Gain</button><button class="btn" id="gMinus">− Dépense</button>
+            </div>
+            <label class="small" style="display:block;margin-top:12px"><input type="checkbox" id="gAuto"> Créditer automatiquement le solde à chaque vente saisie (bouton « Saisir la vente » dans l'historique des sessions)</label>
+          </div>
+          <div class="panel">
+            <h2>Nouvel objectif</h2>
+            <div class="row">
+              <input id="gTitle" list="shipNames" placeholder="Objectif (ex. Prospector)" style="flex:2 1 180px">
+              <input id="gTarget" type="number" min="0" placeholder="Coût aUEC" style="flex:1 1 120px">
+            </div>
+            <div class="row" style="margin-top:8px"><button class="btn primary" id="gAdd">Ajouter</button></div>
+            <p class="small">Choisis un nom de vaisseau dans la liste : son prix en jeu (aUEC) est rempli automatiquement quand il est connu.</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Mes objectifs · dans l'ordre d'achat</h2>
+          <div id="gList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))"></div>
+        </div>
+      </div>
+
+      <div data-sub="needs">
+        <div class="grid two" style="margin-bottom:16px">
+          <div class="panel">
+            <h2 id="nFormTitle">Nouveau projet</h2>
+            <div class="row">
+              <input id="nTitle" placeholder="Titre (ex. Contrat Wikelo – …)" style="flex:2 1 200px">
+              <select id="nKind"><option>Contrat</option><option>Craft</option><option>Vaisseau</option><option>Autre</option></select>
+            </div>
+            <textarea id="nReqs" rows="5" placeholder="Une ressource par ligne : nom + quantité&#10;Quantanium 200&#10;Agricium x50&#10;12 Riccite" style="width:100%;margin-top:8px"></textarea>
+            <input id="nNote" placeholder="Notes (facultatif)" style="width:100%;margin-top:8px">
+            <div class="row" style="margin-top:8px"><button class="btn primary" id="nSave">Enregistrer</button><button class="btn" id="nCancel" style="display:none">Annuler</button></div>
+          </div>
+          <div class="panel">
+            <div class="sec-head"><h2>Liste de courses</h2><button class="btn sm" id="nCsv">⬇ CSV</button></div>
+            <div id="nShop"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="sec-head"><h2>Mes projets</h2><label class="small"><input type="checkbox" id="nHide"> masquer les terminés</label></div>
+          <p class="small" style="margin-top:0">La progression de chaque projet est comparée à ton inventaire complet ; la liste de courses additionne tous les projets en cours pour montrer ce qu'il manque vraiment.</p>
+          <div id="nList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))"></div>
+        </div>
+      </div>
+
+      <div data-sub="stock">
+        <div class="panel">
+          <h2>Ajouter au stock</h2>
+          <div class="row">
+            <input id="sName" list="stockNames" placeholder="Ressource / objet" style="flex:2 1 200px">
+            <input id="sQty" type="number" min="0" step="0.1" placeholder="Quantité" style="flex:1 1 110px">
+            <input id="sLoc" list="locNames" placeholder="Lieu de stockage (ex. Area18)" style="flex:2 1 200px">
+            <button class="btn primary" id="sAddStock">Ajouter</button>
+          </div>
+          <p class="small" style="margin-bottom:0">La même ressource peut être répartie sur plusieurs lieux : chaque lieu a sa propre ligne. Le lieu saisi est retenu pour l'ajout suivant.</p>
+          <datalist id="stockNames"></datalist><datalist id="locNames"></datalist>
+        </div>
+        <div class="panel">
+          <div class="sec-head"><h2>Inventaire</h2>
+            <div class="row">
+              <select id="sFilterLoc"><option value="">Tous les lieux</option></select>
+              <button class="btn sm" id="sViewRes">Par ressource</button><button class="btn sm" id="sViewLoc">Par lieu</button>
+              <input id="sSearch" placeholder="Rechercher…">
+              <button class="btn sm" data-csv="stock">⬇ CSV</button>
+            </div></div>
+          <div id="sList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ OPPORTUNITÉS ============ -->
+    <section class="page" id="page-opps" data-page="opps">
+      <div class="panel">
+        <div class="sec-head">
+          <h2>Flux Comm-Link RSI</h2>
+          <div class="row" id="feedFilters"></div>
+          <button class="btn sm" id="feedRefresh">↻ Actualiser</button>
+        </div>
+        <div class="small" id="feedStatus"></div>
+        <div id="feedList"></div>
+      </div>
+      <div class="note">⚠ Les fiches « Mes opportunités » pré-remplies sont écrites à la main et <b>non vérifiées en direct</b> : contrôle chaque lien. Utilise « + Suivre » dans le flux pour ajouter une annonce à ta liste.</div>
+      <div class="panel">
+        <div class="sec-head">
+          <h2>Mes opportunités</h2>
+          <div class="row">
+            <span class="row" id="oppCats"></span>
+            <label class="small"><input type="checkbox" id="oppHideDone"> masquer les faits</label>
+            <button class="btn primary sm" id="oppNew">+ Nouvelle</button>
+          </div>
+        </div>
+        <div id="oppForm" style="display:none;margin-bottom:14px" class="row">
+          <select id="oCat"></select>
+          <input id="oTitle" placeholder="Titre" style="flex:2;min-width:160px">
+          <input id="oReward" placeholder="Récompense" style="flex:2;min-width:160px">
+          <input id="oEnd" type="date" title="Fin (vide = permanent)">
+          <input id="oLink" placeholder="Lien (https://…)" style="flex:2;min-width:160px">
+          <input id="oNote" placeholder="Notes" style="flex:3;min-width:160px">
+          <button class="btn primary" id="oSave">Enregistrer</button>
+        </div>
+        <div class="opps" id="oppList"></div>
+      </div>
+    </section>
+
+    <!-- ============ SYSTÈME ============ -->
+    <section class="page" id="page-system" data-page="system">
+      <div class="panel" id="uiPanel" style="margin-bottom:16px">
+        <h2>Apparence</h2>
+        <div class="themes" id="themeGrid"></div>
+        <h3>Couleur d'accent</h3>
+        <div class="sw" id="accentSw"></div>
+        <p class="small">Le choix est propre à cet appareil : ton téléphone et ton ordinateur peuvent avoir chacun le leur. Raccourci : touche <kbd>t</kbd> pour changer de thème. Aperçus : <a href="maquettes.html">page de maquettes</a>.</p>
+      </div>
+      <div class="grid two">
+        <div class="panel">
+          <h2>Synchronisation entre appareils</h2>
+          <p class="small" style="margin-top:0">Tes données sont stockées dans un <b>Gist GitHub secret</b> (fichier <code>sc-dashboard.json</code>) de ton compte. Sur chaque appareil, il suffit de coller le même token : le Gist est retrouvé automatiquement.</p>
+          <div id="syncForm">
+            <div class="row">
+              <input id="syToken" type="password" placeholder="Token GitHub (scope « gist » uniquement)" style="flex:1;min-width:220px" autocomplete="off">
+              <button class="btn primary" id="syConnect">Connecter</button>
+            </div>
+            <p class="small"><a target="_blank" rel="noopener noreferrer" href="https://github.com/settings/tokens/new?scopes=gist&description=SC%20OS%20dashboard">Créer un token avec le seul droit « gist » ↗</a><br>
+            Le token reste dans <b>ce navigateur</b> uniquement ; il n'est jamais envoyé ailleurs que sur api.github.com. Ne lui donne aucun autre droit.</p>
+          </div>
+          <div id="syncInfo" style="display:none">
+            <div id="syStatus" style="margin-bottom:10px"></div>
+            <div class="row">
+              <button class="btn primary" id="syNow">Synchroniser maintenant</button>
+              <button class="btn" id="syPush" title="Écrase le cloud avec cet appareil">Forcer l'envoi</button>
+              <button class="btn" id="syPull" title="Écrase cet appareil avec le cloud">Forcer la réception</button>
+              <button class="btn danger" id="syOff">Déconnecter</button>
+            </div>
+            <label class="small" style="display:block;margin-top:10px"><input type="checkbox" id="syAuto"> Synchroniser automatiquement (à chaque modification, puis toutes les 5 min)</label>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Données locales</h2>
+          <div class="row">
+            <button class="btn" id="exportAll">Exporter (JSON)</button>
+            <label class="btn" style="cursor:pointer">Importer<input type="file" id="importAll" accept=".json" hidden></label>
+            <button class="btn" id="restoreBk" title="Restaure la version d'avant le dernier écrasement par le cloud">Restaurer la sauvegarde</button>
+          </div>
+          <p class="small">Une copie de sécurité de cet appareil est gardée automatiquement avant tout écrasement par le cloud ou un import.</p>
+          <h3>Alertes</h3>
+          <div class="row"><button class="btn" id="alertBtn2"></button></div>
+          <h3>Sources de données</h3>
+          <p class="small" style="margin:0">FleetYards (modèles, images, hangars publics) · Star Citizen Wiki API (Comm-Link) · UEX Corp (prix de vente) · Gist GitHub (synchronisation, optionnelle).</p>
+        </div>
+      </div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="panel">
+          <h2>Notifications téléphone (ntfy)</h2>
+          <p class="small" style="margin-top:0">Installe l'app <b>ntfy</b> (Android / iOS, gratuite) et abonne-toi au sujet ci-dessous. À chaque raffinage lancé, l'alerte est <b>programmée sur le serveur ntfy</b> : elle arrive à l'heure dite même PC éteint ou page fermée (3 jours d'avance maximum).</p>
+          <div class="row"><input id="nfTopic" placeholder="Sujet (secret)" style="flex:1;min-width:200px"><button class="btn" id="nfGen">Générer</button><button class="btn" id="nfCopy">Copier</button></div>
+          <div class="row" style="margin-top:8px"><input id="nfServer" placeholder="Serveur" style="flex:1;min-width:200px"></div>
+          <label class="small" style="display:block;margin-top:10px"><input type="checkbox" id="nfOn"> Activer les notifications téléphone</label>
+          <label class="small" style="display:block"><input type="checkbox" id="nfPromos"> Prévenir aussi des nouvelles promos RSI (quand l'app est ouverte)</label>
+          <div class="row" style="margin-top:10px"><button class="btn primary" id="nfTest">Envoyer un test</button><a class="btn" id="nfOpen" target="_blank" rel="noopener noreferrer" href="#">Ouvrir le sujet ↗</a></div>
+          <div class="small" id="nfMsg" style="margin-top:8px"></div>
+          <p class="small">Le nom du sujet sert de mot de passe : quiconque le connaît peut lire tes alertes. Garde-le privé (il est synchronisé avec tes données).</p>
+        </div>
+        <div class="panel">
+          <h2>Application</h2>
+          <div id="appInfo"></div>
+          <h3>Exports CSV</h3>
+          <div class="row">
+            <button class="btn sm" data-csv="sessions">Sessions</button><button class="btn sm" data-csv="refining">Raffinages</button>
+            <button class="btn sm" data-csv="fleet">Flotte</button><button class="btn sm" data-csv="ccus">CCU</button><button class="btn sm" data-csv="stock">Inventaire</button>
+            <button class="btn sm" data-csv="prices">Prix actuels</button><button class="btn sm" data-csv="pricehist">Historique des prix</button>
+          </div>
+          <p class="small">Séparateur « ; », encodage UTF-8 : s'ouvre directement dans Excel ou LibreOffice en français.</p>
+        </div>
+      </div>
+      <div class="panel" id="alertPanel" style="margin-top:16px">
+        <h2>Alertes 24 h/24 (robot GitHub)</h2>
+        <p class="small" style="margin-top:0">Un petit robot gratuit consulte les prix UEX et le Comm-Link RSI environ toutes les 15 minutes et t'envoie une notification ntfy, <b>même application fermée et PC éteint</b>. Il lit tes réglages dans ton Gist de synchronisation (les mêmes que ci-dessus).</p>
+        <div class="grid two">
+          <div>
+            <label class="small" style="display:block"><input type="checkbox" id="alPromos"> Nouvelles promos et événements RSI</label>
+            <label class="small" style="display:block;margin-top:6px"><input type="checkbox" id="alPatches"> Nouveaux patchs du jeu</label>
+            <h3>Alertes de prix</h3>
+            <div class="row">
+              <select id="alMat" style="flex:2 1 180px"></select>
+              <select id="alDir"><option value="above">au-dessus de</option><option value="below">en dessous de</option></select>
+              <input id="alVal" type="number" min="0" placeholder="aUEC / SCU" style="flex:1 1 110px">
+              <button class="btn primary" id="alAdd">Ajouter</button>
+            </div>
+            <div id="alList" style="margin-top:8px"></div>
+          </div>
+          <div>
+            <h3 style="margin-top:0">Activation (une seule fois)</h3>
+            <div id="alSetup" class="small"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<nav id="tabbar"></nav>
+
+<div id="pal"><div id="palBox">
+  <input id="palIn" placeholder="Aller à… ou lancer une action" autocomplete="off">
+  <ul id="palList"></ul>
+  <div id="palFoot"><kbd>↑↓</kbd> choisir · <kbd>Entrée</kbd> valider · <kbd>Échap</kbd> fermer · raccourcis : <kbd>1</kbd>–<kbd>6</kbd> pages, <kbd>/</kbd> commandes, <kbd>t</kbd> thème</div>
+</div></div>
+
+<script>
+/* =====================================================
+   OUTILS
+   ===================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>Math.round(n||0).toLocaleString('fr-FR');
+const uid=()=>Math.random().toString(36).slice(2,10);
+const num=v=>{const n=parseFloat(String(v??'').replace(/[^0-9.]/g,''));return isNaN(n)?0:n};
+const dur=ms=>{ms=Math.max(0,ms);const s=Math.floor(ms/1000);return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(x=>String(x).padStart(2,'0')).join(':')};
+const safeUrl=u=>/^https?:\/\//i.test(u||'')?u:'';
+const nk=x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const ago=t=>{const m=(Date.now()-t)/6e4;return m<2?'à l\'instant':m<60?`il y a ${Math.round(m)} min`:m<1440?`il y a ${Math.round(m/60)} h`:`il y a ${Math.round(m/1440)} j`};
+/* fetch avec nouvelles tentatives (réseaux instables) */
+async function fetchRetry(url,opt,tries=4){
+  let err;
+  for(let i=0;i<tries;i++){
+    try{const r=await fetch(url,opt);if(r.ok||r.status<500)return r;err=new Error('http '+r.status)}catch(e){err=e}
+    await new Promise(ok=>setTimeout(ok,700*(i+1)));
+  }
+  throw err;
+}
+const lget=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}};
+const lset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+
+/* =====================================================
+   STOCKAGE
+   ===================================================== */
+const KEY='scdash.v1';
+const mkDefaults=()=>({fleet:[],sessions:[],refining:[],opps:null,active:null,ccus:[],ntfy:null,alerts:null,goals:[],balance:0,autoBalance:false,hoursWeek:8,rateManual:0,stock:[],lastLoc:'',stockView:'res',needs:[],crew:[],crewCfg:{fees:0,shipPct:0},updatedAt:0});
+let db=Object.assign(mkDefaults(),lget(KEY,{}));
+const persist=()=>lset(KEY,db);
+function save(){db.updatedAt=Date.now();persist();queueSync()}
+function backup(){lset(KEY+'.backup',{t:Date.now(),db})}
+
+/* =====================================================
+   ROUTEUR  (#/page/sous-page)
+   ===================================================== */
+const ROUTES={
+  today:{label:"Aujourd'hui"},
+  fleet:{label:'Flotte',subs:{hangar:'Hangar',ccu:'CCU'}},
+  industry:{label:'Industrie',subs:{mining:'Minage',salvage:'Salvage',refining:'Raffinage',profit:'Rentabilité',analysis:'Analyse'}},
+  projects:{label:'Projets',subs:{goals:'Objectifs',needs:'Besoins',stock:'Inventaire'}},
+  opps:{label:'Opportunités'},
+  system:{label:'Système'}
+};
+const PAGES=Object.keys(ROUTES);
+let cur={page:'today',sub:''};
+function parseHash(){
+  const m=(location.hash||'').match(/^#\/([a-z]+)(?:\/([a-z]+))?/);
+  let page=m&&ROUTES[m[1]]?m[1]:'today',subs=ROUTES[page].subs,sub='';
+  if(subs)sub=m&&m[2]&&subs[m[2]]?m[2]:(lget(KEY+'.sub.'+page,'')||Object.keys(subs)[0]);
+  if(subs&&!subs[sub])sub=Object.keys(subs)[0];
+  return{page,sub};
+}
+const go=p=>{location.hash='#/'+p};
+function route(){
+  cur=parseHash();
+  if(cur.sub)lset(KEY+'.sub.'+cur.page,cur.sub);
+  const canon='#/'+cur.page+(cur.sub?'/'+cur.sub:'');
+  if(location.hash!==canon)history.replaceState(null,'',canon);
+  $$('.page').forEach(s=>s.classList.toggle('on',s.dataset.page===cur.page));
+  $$('#page-'+cur.page+' [data-sub]').forEach(el=>el.style.display=el.dataset.sub.split(' ').includes(cur.sub)?'':'none');
+  $$('[data-r]').forEach(a=>a.classList.toggle('on',a.dataset.r===cur.page));
+  const t=$(`#page-${cur.page} [data-tabs]`);
+  if(t)t.innerHTML=Object.entries(ROUTES[cur.page].subs).map(([k,l])=>`<a href="#/${cur.page}/${k}" class="${k===cur.sub?'on':''}">${l}</a>`).join('');
+  if(t){const on=t.querySelector('.on');if(on&&t.scrollWidth>t.clientWidth)t.scrollLeft=on.offsetLeft-(t.clientWidth-on.offsetWidth)/2}
+  $('#crumb').innerHTML=`SC//OS › <b>${ROUTES[cur.page].label}</b>`+(cur.sub?` › ${ROUTES[cur.page].subs[cur.sub]}`:'');
+  window.scrollTo(0,0);
+  renderAll();
+}
+const NAV_IC={
+  today:'<path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',
+  fleet:'<path d="M12 3c3 3 4 6 4 9l3 3v3l-4-1-3 3-3-3-4 1v-3l3-3c0-3 1-6 4-9z"/>',
+  industry:'<path d="M5 7c3-3 11-3 14 0M12 5v15M9.5 20h5"/>',
+  projects:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>',
+  opps:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>',
+  system:'<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>'
+};
+const navIc=p=>`<svg class="nav-ic" viewBox="0 0 24 24" aria-hidden="true">${NAV_IC[p]}</svg>`;
+function buildNav(){
+  const html=PAGES.map((p,i)=>`<a href="#/${p}" data-r="${p}"><i>0${i+1}</i>${navIc(p)}<span>${ROUTES[p].label}</span><em class="sig" id="sig-${p}"></em></a>`).join('');
+  $('#railNav').innerHTML=html;
+  $('#tabbar').innerHTML=PAGES.map((p,i)=>`<a href="#/${p}" data-r="${p}"><i>0${i+1}</i>${navIc(p)}<span>${ROUTES[p].label.replace("Aujourd'hui",'Jour').replace('Opportunités','Opport.')}</span></a>`).join('');
+}
+window.addEventListener('hashchange',route);
+
+/* =====================================================
+   FLOTTE
+   ===================================================== */
+let MODELS=[],MODEL_BY_SLUG={};
+const MODELS_KEY=KEY+'.models2';
+function indexModels(items){
+  MODELS=items;MODEL_BY_SLUG={};items.forEach(m=>MODEL_BY_SLUG[m.slug]=m);
+  $('#shipNames').innerHTML=[...new Set([...items.map(m=>m.name),...db.fleet.map(s=>s.model)])].sort().map(n=>`<option value="${esc(n)}">`).join('');
+}
+async function loadModels(){
+  const c=lget(MODELS_KEY,null);
+  if(c&&Date.now()-c.t<864e5&&c.items.length)return c.items;
+  const items=[];
+  for(let page=1;page<=5;page++){
+    const r=await fetchRetry(`https://api.fleetyards.net/v1/models?perPage=240&page=${page}`);
+    if(!r.ok)throw new Error(r.status);
+    const j=await r.json();
+    items.push(...j.items.map(m=>{
+      const md=m.media||{},im=(md.angledView||md.storeImage||md.topView||{});
+      return{name:m.name,rsi:m.rsiName||'',slug:m.slug,maker:(m.manufacturer||{}).name||'',
+        cargo:(m.metrics||{}).cargo||0,crew:(m.crew||{}).max||0,role:m.focus||m.classificationLabel||'',
+        pledge:m.pledgePrice||0,price:m.price||0,status:m.productionStatus||'',img:im.smallUrl||''}}));
+    if(page>=((j.meta||{}).pagination||{}).totalPages)break;
+  }
+  lset(MODELS_KEY,{t:Date.now(),items});
+  return items;
+}
+let modelsPromise=null;
+function ensureModels(){
+  if(MODELS.length)return Promise.resolve(MODELS);
+  if(!modelsPromise)modelsPromise=loadModels().then(items=>{indexModels(items);return items}).finally(()=>{modelsPromise=null});
+  return modelsPromise;
+}
+function findModel(models,s){
+  const cands=[s.model,(s.maker||'')+' '+s.model].map(nk);
+  const prefixes=new Set(models.flatMap(m=>[nk(m.maker),nk(m.maker.split(' ')[0])]).filter(x=>x.length>=3));
+  const first=nk(s.model);
+  prefixes.forEach(p=>{if(first.startsWith(p)&&first.length>p.length+2)cands.push(first.slice(p.length))});
+  for(const m of models){const k=[nk(m.name),nk(m.rsi),nk(m.maker+' '+m.name)];if(cands.some(c=>k.includes(c)))return m}
+  let best=null;
+  for(const m of models){const k=nk(m.name);if(k.length>=4&&cands.some(c=>c.startsWith(k))&&(!best||k.length>nk(best.name).length))best=m}
+  return best;
+}
+const modelOf=s=>s.slug?MODEL_BY_SLUG[s.slug]:null;
+
+function normShip(o){
+  const m=o.model||{};
+  const model=o.ship_name||m.name||o.name||o.ship_codename||o.slug||'?';
+  const custom=o.ship_name?(o.name&&o.name!==o.ship_name?o.name:''):(m.name&&o.name&&o.name!==m.name?o.name:'');
+  let ins=o.lti?'LTI':(o.insurance||'');
+  if(!ins&&o.monthsInsurance>0)ins=o.monthsInsurance+' mois';
+  return{id:uid(),model,custom,
+    maker:o.manufacturer_name||(m.manufacturer&&m.manufacturer.name)||o.manufacturer||'',
+    role:m.classificationLabel||m.focus||o.focus||o.role||'',
+    cargo:num(m.metrics?m.metrics.cargo:(m.cargo??o.cargo)),crew:num(m.maxCrew??(m.crew&&m.crew.max)??o.crew),
+    value:num(o.pledge_cost??o.value??m.pledgePrice),insurance:ins,status:m.productionStatus||o.flight_ready_status||'',
+    slug:m.slug||'',price:0,pledge:o.pledge_name||'',source:o.ship_name?'HangarXplor':'FleetYards'};
+}
+function parseFleetJson(data){
+  if(data&&!Array.isArray(data))data=data.vehicles||data.ships||data.items||[];
+  return data.filter(o=>!o.entity_type||o.entity_type==='ship').map(normShip);
+}
+function setFleet(list,msg){db.fleet=list;save();renderFleet();$('#fleetMsg').textContent=msg;enrichFleet(true)}
+$('#fleetFile').onchange=async e=>{
+  try{
+    const list=parseFleetJson(JSON.parse(await e.target.files[0].text()));
+    if(!list.length)throw 0;
+    setFleet(list,`✔ ${list.length} vaisseaux importés.`);
+  }catch(err){$('#fleetMsg').textContent='✘ Fichier non reconnu (attendu : export JSON HangarXplor ou FleetYards).'}
+  e.target.value='';
+};
+$('#fyLoad').onclick=async()=>{
+  const u=$('#fyUser').value.trim();if(!u)return;
+  $('#fleetMsg').textContent='Chargement…';
+  try{
+    const all=[];
+    for(let page=1;page<=10;page++){
+      const r=await fetchRetry(`https://api.fleetyards.net/v1/vehicles/${encodeURIComponent(u)}?perPage=240&page=${page}`);
+      if(!r.ok)throw new Error(r.status);
+      const j=await r.json();
+      if(!j.length)break;
+      all.push(...j);
+      if(j.length<240)break;
+    }
+    if(!all.length)throw new Error('vide');
+    setFleet(parseFleetJson(all),`✔ ${all.length} vaisseaux chargés depuis FleetYards.`);
+    lset(KEY+'.fy',u);
+  }catch(err){$('#fleetMsg').textContent='✘ Hangar introuvable (pseudo inconnu, hangar privé ou réseau bloqué). Utilise l\'import JSON.'}
+};
+$('#fyUser').value=lget(KEY+'.fy','');
+$('#mAdd').onclick=()=>{
+  const name=$('#mName').value.trim();if(!name)return;
+  db.fleet.push({id:uid(),model:name,custom:'',maker:$('#mMaker').value.trim(),role:'',cargo:num($('#mCargo').value),
+    crew:num($('#mCrew').value),value:num($('#mValue').value),insurance:$('#mIns').value,status:'',slug:'',price:0,pledge:'',source:'manuel'});
+  save();renderFleet();enrichFleet(true);
+  ['#mName','#mMaker','#mCargo','#mCrew','#mValue'].forEach(s=>$(s).value='');
+};
+$('#fleetClear').onclick=()=>{if(confirm('Vider toute la flotte ?')){db.fleet=[];save();renderFleet()}};
+async function enrichFleet(quiet){
+  if(!db.fleet.length)return;
+  const msg=$('#fleetMsg');
+  try{
+    if(!quiet)msg.textContent='Enrichissement…';
+    const models=await ensureModels();
+    let ok=0;const miss=[];
+    db.fleet.forEach(s=>{
+      const m=findModel(models,s);
+      if(!m){miss.push(s.model);return}
+      ok++;
+      s.slug=m.slug;s.price=m.price;s.status=m.status;
+      if(!s.maker)s.maker=m.maker;if(!s.role)s.role=m.role;
+      if(!s.cargo)s.cargo=m.cargo;if(!s.crew)s.crew=m.crew;if(!s.value)s.value=m.pledge;
+    });
+    save();renderFleet();
+    msg.textContent=`✔ ${ok}/${db.fleet.length} vaisseaux enrichis (FleetYards)`+(miss.length?` · non trouvés : ${[...new Set(miss)].join(', ')}`:'');
+  }catch(e){if(!quiet)msg.textContent='✘ Catalogue FleetYards indisponible (réseau ?).'}
+}
+$('#fleetEnrich').onclick=()=>enrichFleet(false);
+
+/* image de vaisseau indisponible -> sigle du constructeur */
+document.addEventListener('error',e=>{
+  const i=e.target;if(!i||i.tagName!=='IMG'||!i.closest('.ship-img'))return;
+  const sp=document.createElement('span');sp.className='noimg';sp.textContent=i.dataset.fallback||'?';i.replaceWith(sp);
+},true);
+let fleetView=lget(KEY+'.fview','grid'),fleetSort={k:'model',d:1};
+$('#viewGrid').onclick=()=>{fleetView='grid';lset(KEY+'.fview',fleetView);renderFleet()};
+$('#viewTable').onclick=()=>{fleetView='table';lset(KEY+'.fview',fleetView);renderFleet()};
+$('#fleetSearch').oninput=renderFleet;$('#fleetRole').onchange=renderFleet;
+$('#fleetSortSel').onchange=e=>{const k=e.target.value;fleetSort={k,d:k==='model'||k==='maker'?1:-1};renderFleet()};
+const insTag=s=>s.insurance?`<span class="tag ${s.insurance==='LTI'?'ok':''}">${esc(s.insurance)}</span>`:'';
+function renderFleet(){
+  const f=db.fleet;
+  const fold=$('#importFold');if(fold&&!fold.dataset.init){fold.open=f.length===0;fold.dataset.init='1'}
+  const roles=[...new Set(f.map(s=>s.role).filter(Boolean))].sort();
+  const cur=$('#fleetRole').value;
+  $('#fleetRole').innerHTML='<option value="">Tous les rôles</option>'+roles.map(r=>`<option${r===cur?' selected':''}>${esc(r)}</option>`).join('');
+  const q=$('#fleetSearch').value.toLowerCase(),role=$('#fleetRole').value;
+  const rows=f.filter(s=>(!role||s.role===role)&&(!q||(s.model+s.custom+s.maker+s.role).toLowerCase().includes(q)));
+  const k=fleetSort.k;
+  rows.sort((a,b)=>(typeof a[k]==='number'||typeof b[k]==='number'?(a[k]||0)-(b[k]||0):String(a[k]).localeCompare(b[k]))*fleetSort.d);
+  const sum=(a,k)=>a.reduce((t,s)=>t+(s[k]||0),0);
+  const stock=db.ccus.filter(c=>c.status==='stock').length;
+  $('#fleetKpis').innerHTML=[['Vaisseaux',f.length],['Cargo total (SCU)',fmt(sum(f,'cargo'))],['Valeur pledge ($)',fmt(sum(f,'value'))],
+    ['LTI',f.filter(s=>s.insurance==='LTI').length],['CCU en stock',stock]].map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  $('#viewGrid').classList.toggle('on',fleetView==='grid');$('#viewTable').classList.toggle('on',fleetView==='table');
+  $('#fleetGrid').style.display=fleetView==='grid'?'':'none';
+  $('#fleetTable').parentElement.style.display=fleetView==='table'?'':'none';
+  if(fleetView==='grid'){
+    $('#fleetGrid').innerHTML=rows.map(s=>{
+      const m=modelOf(s),img=safeUrl(m&&m.img);
+      return`<article class="ship"><div class="ship-img">${img?`<img loading="lazy" referrerpolicy="no-referrer" alt="" data-fallback="${esc((s.maker||s.model).slice(0,3).toUpperCase())}" src="${esc(img)}">`:`<span class="noimg">${esc((s.maker||s.model).slice(0,3).toUpperCase())}</span>`}
+        ${s.insurance?`<span class="tag ${s.insurance==='LTI'?'ok':''}">${esc(s.insurance)}</span>`:''}</div>
+        <div class="ship-body"><b>${esc(s.model)}</b>${s.custom?`<span class="small">« ${esc(s.custom)} »</span>`:''}
+          <span class="small">${esc(s.maker)}${s.role?' · '+esc(s.role):''}</span>
+          <div class="ship-meta"><span>CARGO <em>${s.cargo||'–'}</em></span><span>ÉQUIP. <em>${s.crew||'–'}</em></span>${s.value?`<span>PLEDGE <em>$${fmt(s.value)}</em></span>`:''}</div>
+          <div class="ship-foot"><span class="small">${s.price?fmt(s.price)+' aUEC':(s.status&&s.status!=='flight-ready'?esc(s.status):'')}</span>
+            <span class="row">${s.slug?`<a class="btn sm" target="_blank" rel="noopener noreferrer" href="https://fleetyards.net/ships/${encodeURIComponent(s.slug)}">↗</a>`:''}<button class="btn sm danger" data-del="${s.id}">✕</button></span></div>
+        </div></article>`}).join('')||'<div class="empty">Aucun vaisseau. Importe ta flotte ou ajoute-en un.</div>';
+  }else{
+    const th=(k,l)=>`<th data-k="${k}">${l}${fleetSort.k===k?(fleetSort.d>0?' ▲':' ▼'):''}</th>`;
+    $('#fleetTable').innerHTML=rows.length?
+      `<tr>${th('model','Vaisseau')}${th('maker','Constructeur')}${th('role','Rôle')}${th('cargo','Cargo')}${th('crew','Équipage')}${th('insurance','Assurance')}${th('value','Valeur $')}${th('price','Prix aUEC')}<th></th></tr>`+
+      rows.map(s=>`<tr><td><b>${esc(s.model)}</b>${s.custom?`<div class="small">« ${esc(s.custom)} »</div>`:''}</td>
+        <td>${esc(s.maker)}</td><td>${esc(s.role)}</td><td>${s.cargo||'–'}</td><td>${s.crew||'–'}</td><td>${insTag(s)||'–'}</td>
+        <td>${s.value?fmt(s.value):'–'}</td><td>${s.price?fmt(s.price):'–'}</td>
+        <td class="row"><button class="btn sm danger" data-del="${s.id}">✕</button></td></tr>`).join(''):'<tr><td class="empty">Aucun vaisseau.</td></tr>';
+    $$('#fleetTable th[data-k]').forEach(h=>h.onclick=()=>{fleetSort={k:h.dataset.k,d:fleetSort.k===h.dataset.k?-fleetSort.d:1};renderFleet()});
+  }
+  $$('#page-fleet [data-del]').forEach(b=>b.onclick=()=>{db.fleet=db.fleet.filter(s=>s.id!==b.dataset.del);save();renderFleet()});
+  renderShipSelects();
+}
+function renderShipSelects(){
+  const names=[...new Set(db.fleet.map(s=>s.custom?`${s.model} (${s.custom})`:s.model))].sort();
+  const cur=$('#sShip').value;
+  $('#sShip').innerHTML='<option value="">Vaisseau…</option>'+names.map(n=>`<option${n===cur?' selected':''}>${esc(n)}</option>`).join('');
+  const cp=$('#pShip').value;
+  $('#pShip').innerHTML='<option value="">Mon vaisseau…</option>'+db.fleet.filter(s=>s.cargo>0).map(s=>`<option value="${s.cargo}"${String(s.cargo)===cp?' selected':''}>${esc(s.model)} (${s.cargo} SCU)</option>`).join('');
+}
+
+/* =====================================================
+   CCU
+   ===================================================== */
+const CCU_TYPES={std:'Standard',wb:'Warbond',cr:'Crédit store'};
+const pledgeOf=name=>{const m=name&&MODELS.length?findModel(MODELS,{model:name,maker:''}):null;return m?m.pledge:0};
+$('#cAdd').onclick=()=>{
+  const from=$('#cFrom').value.trim(),to=$('#cTo').value.trim();if(!from||!to)return;
+  db.ccus.unshift({id:uid(),from,to,paid:num($('#cPaid').value),type:$('#cType').value,date:$('#cDate').value,note:$('#cNote').value.trim(),status:'stock'});
+  save();['#cFrom','#cTo','#cPaid','#cDate','#cNote'].forEach(s=>$(s).value='');renderCcu();
+};
+$('#ccuHide').onchange=renderCcu;
+$('#sFrom').oninput=$('#sTo').oninput=renderSim;
+function renderCcu(){
+  const all=db.ccus,stock=all.filter(c=>c.status==='stock');
+  const paid=all.reduce((t,c)=>t+c.paid,0);
+  const saving=all.reduce((t,c)=>{const d=pledgeOf(c.to)-pledgeOf(c.from);return d>0?t+d-c.paid:t},0);
+  $('#ccuKpis').innerHTML=[['CCU en stock',stock.length],['CCU appliqués',all.length-stock.length],['Investi ($)',fmt(paid)],
+    ['Valeur stockée ($)',fmt(stock.reduce((t,c)=>t+Math.max(0,pledgeOf(c.to)-pledgeOf(c.from)),0))],['Économie vs catalogue ($)',fmt(saving)]]
+    .map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  const rows=all.filter(c=>!($('#ccuHide').checked&&c.status==='applied'));
+  $('#ccuList').innerHTML=rows.map(c=>{
+    const d=pledgeOf(c.to)-pledgeOf(c.from),known=pledgeOf(c.from)&&pledgeOf(c.to);
+    return`<div class="ccu ${c.status==='applied'?'applied':''}"><b>${esc(c.from)}</b><span class="arrow">➜</span><b>${esc(c.to)}</b>
+      <div class="meta"><span class="tag acc">${CCU_TYPES[c.type]||''}</span><span>payé <b style="color:var(--text)">$${fmt(c.paid)}</b></span>
+        ${known&&d>0?`<span>catalogue +$${fmt(d)}</span>${d-c.paid>0?`<span class="tag ok">−$${fmt(d-c.paid)}</span>`:''}`:''}
+        ${c.date?`<span>${esc(c.date)}</span>`:''}${c.note?`<span>${esc(c.note)}</span>`:''}
+        <span class="sp"></span>
+        <button class="btn sm" data-cs="${c.id}">${c.status==='stock'?'Marquer appliqué':'Remettre en stock'}</button>
+        <button class="btn sm danger" data-cd="${c.id}">✕</button></div></div>`}).join('')||'<div class="empty">Aucun CCU enregistré.</div>';
+  $$('[data-cs]').forEach(b=>b.onclick=()=>{const c=db.ccus.find(x=>x.id===b.dataset.cs);c.status=c.status==='stock'?'applied':'stock';save();renderCcu()});
+  $$('[data-cd]').forEach(b=>b.onclick=()=>{db.ccus=db.ccus.filter(x=>x.id!==b.dataset.cd);save();renderCcu()});
+  renderSim();
+}
+/* chemin le plus court dans le graphe des CCU stockés (BFS) */
+function ccuPath(from,to){
+  const f=nk(from),t=nk(to);if(!f||!t)return null;
+  const edges=db.ccus.filter(c=>c.status==='stock'),prev={[f]:null},q=[f];
+  while(q.length){
+    const n=q.shift();if(n===t)break;
+    edges.filter(c=>nk(c.from)===n).forEach(c=>{const k=nk(c.to);if(!(k in prev)){prev[k]={n,c};q.push(k)}});
+  }
+  if(!(t in prev))return null;
+  const path=[];for(let k=t;prev[k];k=prev[k].n)path.unshift(prev[k].c);
+  return path;
+}
+function renderSim(){
+  const from=$('#sFrom').value.trim(),to=$('#sTo').value.trim(),out=$('#sOut');
+  if(!from||!to){out.innerHTML='<span class="small">Choisis deux vaisseaux.</span>';return}
+  const pf=pledgeOf(from),pt=pledgeOf(to);
+  let h='';
+  if(pf&&pt){
+    const d=pt-pf;
+    h+=d>0?`<div>Écart de pledge catalogue : <span class="chain">+$${fmt(d)}</span> <span class="small">($${fmt(pf)} ➜ $${fmt(pt)})</span></div>`:
+      `<div class="small">${d===0?'Même valeur de pledge.':'Le vaisseau visé est moins cher : un CCU ne permet pas de descendre.'}</div>`;
+  }else h+='<div class="small">Prix catalogue introuvable pour l\'un des deux vaisseaux (catalogue non chargé ou nom inconnu).</div>';
+  const p=ccuPath(from,to);
+  h+=p?`<div style="margin-top:8px">✔ Chemin avec tes CCU stockés : <span class="chain">${[p[0].from,...p.map(c=>c.to)].map(esc).join(' ➜ ')}</span><br><span class="small">${p.length} CCU · coût déjà payé $${fmt(p.reduce((t,c)=>t+c.paid,0))}</span></div>`:
+    '<div style="margin-top:8px" class="small">✘ Aucun chemin possible avec tes CCU stockés.</div>';
+  out.innerHTML=h;
+}
+
+/* =====================================================
+   INDUSTRIE : sessions (minage / salvage)
+   ===================================================== */
+const curType=()=>cur.page==='industry'&&cur.sub==='salvage'?'Salvage':'Minage';
+const MATS_MINING=['Quantanium','Bexalite','Taranite','Laranite','Agricium','Hephaestanite','Titanium','Borase','Gold','Copper','Beryl','Tungsten','Corundum','Quartz','Aluminum','Iron','Diamond','Savrilium','Stileron','Riccite','Hadanite','Aphorite','Dolivine'];
+const MATS_SALVAGE=['RMC (Recycled Material Composite)','Construction Materials'];
+const PLACES=['ARC-L1 Wide Forest Station','CRU-L1 Ambitious Dream','HUR-L1 Green Glade','MIC-L1 Shallow Frontier','Terra Gateway','Pyro Gateway','Ruin Station (Pyro)','Checkmate (Pyro)','Orbituary (Pyro)','Autre…'];
+const METHODS=['Dinyx Solventation (lent, rendement max)','Cormack (équilibré)','Ferron Exchange','Pyrometric Chromalysis','Thermonatic Deposition','Electrostarch Gasification','Kazen Winnowing','XCR Reaction (rapide, rendement bas)'];
+$('#rPlace').innerHTML=PLACES.map(p=>`<option>${p}</option>`).join('');
+$('#rMethod').innerHTML=METHODS.map(p=>`<option>${p}</option>`).join('');
+$('#mats').innerHTML=MATS_MINING.map(p=>`<option>${p}</option>`).join('');
+
+const elapsed=a=>a?(a.acc+(a.running?Date.now()-a.since:0)):0;
+function sessStart(){
+  if(!db.active)db.active={type:curType(),place:$('#sPlace').value.trim(),ship:$('#sShip').value,start:Date.now(),acc:0,since:Date.now(),running:true,log:[]};
+  else if(!db.active.running){db.active.since=Date.now();db.active.running=true}
+  save();renderSession();
+}
+function sessPause(){const a=db.active;if(!a||!a.running)return;a.acc+=Date.now()-a.since;a.running=false;save();renderSession()}
+function sessStop(){
+  const a=db.active;if(!a)return;
+  const val=a.log.reduce((t,l)=>t+l.val,0);
+  const rec={id:uid(),type:a.type,place:a.place,ship:a.ship,date:a.start,ms:elapsed(a),scu:a.log.reduce((t,l)=>t+l.scu,0),val,log:a.log};
+  /* équipage : on garde la composition ; la répartition se calcule dès que la vente est saisie (voir splitOf) */
+  if(db.crew.length>=2)rec.crew={members:db.crew.map(c=>({name:c.name,parts:c.parts})),fees:(db.crewCfg||{}).fees||0,shipPct:(db.crewCfg||{}).shipPct||0};
+  db.sessions.unshift(rec);
+  if(db.autoBalance&&val>0)db.balance=(db.balance||0)+val;
+  db.active=null;save();renderAll();
+}
+$('#sStart').onclick=sessStart;$('#sPause').onclick=sessPause;$('#sStop').onclick=sessStop;
+$('#lAdd').onclick=()=>{
+  const a=db.active;if(!a)return;
+  const mat=$('#lMat').value.trim();if(!mat)return;
+  a.log.push({mat,scu:num($('#lScu').value),val:num($('#lVal').value)});
+  ['#lMat','#lScu','#lVal'].forEach(s=>$(s).value='');save();renderSession();
+};
+function renderSession(){
+  const a=db.active,t=curType(),mine=!a||a.type===t,verb=t==='Salvage'?'salvage':'minage';
+  $('#sessTitle').textContent='Session de '+verb;
+  $('#histTitle').textContent='Historique · '+t;
+  $('#sPlace').placeholder=t==='Salvage'?'Épave / lieu (ex. Yela, Pyro…)':'Lieu (ex. Aaron Halo, Pyro…)';
+  $('#logMats').innerHTML=(t==='Salvage'?MATS_SALVAGE:MATS_MINING).map(m=>`<option>${m}</option>`).join('');
+  $('#sStart').disabled=!!(a&&(a.running||!mine));
+  $('#sStart').textContent=a&&mine&&!a.running?'▶ Reprendre':'▶ Démarrer';
+  $('#sPause').disabled=!(a&&a.running&&mine);$('#sStop').disabled=!a||!mine;$('#lAdd').disabled=!a||!mine;
+  ['#sPlace','#sShip'].forEach(s=>$(s).disabled=!!a);
+  if(a){$('#sPlace').value=a.place;renderShipSelects();$('#sShip').value=a.ship}
+  $('#sessNotice').innerHTML=a&&!mine?`⚠ Une session <b>${esc(a.type)}</b> est en cours. <a href="#/industry/${a.type==='Salvage'?'salvage':'mining'}">Aller à son onglet →</a>`:
+    a?`En cours : <span class="tag acc">${esc(a.type)}</span> ${a.running?'':'<span class="tag warn">pause</span>'}`:'';
+  $('#logList').innerHTML=a&&mine&&a.log.length?a.log.map(l=>`${esc(l.mat)} · ${l.scu} SCU · ${fmt(l.val)} aUEC`).join('<br>'):(a&&mine?'Aucune récolte saisie.':'');
+}
+/* répartition d'équipage d'une session : calculée sur la vente réelle, une fois saisie */
+function splitOf(x){
+  if(x.split)return x.split;                        /* anciennes sessions */
+  const c=x.crew;if(!c||!(x.val>0))return null;
+  const net=Math.max(0,x.val-(c.fees||0)),ship=net*(c.shipPct||0)/100,pool=net-ship,sum=c.members.reduce((t,m)=>t+m.parts,0);
+  return{ship:Math.round(ship),pay:c.members.map(m=>({name:m.name,amount:Math.round(sum?pool*m.parts/sum:0)}))};
+}
+function renderIndKpis(){
+  const t=curType(),s=db.sessions.filter(x=>x.type===t),ms=s.reduce((a,x)=>a+x.ms,0),scu=s.reduce((a,x)=>a+x.scu,0),h=ms/3600000;
+  /* les aUEC ne comptent que pour les sessions dont la vente a été saisie (la valeur n'existe qu'après raffinage et revente) */
+  const sv=s.filter(x=>x.val>0),vms=sv.reduce((a,x)=>a+x.ms,0),vval=sv.reduce((a,x)=>a+x.val,0);
+  const k=[['Sessions',s.length],['Temps total',h.toFixed(1)+' h'],['SCU récoltés',fmt(scu)],['SCU / heure',h>.01?h1(scu/h):'–']];
+  if(sv.length)k.push(['aUEC vendus',fmt(vval)],['aUEC / h (ventes saisies)',vms>.01*36e5?fmt(vval/(vms/36e5)):'–']);
+  $('#indKpis').innerHTML=k.map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+}
+function renderSessions(){
+  const t=curType(),s=db.sessions.filter(x=>x.type===t);
+  $('#sessTable').innerHTML=s.length?
+    '<tr class="hd"><th>Date</th><th>Lieu</th><th>Vaisseau</th><th>Durée</th><th>SCU</th><th>SCU/h</th><th>Vente (aUEC)</th><th>aUEC/h</th><th>Détail</th><th></th></tr>'+
+    s.map(x=>{const h=x.ms/3600000,sp=splitOf(x),ords=db.refining.filter(r=>r.sid===x.id);return`<tr><td class="t px">${new Date(x.date).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</td>
+      <td data-l="Lieu">${esc(x.place)||'–'}</td><td data-l="Vaisseau">${esc(x.ship)||'–'}</td><td data-l="Durée">${dur(x.ms)}</td><td data-l="SCU">${h1(x.scu)}</td><td data-l="SCU / h">${h>0.005?h1(x.scu/h):'–'}</td>
+      <td data-l="Vente (aUEC)">${x.val>0?`${fmt(x.val)} <button class="btn sm" data-sval="${x.id}" title="Modifier le montant">✎</button>`:`<button class="btn sm" data-sval="${x.id}" title="Saisir le montant réellement obtenu après raffinage et revente">Saisir la vente</button>`}</td>
+      <td data-l="aUEC / h">${x.val>0&&h>0.005?fmt(x.val/h):'–'}</td>
+      <td class="small f">${x.log.map(l=>`${esc(l.mat)} ${l.scu}`).join(', ')}${sp?`<br>Partage : ${sp.pay.map(m=>`${esc(m.name)} ${fmt(m.amount)}`).join(' · ')}${sp.ship?` · vaisseau ${fmt(sp.ship)}`:''}`:(x.crew?'<br>Partage : à calculer dès que la vente est saisie':'')}${ords.length?`<br>Raffinage : ${ords.map(r=>`${esc(r.mat)} ${h1(r.scu)} SCU ${r.collected?'(récupéré)':'(en cours)'}${r.sale>0?` · vendu ${fmt(r.sale)}`:''}`).join(' · ')}`:''}</td>
+      <td class="act x"><button class="btn sm danger" data-sdel="${x.id}">✕</button></td></tr>`}).join(''):'<tr><td class="empty">Aucune session de ce type.</td></tr>';
+  $$('[data-sdel]').forEach(b=>b.onclick=()=>{db.sessions=db.sessions.filter(x=>x.id!==b.dataset.sdel);save();renderAll()});
+  $$('[data-sval]').forEach(b=>b.onclick=()=>{
+    const x=db.sessions.find(z=>z.id===b.dataset.sval);if(!x)return;
+    const v=prompt('Montant réellement obtenu à la vente pour cette session (aUEC) ?\n0 ou vide = effacer.',x.val||'');
+    if(v===null)return;
+    const nv=Math.max(0,num(v));
+    if(db.autoBalance)db.balance=Math.max(0,(db.balance||0)+nv-(x.val||0));   /* le solde suit les ventes saisies */
+    x.val=nv;save();renderAll();
+  });
+  const last=s.slice(0,20).reverse(),max=Math.max(1,...last.map(x=>x.scu));
+  $('#sessBars').innerHTML=last.map(x=>`<div style="height:${Math.max(2,x.scu/max*100)}%" title="${h1(x.scu)} SCU"></div>`).join('')||'<span class="small" style="align-self:center;padding:0 8px">Pas encore de données.</span>';
+  $('#sessBarsLegend').textContent=last.length?`${last.length} dernières sessions (max ${fmt(max)} SCU)`:'';
+  /* prix de référence rapides */
+  const cats=t==='Salvage'?['salvage']:['refined'];
+  const items=(UEX?UEX.items:[]).filter(i=>cats.includes(i.cat)).slice(0,5);
+  $('#indRef').innerHTML=items.length?items.map(i=>`${esc(i.name)} · <b style="color:var(--text)">${fmt(i.best.price)}</b> aUEC/SCU · ${esc(i.best.terminal)}`).join('<br>'):'Prix indisponibles (onglet Rentabilité pour actualiser).';
+}
+
+/* --- raffinage --- */
+/* lien ordre de raffinage <-> session d'origine */
+const sessLabel=x=>`${new Date(x.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})} · ${x.type} · ${x.place||'lieu ?'} · ${h1(x.scu)} SCU`;
+function renderRefSessSelect(){
+  const sel=$('#rSess'),cur=sel.value,linked=new Set(db.refining.map(r=>r.sid).filter(Boolean));
+  sel.innerHTML='<option value="">Session d\'origine (facultatif) : relie l\'ordre à une session</option>'+
+    db.sessions.slice(0,30).map(x=>`<option value="${x.id}"${x.id===cur?' selected':''}>${esc(sessLabel(x))}${linked.has(x.id)?' · déjà liée à un ordre':''}</option>`).join('');
+}
+$('#rSess').onchange=()=>{
+  const x=db.sessions.find(z=>z.id===$('#rSess').value);if(!x)return;
+  if(!$('#rMat').value&&x.log.length)$('#rMat').value=x.log[0].mat;     /* préremplit matériau et SCU depuis la session */
+  if(!$('#rScu').value&&x.scu)$('#rScu').value=x.scu;
+};
+/* vente d'un ordre : s'ajoute à la session liée (et au solde si le crédit automatique est actif) */
+function orderSale(r){
+  if(!r)return;
+  const v=prompt(`Montant obtenu à la vente de cet ordre (${r.mat}${r.scu?', '+h1(r.scu)+' SCU':''}) en aUEC ?${r.sid?'\nIl sera ajouté à la session liée.':''}\n0 ou vide = effacer.`,r.sale||'');
+  if(v===null)return;
+  const nv=Math.max(0,num(v)),delta=nv-(r.sale||0);
+  r.sale=nv;
+  const s=r.sid&&db.sessions.find(z=>z.id===r.sid);
+  if(s)s.val=Math.max(0,(s.val||0)+delta);
+  if(db.autoBalance)db.balance=Math.max(0,(db.balance||0)+delta);
+  save();renderAll();
+}
+$('#rAdd').onclick=()=>{
+  const mat=$('#rMat').value.trim();if(!mat)return;
+  const ms=((+$('#rH').value||0)*60+(+$('#rM').value||0))*60000;
+  db.refining.unshift({id:uid(),place:$('#rPlace').value,mat,method:$('#rMethod').value.split(' (')[0],scu:num($('#rScu').value),sid:$('#rSess').value||'',
+    cost:num($('#rCost').value),val:num($('#rVal').value),started:Date.now(),ready:Date.now()+ms,collected:false});
+  $('#rSess').value='';
+  save();renderRefining();ntfySchedule(db.refining[0]);['#rMat','#rScu','#rCost','#rVal','#rH','#rM'].forEach(s=>$(s).value='');
+};
+$('#rHideDone').onchange=renderRefining;
+function renderRefining(){
+  renderRefSessSelect();
+  const rows=db.refining.filter(r=>!($('#rHideDone').checked&&r.collected));
+  $('#refTable').innerHTML=rows.length?
+    '<tr class="hd"><th>Lieu</th><th>Matériau</th><th>Méthode</th><th>SCU</th><th>Coût</th><th>Valeur est.</th><th>Statut</th><th>Vente</th><th></th></tr>'+
+    rows.map(r=>{const s=r.sid&&db.sessions.find(z=>z.id===r.sid);return`<tr><td data-l="Lieu" class="f">${esc(r.place)}${s?`<div class="small">↳ session du ${new Date(s.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})} · ${esc(s.place||s.type)}</div>`:''}</td><td class="t"><b>${esc(r.mat)}</b></td><td data-l="Méthode">${esc(r.method)}</td><td data-l="SCU">${r.scu||'–'}</td>
+      <td data-l="Coût">${fmt(r.cost)}</td><td data-l="Valeur est." class="f">${fmt(r.val)}</td>
+      <td data-l="Statut">${r.collected?'<span class="tag">Récupéré</span>':`<span data-ready="${r.ready}" class="tag warn">…</span>`}</td>
+      <td data-l="Vente (aUEC)">${!r.collected?'–':r.sale>0?`${fmt(r.sale)} <button class="btn sm" data-osale="${r.id}" title="Modifier le montant">✎</button>`:`<button class="btn sm" data-osale="${r.id}">Saisir la vente</button>`}</td>
+      <td class="act">${r.collected?'':`<a class="btn sm" title="Ajouter à Google Agenda (alerte même onglet fermé)" target="_blank" rel="noopener noreferrer" href="${esc(gcalUrl(r))}">📅</a><button class="btn sm" data-col="${r.id}">Récupéré</button>`}<button class="btn sm danger" data-rdel="${r.id}">✕</button></td></tr>`}).join('')
+    :'<tr><td class="empty">Aucun ordre de raffinage.</td></tr>';
+  $$('[data-osale]').forEach(b=>b.onclick=()=>orderSale(db.refining.find(r=>r.id===b.dataset.osale)));
+  $$('[data-col]').forEach(b=>b.onclick=()=>{
+    const r=db.refining.find(r=>r.id===b.dataset.col);r.collected=true;ntfyCancel(r);save();renderAll();
+    if(confirm(`Ordre récupéré : ${r.mat}${r.scu?', '+h1(r.scu)+' SCU':''}.\nSaisir maintenant le montant de la vente${r.sid?' (il sera ajouté à la session liée)':''} ?\n(Annuler = plus tard, avec le bouton « Saisir la vente ».)`))orderSale(r);
+  });
+  $$('[data-rdel]').forEach(b=>b.onclick=()=>{const r=db.refining.find(r=>r.id===b.dataset.rdel);if(r)ntfyCancel(r);db.refining=db.refining.filter(r=>r.id!==b.dataset.rdel);save();renderAll()});
+}
+
+/* =====================================================
+   MARCHÉ (UEX Corp) : rentabilité
+   ===================================================== */
+const UEX_KEY=KEY+'.uex';
+const UEX_CATS={refined:'Minerais raffinés',raw:'Minerais bruts',hand:'Minage à la main',salvage:'Salvage (RMC, matériaux)',all:'Tout'};
+let UEX=lget(UEX_KEY,null);
+async function loadUex(force){
+  if(!force&&UEX&&UEX.v===2&&Date.now()-UEX.t<36e5)return UEX;
+  $('#pStatus').textContent='Chargement des prix UEX…';
+  try{
+    const [rc,rp]=await Promise.all([fetchRetry('https://api.uexcorp.uk/2.0/commodities'),fetchRetry('https://api.uexcorp.uk/2.0/commodities_prices_all')]);
+    if(!rc.ok||!rp.ok)throw new Error('http');
+    const com=(await rc.json()).data,prices=(await rp.json()).data;
+    const byId={};prices.forEach(p=>{if(p.price_sell>0)(byId[p.id_commodity]=byId[p.id_commodity]||[]).push(p)});
+    const items=[];
+    com.forEach(c=>{
+      const rows=(byId[c.id]||[]).sort((a,b)=>b.price_sell-a.price_sell);if(!rows.length)return;
+      const suffix=/\((ore|raw)\)\s*$/i.test(c.name);
+      let cat=null;
+      if(/^(recycled material composite|construction materials)$/i.test(c.name))cat='salvage';
+      else if(c.is_refined&&c.is_extractable)cat='refined';
+      else if(suffix&&c.is_extractable)cat='raw';
+      else if(c.is_raw&&!suffix&&c.is_extractable&&c.is_mineral)cat='hand';
+      if(!cat)return;
+      const top=rows.slice(0,3).map(p=>({tid:p.id_terminal,terminal:p.terminal_name,price:p.price_sell,demand:p.scu_sell_avg,t:p.date_modified*1000}));
+      items.push({id:c.id,name:c.name,kind:c.kind,cat,best:top[0],top});
+    });
+    items.sort((a,b)=>b.best.price-a.best.price);
+    UEX={v:2,t:Date.now(),items};lset(UEX_KEY,UEX);recordSnapshot();
+  }catch(e){
+    $('#pStatus').textContent=UEX?'✘ UEX injoignable, affichage de la dernière version en cache.':'✘ Prix UEX indisponibles (réseau ?).';
+    if(!UEX)return null;
+  }
+  return UEX;
+}
+$('#pCat').innerHTML=Object.entries(UEX_CATS).map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
+$('#pCat').onchange=renderProfit;$('#pCap').oninput=renderProfit;
+$('#pShip').onchange=e=>{$('#pCap').value=e.target.value;renderProfit()};
+$('#pRefresh').onclick=async()=>{await loadUex(true);renderProfit();renderAllLight()};
+const ageTag=t=>{const d=(Date.now()-t)/864e5;return`<span class="tag ${d>14?'bad':d>4?'warn':'ok'}" title="Dernier relevé communautaire">${d<1?'<24 h':Math.round(d)+' j'}</span>`};
+function renderProfit(){
+  if(!UEX){$('#pTable').innerHTML='<tr><td class="empty">Aucun prix chargé.</td></tr>';return}
+  const cat=$('#pCat').value,cap=num($('#pCap').value);
+  const rows=UEX.items.filter(i=>cat==='all'||i.cat===cat);
+  $('#pStatus').textContent=`Source : UEX Corp · prix en aUEC par SCU · mis à jour ${ago(UEX.t)}`+(cap?` · cargaison de ${cap} SCU`:' · saisis un cargo (ou choisis un vaisseau) pour valoriser une cargaison');
+  const trend=i=>{
+    const sr=phSeries(i.id).filter(p=>Date.now()-p.t<7*864e5);
+    if(sr.length<2)return'<span class="small">en cours…</span>';
+    const d=(sr[sr.length-1].v-sr[0].v)/sr[0].v*100;
+    return sparkline(sr.map(p=>p.v))+` <span class="tag ${d>0.5?'ok':d<-0.5?'warn':''}">${d>0.5?'▲':d<-0.5?'▼':'='} ${Math.abs(d).toFixed(1)}%</span>`;
+  };
+  $('#pTable').innerHTML=rows.length?'<tr class="hd"><th>Matériau</th><th>Catégorie</th><th>aUEC / SCU</th><th>Tendance 7 j</th><th>Meilleur terminal</th><th>Demande moy. (SCU)</th><th>Relevé</th>'+(cap?'<th>Cargaison</th>':'')+'<th>Autres terminaux</th></tr>'+
+    rows.map(i=>`<tr class="pick" data-pid="${i.id}" title="Cliquer pour l'historique"><td class="t pt"><b>${esc(i.name)}</b></td><td class="hm"><span class="tag">${UEX_CATS[i.cat]}</span></td><td data-l="aUEC / SCU" class="pr" style="color:var(--accent)">${fmt(i.best.price)}</td>
+      <td data-l="Tendance 7 j">${trend(i)}</td><td class="f nl">${esc(i.best.terminal)}</td><td data-l="Demande (SCU)">${fmt(i.best.demand)}</td><td data-l="Relevé">${ageTag(i.best.t)}</td>${cap?`<td data-l="Cargaison"><b>${fmt(i.best.price*cap)}</b></td>`:''}
+      <td class="small hm">${i.top.slice(1).map(t=>`${esc(t.terminal)} ${fmt(t.price)}`).join('<br>')||'–'}</td></tr>`).join(''):'<tr><td class="empty">Aucune donnée pour cette catégorie.</td></tr>';
+  $$('#pTable tr[data-pid]').forEach(tr=>tr.onclick=()=>{selProfit=+tr.dataset.pid;renderProfitDetail();$('#pDetail').scrollIntoView({behavior:'smooth',block:'nearest'})});
+  renderProfitDetail();
+  const sel=$('#xMat'),curx=sel.value;
+  const order={refined:0,salvage:1,hand:2};
+  sel.innerHTML=UEX.items.filter(i=>i.cat in order).sort((x,y)=>order[x.cat]-order[y.cat]||y.best.price-x.best.price).map(i=>`<option value="${i.id}"${String(i.id)===curx?' selected':''}>${esc(i.name)} – ${fmt(i.best.price)} aUEC/SCU</option>`).join('');
+  renderSimProfit();
+}
+['#xMat','#xScu','#xYield','#xCost','#xMin'].forEach(s=>$(s).oninput=renderSimProfit);
+$('#xMat').onchange=()=>{const it=UEX&&UEX.items.find(i=>String(i.id)===$('#xMat').value);if(it)$('#xYield').value=it.cat==='refined'?50:100;renderSimProfit()};
+function renderSimProfit(){
+  const it=UEX&&UEX.items.find(i=>String(i.id)===$('#xMat').value),scu=num($('#xScu').value),y=num($('#xYield').value)||100,cost=num($('#xCost').value),min=num($('#xMin').value);
+  if(!it||!scu){$('#xOut').innerHTML='<span class="small">Saisis les SCU minés pour estimer le profit.</span>';return}
+  const out=scu*y/100,rev=out*it.best.price,profit=rev-cost,h=min/60;
+  const real=db.sessions.filter(x=>x.ms>18e5),rh=real.reduce((a,x)=>a+x.ms,0)/36e5,rv=real.reduce((a,x)=>a+x.val,0);
+  $('#xOut').innerHTML=`<div class="kpis grid" style="margin:0"><div class="kpi"><div class="v">${fmt(out)}</div><div class="l">SCU vendables</div></div>
+    <div class="kpi"><div class="v">${fmt(rev)}</div><div class="l">Revenu brut aUEC</div></div>
+    <div class="kpi"><div class="v">${fmt(profit)}</div><div class="l">Profit net aUEC</div></div>
+    <div class="kpi"><div class="v">${h>0?fmt(profit/h):'–'}</div><div class="l">aUEC / heure estimé</div></div>
+    <div class="kpi"><div class="v">${rh>0?fmt(rv/rh):'–'}</div><div class="l">Ton aUEC/h réel (sessions)</div></div></div>
+    <p class="small" style="margin-bottom:0">Vendre à : ${esc(it.best.terminal)}</p>`;
+}
+
+/* =====================================================
+   OPPORTUNITÉS + FLUX COMM-LINK
+   ===================================================== */
+const CATS={warbond:'Warbond & offres',quest:'Quêtes à récompenses permanentes',event:'Événements',tip:'Autres bons plans'};
+const SEED=[
+ {cat:'warbond',title:'Vaisseaux en édition Warbond',reward:'Même vaisseau à prix réduit (environ −10 % vs édition standard, à vérifier)',link:'https://robertsspaceindustries.com/en/pledge/ships',note:'Warbond = pledge non convertible en store credit (à confirmer sur la fiche).'},
+ {cat:'warbond',title:'Offres Warbond : packs & « Standalone Ships »',reward:'Packs avec jeu + vaisseau en Warbond',link:'https://robertsspaceindustries.com/en/pledge/packages',note:''},
+ {cat:'quest',title:'Wikelo – contrats d\'échange',reward:'Vaisseaux, armures et objets obtenus in-game contre ressources/objets',link:'https://starcitizen.tools/Wikelo',note:'Contenu évolutif : contrats et coûts changent selon les patchs.'},
+ {cat:'quest',title:'Programme de parrainage (referral)',reward:'Récompenses permanentes à débloquer en parrainant',link:'https://robertsspaceindustries.com/referral-program',note:'Vérifier les paliers actuels.'},
+ {cat:'quest',title:'Réputation & missions de faction',reward:'Accès à armes/armures/vaisseaux et contrats mieux payés',link:'https://starcitizen.tools/Reputation',note:'À détailler : quelle faction te manque ?'},
+ {cat:'event',title:'CitizenCon (annonces roadmap)',reward:'Annonces, promos et cadeaux fréquents pendant l\'événement',link:'https://robertsspaceindustries.com/comm-link',note:'Renseigner la date dès qu\'elle est annoncée.'},
+ {cat:'event',title:'Free Fly (accès gratuit)',reward:'Acheter/tester des vaisseaux et suivre les promos de la période',link:'https://robertsspaceindustries.com/comm-link',note:'Surveiller le Comm-Link pour les dates.'},
+ {cat:'tip',title:'Rotation de vaisseaux à louer (rental)',reward:'Tester un vaisseau avant achat',link:'https://robertsspaceindustries.com/en/pledge/ships',note:''}
+].map(o=>({...o,id:uid(),end:'',status:'todo'}));
+if(!db.opps){db.opps=SEED;persist()}
+
+let oppCat='all';
+function renderOppCats(){
+  const cats={all:'Tout',...CATS};
+  $('#oppCats').innerHTML=Object.entries(cats).map(([k,l])=>`<button class="btn sm ${oppCat===k?'on':''}" data-oc="${k}">${l}</button>`).join('');
+  $$('[data-oc]').forEach(b=>b.onclick=()=>{oppCat=b.dataset.oc;renderOpps()});
+  $('#oCat').innerHTML=Object.entries(CATS).map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
+}
+function renderOpps(){
+  renderOppCats();
+  const now=Date.now();
+  const rows=db.opps.filter(o=>(oppCat==='all'||o.cat===oppCat)&&!($('#oppHideDone').checked&&o.status==='done'));
+  const endT=o=>o.end?new Date(o.end+'T23:59:59').getTime():Infinity;
+  rows.sort((a,b)=>(a.status==='done')-(b.status==='done')||endT(a)-endT(b));
+  $('#oppList').innerHTML=rows.map(o=>{
+    const t=endT(o),days=Math.ceil((t-now)/864e5);
+    const when=!o.end?'<span class="tag ok">Permanent</span>':t<now?'<span class="tag bad">Expiré</span>':`<span class="tag ${days<=3?'bad':days<=14?'warn':'acc'}">${days} j restants</span>`;
+    const link=safeUrl(o.link);
+    return`<div class="opp ${o.status==='done'?'done':''}">
+      <div class="row"><span class="tag">${CATS[o.cat]||o.cat}</span>${when}${o.status==='doing'?'<span class="tag warn">En cours</span>':''}${o.status==='done'?'<span class="tag ok">Fait</span>':''}</div>
+      <b>${esc(o.title)}</b>
+      ${o.reward?`<div>🎁 ${esc(o.reward)}</div>`:''}${o.note?`<div class="small">${esc(o.note)}</div>`:''}
+      <div class="row" style="margin-top:auto">${link?`<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">Source ↗</a>`:''}<span class="sp"></span>
+        <select data-st="${o.id}"><option value="todo">À faire</option><option value="doing"${o.status==='doing'?' selected':''}>En cours</option><option value="done"${o.status==='done'?' selected':''}>Fait</option></select>
+        <button class="btn sm danger" data-odel="${o.id}">✕</button></div></div>`}).join('')||'<div class="empty">Rien dans cette catégorie.</div>';
+  $$('[data-st]').forEach(s=>s.onchange=()=>{db.opps.find(o=>o.id===s.dataset.st).status=s.value;save();renderOpps()});
+  $$('[data-odel]').forEach(b=>b.onclick=()=>{db.opps=db.opps.filter(o=>o.id!==b.dataset.odel);save();renderOpps();renderFeed()});
+}
+$('#oppHideDone').onchange=renderOpps;
+$('#oppNew').onclick=()=>{const f=$('#oppForm');f.style.display=f.style.display==='none'?'flex':'none'};
+$('#oSave').onclick=()=>{
+  const title=$('#oTitle').value.trim();if(!title)return;
+  db.opps.push({id:uid(),cat:$('#oCat').value,title,reward:$('#oReward').value.trim(),end:$('#oEnd').value,link:$('#oLink').value.trim(),note:$('#oNote').value.trim(),status:'todo'});
+  ['#oTitle','#oReward','#oEnd','#oLink','#oNote'].forEach(s=>$(s).value='');save();renderOpps();
+};
+
+const FEED_KEY=KEY+'.feed';
+const FEED_CATS={promo:'Promos & événements',patch:'Patchs',news:'Actus',all:'Tout'};
+const classifyLink=t=>/subscriber promo|deals?\b|\bsale\b|warbond|referral|twitch drops|free fly|festival|pirate week|alien week|defensecon|invictus|\biae\b|citizencon|anniversary|ship showdown|concept sale|bonus/i.test(t)?'promo':
+  /alpha \d|release info|patch|ptu|tech preview/i.test(t)?'patch':'news';
+let feed=lget(FEED_KEY,{t:0,items:[]}),feedCat='promo';
+async function loadFeed(force){
+  if(!force&&feed.items.length&&Date.now()-feed.t<36e5){renderFeed();return}
+  $('#feedStatus').textContent='Chargement du flux…';
+  try{
+    const r=await fetchRetry('https://api.star-citizen.wiki/api/v2/comm-links?page%5Bsize%5D=100');
+    if(!r.ok)throw new Error(r.status);
+    const j=await r.json(),seen=new Set(),items=[];
+    for(const c of j.data){
+      if(seen.has(c.id)||/^[A-Z0-9]+(-[A-Za-z0-9]+)+$/.test(c.title))continue;
+      seen.add(c.id);
+      const txt=((c.translations||{}).en_EN||'').split('\n').slice(1).join(' ').replace(/\s+/g,' ').trim();
+      items.push({id:c.id,title:c.title,url:c.rsi_url,date:c.created_at,cat:classifyLink(c.title),x:txt.slice(0,220)});
+    }
+    items.sort((a,b)=>b.date.localeCompare(a.date));
+    feed={t:Date.now(),items};lset(FEED_KEY,feed);ntfyPromos(items);
+  }catch(e){
+    $('#feedStatus').textContent=feed.items.length?'✘ Réseau indisponible, affichage de la dernière version en cache.':'✘ Flux indisponible (API du Wiki injoignable).';
+    if(!feed.items.length)return;
+  }
+  renderFeed();renderToday();
+}
+function renderFeed(){
+  $('#feedFilters').innerHTML=Object.entries(FEED_CATS).map(([k,l])=>{
+    const n=k==='all'?feed.items.length:feed.items.filter(i=>i.cat===k).length;
+    return`<button class="btn sm ${feedCat===k?'on':''}" data-fc="${k}">${l} (${n})</button>`}).join('');
+  $$('[data-fc]').forEach(b=>b.onclick=()=>{feedCat=b.dataset.fc;renderFeed()});
+  const rows=feed.items.filter(i=>feedCat==='all'||i.cat===feedCat).slice(0,40);
+  const followed=new Set(db.opps.map(o=>o.link));
+  $('#feedList').innerHTML=rows.map(i=>{
+    const age=(Date.now()-new Date(i.date))/864e5,url=safeUrl(i.url);
+    return`<div class="feed-item"><span class="small d">${new Date(i.date).toLocaleDateString('fr-FR')}</span>
+      <a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(i.title)} ${age<14?'<span class="tag ok">Nouveau</span>':''}</a>
+      <button class="btn sm" data-follow="${i.id}" ${followed.has(i.url)?'disabled':''}>${followed.has(i.url)?'✔ Suivi':'+ Suivre'}</button>
+      ${i.x?`<div class="x">${esc(i.x)}…</div>`:''}</div>`}).join('')||'<div class="empty">Rien dans cette catégorie sur la période.</div>';
+  $$('[data-follow]').forEach(b=>b.onclick=()=>{
+    const i=feed.items.find(x=>String(x.id)===b.dataset.follow);if(!i)return;
+    db.opps.push({id:uid(),cat:i.cat==='promo'?'event':'tip',title:i.title,reward:'',end:'',link:i.url,note:'Comm-Link du '+new Date(i.date).toLocaleDateString('fr-FR'),status:'todo'});
+    save();renderOpps();renderFeed();
+  });
+  if(feed.items.length)$('#feedStatus').textContent='Source : Comm-Link RSI via api.star-citizen.wiki · mis à jour '+new Date(feed.t).toLocaleTimeString('fr-FR',{timeStyle:'short'});
+}
+$('#feedRefresh').onclick=()=>loadFeed(true);
+
+/* =====================================================
+   AUJOURD'HUI
+   ===================================================== */
+function renderToday(){
+  const now=Date.now(),a=db.active;
+  const pend=db.refining.filter(r=>!r.collected),ready=pend.filter(r=>r.ready<=now);
+  const ms=db.sessions.reduce((t,x)=>t+x.ms,0),scu=db.sessions.reduce((t,x)=>t+x.scu,0);
+  $('#tKpis').innerHTML=[['Vaisseaux',db.fleet.length],['CCU en stock',db.ccus.filter(c=>c.status==='stock').length],
+    ['Raffinages prêts',`${ready.length}<span style="font-size:13px;color:var(--muted)"> / ${pend.length}</span>`],
+    ['SCU récoltés',fmt(scu)],['SCU / heure',ms>36e3?h1(scu/(ms/36e5)):'–']].map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  $('#tSession').innerHTML=a?`<div class="timer" id="tTimer">${dur(elapsed(a))}</div>
+      <div class="small">${esc(a.type)}${a.place?' · '+esc(a.place):''}${a.ship?' · '+esc(a.ship):''} ${a.running?'':'<span class="tag warn">pause</span>'}</div>
+      <div class="row" style="margin-top:12px"><a class="btn sm primary" href="#/industry/${a.type==='Salvage'?'salvage':'mining'}">Ouvrir la session</a></div>`:
+    `<div class="timer idle">00:00:00</div><div class="small" style="margin-bottom:12px">Aucune session en cours.</div>
+     <div class="row"><a class="btn sm primary" href="#/industry/mining">▶ Minage</a><a class="btn sm primary" href="#/industry/salvage">▶ Salvage</a></div>`;
+  $('#tRefining').innerHTML=pend.length?pend.slice(0,6).map(r=>`<div style="margin-bottom:12px"><div class="row"><b>${esc(r.mat)}</b><span class="small">${r.scu?r.scu+' SCU · ':''}${esc(r.place)}</span><span class="sp"></span>
+      <span data-ready="${r.ready}" class="tag warn">…</span></div><div class="gauge" data-prog="${r.started}-${r.ready}"><i></i></div></div>`).join('')+
+      (pend.length>6?`<div class="small">+ ${pend.length-6} autres</div>`:''):
+    '<div class="small">Aucun raffinage en cours. <a href="#/industry/refining">Lancer un ordre →</a></div>';
+  const promos=feed.items.filter(i=>i.cat==='promo').slice(0,5);
+  $('#tPromos').innerHTML=promos.length?promos.map(i=>`<div class="feed-item" style="grid-template-columns:70px 1fr"><span class="small d">${new Date(i.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})}</span>
+    <a href="${esc(safeUrl(i.url))}" target="_blank" rel="noopener noreferrer">${esc(i.title)}</a></div>`).join('')+'<div style="margin-top:10px"><a href="#/opps">Tout le flux →</a></div>':
+    '<div class="small">Flux en cours de chargement ou indisponible.</div>';
+  const top=(UEX?UEX.items:[]).filter(i=>i.cat==='refined'||i.cat==='salvage').slice(0,5);
+  $('#tMarket').innerHTML=top.length?'<table>'+top.map(i=>`<tr><td><b>${esc(i.name)}</b></td><td style="color:var(--accent)">${fmt(i.best.price)}</td><td class="small">${esc(i.best.terminal)}</td></tr>`).join('')+'</table><div style="margin-top:10px"><a href="#/industry/profit">Détail & simulateur →</a></div>':
+    '<div class="small">Prix non chargés. <a href="#/industry/profit">Ouvrir Rentabilité →</a></div>';
+}
+
+/* =====================================================
+   ALERTES RAFFINAGE + HORLOGE
+   ===================================================== */
+function alertLabel(){
+  const p=('Notification' in window)?Notification.permission:'unsupported';
+  const ic=p==='denied'?'🔕':'🔔',tx=p==='granted'?' Alertes on':p==='denied'?' Alertes bloquées':' Activer les alertes';
+  [$('#alertBtn'),$('#alertBtn2')].forEach(b=>{b.innerHTML=`${ic}<span class="tx">${tx}</span>`});
+}
+const askAlerts=async()=>{if('Notification' in window&&Notification.permission==='default')await Notification.requestPermission();beep();alertLabel()};
+$('#alertBtn').onclick=askAlerts;$('#alertBtn2').onclick=askAlerts;
+let actx;
+function beep(){
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    [660,880].forEach((f,i)=>{const o=actx.createOscillator(),g=actx.createGain();
+      o.frequency.value=f;g.gain.value=.12;o.connect(g);g.connect(actx.destination);
+      o.start(actx.currentTime+i*.18);o.stop(actx.currentTime+i*.18+.15)});
+  }catch(e){}
+}
+function notifyReady(r){
+  const body=`${r.mat}${r.scu?' · '+r.scu+' SCU':''} à ${r.place}`;
+  try{if('Notification' in window&&Notification.permission==='granted')new Notification('⛏ Raffinage prêt',{body})}catch(e){}
+  beep();
+  if(!r.ntfy&&db.ntfy&&db.ntfy.on){r.ntfy='sent';ntfyPost('raff-'+r.id,{title:'Raffinage pret',body,tags:'pick',priority:4,click:appUrl('#/industry/refining')})}
+}
+function gcalUrl(r){
+  const z=t=>new Date(t).toISOString().replace(/[-:]|\.\d{3}/g,'');
+  return'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('⛏ Raffinage prêt : '+r.mat)+
+    '&dates='+z(r.ready)+'/'+z(r.ready+15*60000)+'&details='+encodeURIComponent(`${r.mat} ${r.scu||''} SCU – ${r.place} (${r.method})`);
+}
+let lastSigKey='';
+function checkReady(){
+  const now=Date.now();let changed=false;
+  db.refining.forEach(r=>{if(!r.collected&&!r.notified&&r.ready<=now){r.notified=true;changed=true;notifyReady(r)}});
+  if(changed)save();
+  const ready=db.refining.filter(r=>!r.collected&&r.ready<=now);
+  const b=$('#readyBanner');
+  b.style.display=ready.length?'block':'none';
+  b.innerHTML=ready.length?`✅ <b>${ready.length} raffinage${ready.length>1?'s':''} prêt${ready.length>1?'s':''}</b> : `+
+    ready.map(r=>`${esc(r.mat)} (${esc(r.place)})`).join(' · ')+' — <a href="#/industry/refining">voir</a>':'';
+  document.title=(ready.length?`(${ready.length}) `:'')+'SC//OS – Star Citizen';
+  /* signaux du rail */
+  const sig=(id,txt,cls)=>{const e=$('#sig-'+id);if(e){e.textContent=txt||'';e.className='sig '+(cls||'')}};
+  sig('industry',ready.length||'',ready.length?'':'');
+  if(!ready.length&&db.active&&db.active.running)sig('industry','','dot');
+  const newPromos=feed.items.filter(i=>i.cat==='promo'&&Date.now()-new Date(i.date)<7*864e5).length;
+  sig('opps',newPromos||'');
+  const k=[ready.length,db.refining.length,db.sessions.length,db.active?1:0,newPromos].join();
+  if(k!==lastSigKey){lastSigKey=k;if(changed||cur.page==='today')renderToday();if(changed)renderRefining()}
+}
+function tick(){
+  const now=Date.now();
+  $('#clock').textContent=new Date().toLocaleTimeString('fr-FR');
+  $('#timer').textContent=dur(elapsed(db.active&&db.active.type===curType()?db.active:null));
+  $('#timer').classList.toggle('idle',!(db.active&&db.active.running&&db.active.type===curType()));
+  const tt=$('#tTimer');if(tt)tt.textContent=dur(elapsed(db.active));
+  $$('[data-ready]').forEach(el=>{
+    const left=+el.dataset.ready-now;
+    el.textContent=left<=0?'Prêt !':dur(left);
+    el.className=left<=0?'tag ok':'tag warn';
+  });
+  $$('[data-prog]').forEach(el=>{
+    const [s,e]=el.dataset.prog.split('-').map(Number);
+    const p=e<=s?100:Math.min(100,Math.max(0,(now-s)/(e-s)*100));
+    el.style.setProperty('--p',p+'%');el.classList.toggle('ok',p>=100);
+  });
+  checkReady();
+}
+setInterval(tick,1000);
+
+/* =====================================================
+   SYNCHRONISATION (Gist GitHub secret)
+   ===================================================== */
+const SYNC_KEY=KEY+'.sync',GIST_FILE='sc-dashboard.json';
+let sync=Object.assign({token:'',gistId:'',stamp:0,auto:true,last:0,err:''},lget(SYNC_KEY,{}));
+const saveSync=()=>lset(SYNC_KEY,sync);
+let syncBusy=false,syncTimer;
+function setPill(state,txt){const p=$('#syncPill');p.className=state;p.querySelector('span').textContent=txt}
+function renderSync(){
+  const on=!!sync.token;
+  $('#syncForm').style.display=on?'none':'';$('#syncInfo').style.display=on?'':'none';
+  $('#syAuto').checked=sync.auto;
+  if(!on){setPill('','Sync · off');return}
+  $('#syStatus').innerHTML=`<span class="tag ${sync.err?'bad':'ok'}">${sync.err?'erreur':'connecté'}</span> `+
+    (sync.err?esc(sync.err):`dernière synchro ${sync.last?ago(sync.last):'jamais'}`)+
+    (sync.gistId?` · <a target="_blank" rel="noopener noreferrer" href="https://gist.github.com/${encodeURIComponent(sync.gistId)}">Gist ↗</a>`:' · Gist pas encore créé');
+  if(!syncBusy)setPill(sync.err?'err':'ok',sync.err?'Sync · erreur':'Sync · '+(sync.last?new Date(sync.last).toLocaleTimeString('fr-FR',{timeStyle:'short'}):'ok'));
+}
+const ghFetch=(path,opt={})=>fetch('https://api.github.com'+path,{...opt,headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+sync.token,'Content-Type':'application/json'}});
+const syncPayload=()=>{const {active,...rest}=db;return rest};
+async function ghJson(r){if(!r.ok){const e=new Error(r.status===401?'Token refusé (401)':r.status===403?'Accès refusé / limite d\'appels (403)':'Erreur GitHub '+r.status);throw e}return r.json()}
+async function findGist(){
+  for(let p=1;p<=3;p++){
+    const list=await ghJson(await ghFetch(`/gists?per_page=100&page=${p}`));
+    const g=list.find(x=>x.files&&x.files[GIST_FILE]);if(g)return g.id;
+    if(list.length<100)break;
+  }
+  return '';
+}
+function setRaw(g){const f=g.files&&g.files[GIST_FILE];if(f&&f.raw_url){sync.rawUrl=f.raw_url.replace(/\/raw\/[0-9a-f]{40}\//,'/raw/');saveSync()}}
+async function readRemote(){
+  const g=await ghJson(await ghFetch('/gists/'+sync.gistId));setRaw(g);
+  const f=g.files&&g.files[GIST_FILE];if(!f)throw new Error('Fichier '+GIST_FILE+' absent du Gist');
+  const txt=f.truncated?await (await fetch(f.raw_url)).text():f.content;
+  return JSON.parse(txt);
+}
+async function pushRemote(){
+  const body=JSON.stringify({description:'SC//OS dashboard – données',public:false,files:{[GIST_FILE]:{content:JSON.stringify(syncPayload())}}});
+  const g=await ghJson(sync.gistId?await ghFetch('/gists/'+sync.gistId,{method:'PATCH',body}):await ghFetch('/gists',{method:'POST',body}));
+  sync.gistId=g.id;sync.stamp=db.updatedAt;setRaw(g);
+}
+function applyRemote(remote){
+  backup();
+  db=Object.assign(mkDefaults(),remote,{active:db.active});
+  persist();sync.stamp=remote.updatedAt||0;renderAll();
+}
+async function syncNow(mode){ /* mode : undefined = auto, 'push' | 'pull' = forcé */
+  if(!sync.token||syncBusy)return;
+  syncBusy=true;setPill('busy','Sync · …');
+  try{
+    if(!sync.gistId)sync.gistId=await findGist();
+    if(!sync.gistId){await pushRemote()}
+    else if(mode==='push'){await pushRemote()}
+    else{
+      const remote=await readRemote(),rs=remote.updatedAt||0,ls=db.updatedAt||0;
+      if(mode==='pull'){applyRemote(remote)}
+      else if(rs===ls){sync.stamp=ls}
+      else if(rs>sync.stamp&&ls>sync.stamp){
+        if(confirm('Conflit de synchronisation : cet appareil ET le cloud ont changé depuis la dernière synchro.\n\nOK = garder les données de CET APPAREIL (écrase le cloud)\nAnnuler = garder celles du CLOUD (écrase cet appareil ; une sauvegarde locale est conservée)'))await pushRemote();
+        else applyRemote(remote);
+      }
+      else if(rs>sync.stamp)applyRemote(remote);
+      else if(ls>sync.stamp)await pushRemote();
+    }
+    sync.last=Date.now();sync.err='';
+  }catch(e){sync.err=e.message||'Erreur réseau'}
+  syncBusy=false;saveSync();renderSync();
+}
+function queueSync(){
+  if(!sync.token||!sync.auto)return;
+  clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(),8000);
+}
+$('#syConnect').onclick=async()=>{
+  const t=$('#syToken').value.trim();if(!t)return;
+  sync={...sync,token:t,gistId:'',stamp:0,err:''};saveSync();$('#syToken').value='';renderSync();await syncNow();
+};
+$('#syNow').onclick=()=>syncNow();
+$('#syPush').onclick=()=>{if(confirm('Écraser le cloud avec les données de cet appareil ?'))syncNow('push')};
+$('#syPull').onclick=()=>{if(confirm('Écraser les données de cet appareil avec celles du cloud ?'))syncNow('pull')};
+$('#syOff').onclick=()=>{if(confirm('Déconnecter la synchronisation de ce navigateur ? (le Gist n\'est pas supprimé)')){sync={token:'',gistId:'',stamp:0,auto:true,last:0,err:''};saveSync();renderSync()}};
+$('#syAuto').onchange=e=>{sync.auto=e.target.checked;saveSync()};
+$('#syncPill').onclick=()=>go('system');
+setInterval(()=>{if(sync.token&&sync.auto&&document.visibilityState==='visible')syncNow()},3e5);
+
+/* export / import / sauvegarde */
+$('#exportAll').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'}));
+  a.download='sc-dashboard-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+};
+$('#importAll').onchange=async e=>{
+  try{const d=JSON.parse(await e.target.files[0].text());backup();db=Object.assign(mkDefaults(),d);save();renderAll()}
+  catch(err){alert('Fichier invalide')}
+  e.target.value='';
+};
+$('#restoreBk').onclick=()=>{
+  const b=lget(KEY+'.backup',null);
+  if(!b)return alert('Aucune sauvegarde disponible.');
+  if(confirm('Restaurer la sauvegarde du '+new Date(b.t).toLocaleString('fr-FR')+' ?')){db=Object.assign(mkDefaults(),b.db);save();renderAll()}
+};
+
+/* =====================================================
+   PALETTE DE COMMANDES + RACCOURCIS
+   ===================================================== */
+let palSel=0,palItems=[];
+function commands(){
+  const c=[];
+  PAGES.forEach((p,i)=>{
+    c.push({t:'Aller à : '+ROUTES[p].label,k:String(i+1),run:()=>go(p)});
+    Object.entries(ROUTES[p].subs||{}).forEach(([s,l])=>c.push({t:`Aller à : ${ROUTES[p].label} › ${l}`,run:()=>go(p+'/'+s)}));
+  });
+  const a=db.active;
+  if(!a){c.push({t:'Session : démarrer un minage',run:()=>{go('industry/mining');setTimeout(sessStart,50)}});
+         c.push({t:'Session : démarrer un salvage',run:()=>{go('industry/salvage');setTimeout(sessStart,50)}})}
+  else{c.push({t:a.running?'Session : pause':'Session : reprendre',run:()=>a.running?sessPause():sessStart()});c.push({t:'Session : terminer et enregistrer',run:sessStop})}
+  c.push({t:'Raffinage : lancer un nouvel ordre',run:()=>{go('industry/refining');setTimeout(()=>$('#rMat').focus(),80)}});
+  c.push({t:'Actualiser : flux Comm-Link',run:()=>loadFeed(true)});
+  c.push({t:'Actualiser : prix UEX',run:async()=>{await loadUex(true);renderAll()}});
+  c.push({t:'Actualiser : enrichir la flotte',run:()=>enrichFleet(false)});
+  if(sync.token)c.push({t:'Synchroniser maintenant',run:()=>syncNow()});
+  Object.entries(THEMES).forEach(([k,t])=>c.push({t:'Thème : '+t.name,run:()=>setTheme(k)}));
+  c.push({t:'Thème : automatique (clair / sombre)',run:()=>setTheme('auto')});
+  c.push({t:'Exporter les données (JSON)',run:()=>$('#exportAll').click()});
+  Object.entries({sessions:'sessions',refining:'raffinages',fleet:'flotte',ccus:'CCU',stock:'inventaire',prices:'prix actuels',pricehist:'historique des prix'}).forEach(([k,l])=>c.push({t:'Exporter en CSV : '+l,run:()=>CSV[k]()}));
+  c.push({t:'Notifications téléphone : envoyer un test',run:()=>{go('system');setTimeout(()=>$('#nfTest').click(),80)}});
+  if(deferredInstall&&!isStandalone())c.push({t:"Installer l'application",run:installApp});
+  c.push({t:'Activer les alertes de raffinage',run:askAlerts});
+  return c;
+}
+function palRender(){
+  const q=$('#palIn').value.toLowerCase().split(/\s+/).filter(Boolean);
+  palItems=commands().filter(c=>q.every(w=>c.t.toLowerCase().includes(w)));
+  palSel=Math.min(palSel,Math.max(0,palItems.length-1));
+  $('#palList').innerHTML=palItems.map((c,i)=>`<li class="${i===palSel?'sel':''}" data-i="${i}"><b>${esc(c.t)}</b>${c.k?`<kbd>${c.k}</kbd>`:''}</li>`).join('')||'<li>Aucune commande</li>';
+  $$('#palList li[data-i]').forEach(li=>{li.onmouseenter=()=>{palSel=+li.dataset.i;$$('#palList li').forEach(x=>x.classList.toggle('sel',x===li))};li.onclick=()=>palRun()});
+  const s=$('#palList .sel');if(s)s.scrollIntoView({block:'nearest'});
+}
+function palOpen(){$('#pal').classList.add('on');$('#palIn').value='';palSel=0;palRender();$('#palIn').focus()}
+function palClose(){$('#pal').classList.remove('on')}
+function palRun(){const c=palItems[palSel];palClose();if(c)c.run()}
+$('#palBtn').onclick=palOpen;$('#palBtn2').onclick=palOpen;
+$('#pal').onclick=e=>{if(e.target.id==='pal')palClose()};
+$('#palIn').oninput=()=>{palSel=0;palRender()};
+$('#palIn').onkeydown=e=>{
+  if(e.key==='ArrowDown'){e.preventDefault();palSel=Math.min(palItems.length-1,palSel+1);palRender()}
+  else if(e.key==='ArrowUp'){e.preventDefault();palSel=Math.max(0,palSel-1);palRender()}
+  else if(e.key==='Enter'){e.preventDefault();palRun()}
+  else if(e.key==='Escape'){palClose()}
+};
+document.addEventListener('keydown',e=>{
+  const typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#pal').classList.contains('on')?palClose():palOpen();return}
+  if(typing||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.key==='/'){e.preventDefault();palOpen()}
+  else if(/^[1-6]$/.test(e.key)&&PAGES[+e.key-1])go(PAGES[+e.key-1]);
+  else if(e.key==='t')cycleTheme();
+});
+
+
+/* =====================================================
+   EXPORTS CSV
+   ===================================================== */
+function csvCell(v){
+  if(v==null)return'';
+  let t=String(v);
+  if(typeof v!=='number'&&/^[=+\-@\t\r]/.test(t))t="'"+t;   /* évite l'injection de formules (Excel) */
+  return /[";\n\r]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;
+}
+function downloadCsv(name,header,rows){
+  const txt='﻿'+[header,...rows].map(r=>r.map(csvCell).join(';')).join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([txt],{type:'text/csv;charset=utf-8'}));
+  a.download=name+'-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+}
+const isoT=t=>t?new Date(t).toISOString():'';
+const CSV={
+  sessions:()=>downloadCsv('sc-sessions',['date','type','lieu','vaisseau','duree_min','scu','scu_par_h','vente_auec','auec_par_h','details'],
+    db.sessions.map(x=>[isoT(x.date),x.type,x.place,x.ship,Math.round(x.ms/6e4),x.scu,x.ms>18e3?Math.round(x.scu/(x.ms/36e5)*10)/10:'',x.val||'',x.val>0&&x.ms>18e3?Math.round(x.val/(x.ms/36e5)):'',x.log.map(l=>`${l.mat}:${l.scu}SCU${l.val?':'+l.val:''}`).join(' | ')])),
+  refining:()=>downloadCsv('sc-raffinages',['lieu','materiau','methode','scu','cout_auec','valeur_estimee_auec','lance','pret','recupere','session_liee','vente_auec'],
+    db.refining.map(r=>{const s=r.sid&&db.sessions.find(z=>z.id===r.sid);return[r.place,r.mat,r.method,r.scu,r.cost,r.val,isoT(r.started),isoT(r.ready),r.collected?'oui':'non',s?sessLabel(s):'',r.sale||'']})),
+  stock:()=>downloadCsv('sc-inventaire',['ressource','lieu_de_stockage','quantite'],
+    [...db.stock].sort((a,b)=>(a.loc||'').localeCompare(b.loc||'')||a.name.localeCompare(b.name)).map(i=>[i.name,i.loc||'',i.qty])),
+  fleet:()=>downloadCsv('sc-flotte',['modele','surnom','constructeur','role','cargo_scu','equipage','assurance','valeur_usd','prix_auec'],
+    db.fleet.map(s=>[s.model,s.custom,s.maker,s.role,s.cargo,s.crew,s.insurance,s.value,s.price||''])),
+  ccus:()=>downloadCsv('sc-ccu',['de','vers','type','paye_usd','date','statut','notes'],
+    db.ccus.map(c=>[c.from,c.to,CCU_TYPES[c.type]||c.type,c.paid,c.date,c.status==='stock'?'stocke':'applique',c.note])),
+  prices:()=>UEX?downloadCsv('sc-prix-uex',['materiau','categorie','auec_par_scu','terminal','demande_scu','releve'],
+    UEX.items.map(i=>[i.name,UEX_CATS[i.cat],i.best.price,i.best.terminal,Math.round(i.best.demand||0),isoT(i.best.t)])):alert('Prix non chargés.'),
+  pricehist:()=>{
+    if(!PH.length)return alert('Aucun relevé enregistré pour l\'instant.');
+    const names={};(UEX?UEX.items:[]).forEach(i=>names[i.id]=i);
+    const rows=[];PH.forEach(sn=>Object.entries(sn.p).forEach(([id,v])=>rows.push([isoT(sn.t),(names[id]||{}).name||('#'+id),(names[id]?UEX_CATS[names[id].cat]:''),v])));
+    downloadCsv('sc-historique-prix',['date','materiau','categorie','auec_par_scu'],rows);
+  }
+};
+$('#fleetCsv').onclick=CSV.fleet;$('#ccuCsv').onclick=CSV.ccus;$('#sessCsv').onclick=CSV.sessions;$('#anCsv').onclick=CSV.sessions;
+$('#refCsv').onclick=CSV.refining;$('#pCsv').onclick=CSV.prices;$('#pHistCsv').onclick=CSV.pricehist;
+$$('[data-csv]').forEach(b=>b.onclick=()=>CSV[b.dataset.csv]());
+
+/* =====================================================
+   INFOBULLES + GRAPHIQUES (HTML / SVG, sans dépendance)
+   ===================================================== */
+const tipEl=document.createElement('div');tipEl.id='tip';document.body.appendChild(tipEl);
+function tipShow(t,x,y){
+  tipEl.textContent=t;tipEl.style.display='block';
+  const w=tipEl.offsetWidth,h=tipEl.offsetHeight;
+  tipEl.style.left=Math.max(6,Math.min(innerWidth-w-8,x+14))+'px';tipEl.style.top=Math.max(8,y-h-10)+'px';
+}
+const tipHide=()=>{tipEl.style.display='none'};
+document.addEventListener('mouseover',e=>{const t=e.target.closest&&e.target.closest('[data-tip]');if(t&&t.dataset.tip)tipShow(t.dataset.tip,e.clientX,e.clientY)});
+document.addEventListener('mousemove',e=>{if(tipEl.style.display==='block'){const t=e.target.closest&&e.target.closest('[data-tip]');t?tipShow(t.dataset.tip,e.clientX,e.clientY):tipHide()}});
+document.addEventListener('touchstart',e=>{const t=e.target.closest&&e.target.closest('[data-tip]');if(t){const p=e.touches[0];tipShow(t.dataset.tip,p.clientX,p.clientY);setTimeout(tipHide,2500)}},{passive:true});
+const kfmt=v=>v>=1e6?(v/1e6).toFixed(1).replace('.0','')+' M':v>=1e4?Math.round(v/1e3)+' k':fmt(v);
+function tableDetails(head,rows){
+  return`<details><summary>Voir en tableau</summary><div style="overflow-x:auto"><table><tr>${head.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div></details>`;
+}
+function hbars(el,rows,unit,fm=fmt){
+  if(!rows.length){el.innerHTML='<div class="small">Pas assez de données (sessions de plus de 5 min).</div>';return}
+  const max=Math.max(...rows.map(r=>r.value),1);
+  el.innerHTML=rows.map(r=>`<div class="hb" data-tip="${esc(r.tip||'')}"><span class="l" title="${esc(r.label)}">${esc(r.label)}</span><span class="t"><i style="--w:${Math.max(1,r.value/max*100)}%"></i></span><span class="v">${fm(r.value)}${unit||''}</span></div>`).join('')+
+    tableDetails(['Libellé','Valeur','Détail'],rows.map(r=>[r.label,fm(r.value)+(unit||''),(r.tip||'').replace(/\n/g,' · ')]));
+}
+function vbars(el,rows,unit='aUEC'){
+  const max=Math.max(...rows.map(r=>r.value),1);
+  el.innerHTML=`<div class="vb">${rows.map(r=>`<div data-tip="${esc(r.tip||'')}"><i style="height:${r.value/max*100}%"></i></div>`).join('')}</div><div class="vb-l">${rows.map(r=>`<span>${esc(r.label)}</span>`).join('')}</div>`+
+    tableDetails(['Semaine',unit],rows.map(r=>[r.label,h1(r.value)]));
+}
+const DAYS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'],SLOTS=['Nuit 0-6h','Matin 6-12h','Aprèm 12-18h','Soir 18-24h'];
+function heat(el,grid,unit='aUEC'){
+  const all=grid.flat().filter(Boolean),max=Math.max(...all.map(c=>c.v),1);
+  if(!all.length){el.innerHTML='<div class="small">Pas assez de données.</div>';return}
+  let h='<div class="heat"><span class="c h"></span>'+SLOTS.map(x=>`<span class="c h">${x}</span>`).join('');
+  grid.forEach((row,i)=>{h+=`<span class="c h" style="text-align:left">${DAYS[i]}</span>`;
+    row.forEach((c,j)=>{h+=c?`<span class="c" data-tip="${esc(`${DAYS[i]} · ${SLOTS[j]}\n${h1(c.v)} ${unit}/h · ${c.n} session${c.n>1?'s':''}`)}" style="background:color-mix(in srgb,var(--accent) ${Math.round((.14+.72*c.v/max)*100)}%,transparent);color:${c.v/max>.55?'var(--on)':'var(--text)'}">${kfmt(c.v)}</span>`:'<span class="c" style="color:var(--line)">·</span>'})});
+  el.innerHTML=h+'</div>'+tableDetails(['Jour','Créneau',unit+'/h','Sessions'],grid.flatMap((row,i)=>row.map((c,j)=>c?[DAYS[i],SLOTS[j],h1(c.v),c.n]:null).filter(Boolean)));
+}
+const fmtDay=t=>new Date(t).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+function lineChart(el,pts){
+  if(pts.length<2){el.innerHTML='<div class="small">Pas encore assez de relevés (2 minimum).</div>';return}
+  const W=520,H=170,L=58,R=10,T=10,B=22;
+  const x0=pts[0].t,x1=pts[pts.length-1].t,lo=Math.min(...pts.map(p=>p.v)),hi=Math.max(...pts.map(p=>p.v));
+  const pad=(hi-lo)||hi*.05||1,ymin=Math.max(0,lo-pad*.2),ymax=hi+pad*.2;
+  const X=t=>L+(t-x0)/((x1-x0)||1)*(W-L-R),Y=v=>T+(1-(v-ymin)/(ymax-ymin))*(H-T-B);
+  const grid=[0,.5,1].map(f=>{const v=ymin+(ymax-ymin)*f,y=Y(v);return`<line class="gr" x1="${L}" x2="${W-R}" y1="${y}" y2="${y}"/><text x="${L-6}" y="${y+3}" text-anchor="end">${kfmt(v)}</text>`}).join('');
+  const d=pts.map((p,i)=>(i?'L':'M')+X(p.t).toFixed(1)+' '+Y(p.v).toFixed(1)).join('');
+  el.innerHTML=`<svg class="lc" viewBox="0 0 ${W} ${H}" role="img" aria-label="Évolution du prix">${grid}
+    <text x="${L}" y="${H-6}">${fmtDay(x0)}</text><text x="${W-R}" y="${H-6}" text-anchor="end">${fmtDay(x1)}</text>
+    <path class="ln" d="${d}"/><line class="cr" y1="${T}" y2="${H-B}" style="display:none"/><circle class="dot" r="4" style="display:none"/>
+    <rect x="${L}" y="${T}" width="${W-L-R}" height="${H-T-B}" fill="transparent" class="hit"/></svg>`+
+    tableDetails(['Date','aUEC/SCU'],pts.slice(-40).reverse().map(p=>[new Date(p.t).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}),fmt(p.v)]));
+  const svg=el.querySelector('svg'),cr=svg.querySelector('.cr'),dot=svg.querySelector('.dot');
+  const move=e=>{
+    const r=svg.getBoundingClientRect(),cx=(e.touches?e.touches[0].clientX:e.clientX),vx=(cx-r.left)/r.width*W;
+    let best=pts[0];pts.forEach(p=>{if(Math.abs(X(p.t)-vx)<Math.abs(X(best.t)-vx))best=p});
+    cr.setAttribute('x1',X(best.t));cr.setAttribute('x2',X(best.t));cr.style.display='';
+    dot.setAttribute('cx',X(best.t));dot.setAttribute('cy',Y(best.v));dot.style.display='';
+    tipShow(`${new Date(best.t).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}\n${fmt(best.v)} aUEC/SCU`,e.touches?e.touches[0].clientX:e.clientX,e.touches?e.touches[0].clientY:e.clientY);
+  };
+  const hit=svg.querySelector('.hit');
+  hit.addEventListener('mousemove',move);hit.addEventListener('touchstart',move,{passive:true});hit.addEventListener('touchmove',move,{passive:true});
+  hit.addEventListener('mouseleave',()=>{cr.style.display='none';dot.style.display='none';tipHide()});
+}
+function sparkline(vals){
+  const lo=Math.min(...vals),hi=Math.max(...vals),r=(hi-lo)||1;
+  return`<svg class="spark" viewBox="0 0 78 22" aria-hidden="true"><polyline points="${vals.map((v,i)=>`${(i/(vals.length-1)*76+1).toFixed(1)},${(20-(v-lo)/r*18).toFixed(1)}`).join(' ')}"/></svg>`;
+}
+
+/* =====================================================
+   HISTORIQUE DES PRIX
+   ===================================================== */
+const PH_KEY=KEY+'.phist';
+let PH=lget(PH_KEY,[]),selProfit=null;const uexHist={};
+function recordSnapshot(){
+  if(!UEX)return;
+  const last=PH[PH.length-1];
+  if(last&&Date.now()-last.t<3*36e5)return;
+  const p={};UEX.items.forEach(i=>{if(i.cat==='refined'||i.cat==='salvage'||i.cat==='hand')p[i.id]=i.best.price});
+  PH.push({t:UEX.t,p});if(PH.length>400)PH.splice(0,PH.length-400);
+  lset(PH_KEY,PH);
+}
+const phSeries=id=>PH.filter(s=>s.p[id]!=null).map(s=>({t:s.t,v:s.p[id]}));
+function renderProfitDetail(){
+  const box=$('#pDetail'),it=UEX&&UEX.items.find(i=>i.id===selProfit);
+  if(!it){box.style.display='none';return}
+  box.style.display='';
+  $('#pdTitle').textContent='Historique · '+it.name;
+  lineChart($('#pdLocal'),phSeries(it.id));
+  $('#pdTerm').textContent=it.best.terminal;
+  const key=it.id+'-'+it.best.tid,draw=h=>lineChart($('#pdUex'),h);
+  if(uexHist[key])draw(uexHist[key]);
+  else if(!it.best.tid)$('#pdUex').innerHTML='<div class="small">Terminal inconnu.</div>';
+  else{
+    $('#pdUex').innerHTML='<div class="small">Chargement…</div>';
+    fetchRetry(`https://api.uexcorp.uk/2.0/commodities_prices_history?id_commodity=${it.id}&id_terminal=${it.best.tid}`).then(r=>r.json()).then(j=>{
+      const h=(j.data||[]).filter(r=>r.price_sell>0).map(r=>({t:r.date_added*1000,v:r.price_sell})).sort((a,b)=>a.t-b.t);
+      uexHist[key]=h;if(selProfit===it.id)draw(h);
+    }).catch(()=>{$('#pdUex').innerHTML='<div class="small">Historique UEX indisponible.</div>'});
+  }
+}
+$('#pdClose').onclick=()=>{selProfit=null;renderProfitDetail()};
+
+/* =====================================================
+   ANALYSE DES SESSIONS
+   ===================================================== */
+let an={type:'all',period:30,metric:'scu'};
+function anSessions(){
+  const lim=an.period?Date.now()-an.period*864e5:0;
+  return db.sessions.filter(x=>(an.type==='all'||x.type===an.type)&&x.date>=lim);
+}
+const rateOf=(val,ms)=>ms>0?val/(ms/36e5):0;
+function groupBy(list,key,metric){
+  const m={};
+  list.forEach(x=>{const k=key(x)||'(non renseigné)',g=m[k]=m[k]||{k,n:0,ms:0,val:0,scu:0};g.n++;g.ms+=x.ms;g.val+=x.val;g.scu+=x.scu});
+  return Object.values(m).filter(g=>g.ms>3e5).map(g=>({...g,rate:rateOf(metric==='auec'?g.val:g.scu,g.ms)})).sort((a,b)=>b.rate-a.rate);
+}
+function renderAnalysis(){
+  if(cur.page!=='industry'||cur.sub!=='analysis')return;
+  const btn=(grp,val,label,on)=>`<button class="btn sm ${on?'on':''}" data-an="${grp}:${val}">${label}</button>`;
+  const M=an.metric==='auec'?'auec':'scu',unit=M==='auec'?'aUEC':'SCU',vf=x=>M==='auec'?x.val:x.scu;
+  $('#anMetric').innerHTML=[['scu','SCU récoltés'],['auec','aUEC vendus']].map(([v,l])=>btn('metric',v,l,M===v)).join('');
+  $('#anType').innerHTML=[['all','Tout'],['Minage','Minage'],['Salvage','Salvage']].map(([v,l])=>btn('type',v,l,an.type===v)).join('');
+  $('#anPeriod').innerHTML=[[7,'7 j'],[30,'30 j'],[90,'90 j'],[0,'Tout']].map(([v,l])=>btn('period',v,l,an.period===v)).join('');
+  $$('[data-an]').forEach(b=>b.onclick=()=>{const[g,v]=b.dataset.an.split(':');an[g]=g==='period'?+v:v;renderAnalysis()});
+  const all=anSessions();
+  /* en mode aUEC, seules comptent les sessions dont la vente a été saisie (la valeur n'existe qu'après raffinage et revente) */
+  const s=M==='auec'?all.filter(x=>x.val>0):all;
+  $('#anEmpty').textContent=!all.length?'Aucune session sur cette période. Termine une session de minage ou de salvage pour alimenter l\'analyse.':
+    'Aucune vente saisie sur cette période. Renseigne le montant réel dans l\'historique (« Saisir la vente »), ou passe en SCU.';
+  $('#anEmpty').style.display=s.length?'none':'';$('#anBody').style.display=s.length?'':'none';
+  if(!s.length)return;
+  const ms=s.reduce((t,x)=>t+x.ms,0),tot=s.reduce((t,x)=>t+vf(x),0);
+  const best=[...s].filter(x=>x.ms>3e5).sort((a,b)=>rateOf(vf(b),b.ms)-rateOf(vf(a),a.ms))[0];
+  const places=groupBy(s,x=>x.place,M),ships=groupBy(s,x=>x.ship,M);
+  $('#anTPlace').textContent=`${unit} / heure par lieu`;$('#anTShip').textContent=`${unit} / heure par vaisseau`;
+  $('#anTWeek').textContent=`${unit} par semaine`;$('#anTHeat').textContent=`Meilleurs créneaux · ${unit}/h moyen`;
+  $('#anKpis').innerHTML=[['Sessions',s.length],['Temps total',(ms/36e5).toFixed(1)+' h'],[M==='auec'?'aUEC vendus':'SCU récoltés',kfmt(tot)],[`${unit} / heure`,ms>3e5?h1(rateOf(tot,ms)):'–'],
+    ['Meilleure session',best?h1(rateOf(vf(best),best.ms))+' /h':'–'],['Meilleur lieu',places[0]?places[0].k:'–']].map(([l,v])=>`<div class="kpi"><div class="v" style="${String(v).length>12?'font-size:16px;line-height:1.9':''}">${esc(v)}</div><div class="l">${l}</div></div>`).join('');
+  const tipOf=g=>`${g.k}\n${h1(g.rate)} ${unit}/h\n${g.n} session${g.n>1?'s':''} · ${(g.ms/36e5).toFixed(1)} h · ${h1(g.scu)} SCU`;
+  hbars($('#anPlace'),places.slice(0,10).map(g=>({label:g.k,value:g.rate,tip:tipOf(g)})),' /h',h1);
+  hbars($('#anShip'),ships.slice(0,10).map(g=>({label:g.k,value:g.rate,tip:tipOf(g)})),' /h',h1);
+  /* par semaine (12 dernières, lundi → dimanche) */
+  const wk=t=>{const d=new Date(t);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getTime()};
+  const w0=wk(Date.now()),weeks=[];for(let i=11;i>=0;i--){const d=new Date(w0);d.setDate(d.getDate()-7*i);weeks.push({t:d.getTime(),v:0,n:0})}
+  s.forEach(x=>{const w=weeks.find(w=>w.t===wk(x.date));if(w){w.v+=vf(x);w.n++}});
+  vbars($('#anWeek'),weeks.map(w=>({label:new Date(w.t).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),value:w.v,tip:`Semaine du ${new Date(w.t).toLocaleDateString('fr-FR')}\n${h1(w.v)} ${unit} · ${w.n} session${w.n>1?'s':''}`})),unit);
+  /* créneaux : jour de semaine × tranche de 6 h (selon l'heure de début) */
+  const cell=Array.from({length:7},()=>Array.from({length:4},()=>({ms:0,v:0,n:0})));
+  s.forEach(x=>{const d=new Date(x.date),c=cell[(d.getDay()+6)%7][Math.floor(d.getHours()/6)];c.ms+=x.ms;c.v+=vf(x);c.n++});
+  heat($('#anHeat'),cell.map(r=>r.map(c=>c.ms>3e5?{v:rateOf(c.v,c.ms),n:c.n}:null)),unit);
+  /* matériaux : toujours en SCU (la vente est saisie par session, pas par matériau) */
+  const mats={};all.forEach(x=>x.log.forEach(l=>{const m=mats[l.mat]=mats[l.mat]||{k:l.mat,scu:0};m.scu+=l.scu}));
+  hbars($('#anMat'),Object.values(mats).sort((a,b)=>b.scu-a.scu).slice(0,10).map(m=>({label:m.k,value:m.scu,tip:`${m.k}\n${h1(m.scu)} SCU`})),' SCU',h1);
+}
+
+/* =====================================================
+   NOTIFICATIONS TÉLÉPHONE (ntfy)
+   ===================================================== */
+const nf=()=>db.ntfy=db.ntfy||{on:false,topic:'',server:'https://ntfy.sh',promos:true,seen:[]};
+const ascii=t=>String(t).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\x20-\x7e]/g,'?');
+const appUrl=h=>/^https?:/.test(location.protocol)?location.href.split('#')[0]+h:'';
+const ntfyBase=()=>{const c=nf();return c.server.replace(/\/+$/,'')+'/'+encodeURIComponent(c.topic)};
+async function ntfyPost(seq,{title,body,at,tags,priority,click},force){
+  const c=db.ntfy;if(!c||!c.topic||!(c.on||force))return false;
+  const h={};
+  if(title)h.Title=ascii(title);if(tags)h.Tags=tags;if(priority)h.Priority=String(priority);
+  if(click)h.Click=click;if(at)h.At=String(Math.floor(at/1000));
+  try{const r=await fetchRetry(ntfyBase()+(seq?'/'+encodeURIComponent(seq):''),{method:'POST',body,headers:h},at?1:3);return r.ok}   /* programmé : une seule tentative (un doublon empêcherait l'annulation) */catch(e){return false}
+}
+async function ntfySchedule(r){
+  const c=db.ntfy;if(!c||!c.on||!r||r.collected||r.ntfy)return;
+  const d=r.ready-Date.now();
+  if(d<12e3||d>3*864e5-6e4)return;           /* ntfy : de 10 s à 3 jours */
+  const ok=await ntfyPost('raff-'+r.id,{title:'Raffinage pret',body:`${r.mat}${r.scu?' · '+r.scu+' SCU':''} · ${r.place}`,at:r.ready,tags:'pick',priority:4,click:appUrl('#/industry/refining')});
+  if(ok){r.ntfy='sched';save()}
+}
+async function ntfyCancel(r){
+  const c=db.ntfy;if(!c||!c.topic||r.ntfy!=='sched'||r.ready<=Date.now())return;
+  try{await fetchRetry(ntfyBase()+'/'+encodeURIComponent('raff-'+r.id),{method:'DELETE'},3)}catch(e){}
+  r.ntfy='';
+}
+async function ntfySync(){for(const r of db.refining)await ntfySchedule(r)}
+function ntfyPromos(items){
+  const c=db.ntfy;if(!c)return;
+  const promos=items.filter(i=>i.cat==='promo');
+  if(!c.seen||!c.seen.length){c.seen=promos.map(i=>i.id);save();return}   /* 1re fois : mémorise sans notifier */
+  const fresh=promos.filter(i=>!c.seen.includes(i.id));
+  if(!fresh.length)return;
+  c.seen=[...new Set([...c.seen,...fresh.map(i=>i.id)])].slice(-200);save();
+  if(c.on&&c.promos)fresh.slice(0,3).forEach(i=>ntfyPost('promo-'+i.id,{title:'Promo RSI',body:i.title,tags:'tada',click:safeUrl(i.url)}));
+}
+function renderNtfy(){
+  const c=db.ntfy||{on:false,topic:'',server:'https://ntfy.sh',promos:true};
+  if(document.activeElement!==$('#nfTopic'))$('#nfTopic').value=c.topic;
+  if(document.activeElement!==$('#nfServer'))$('#nfServer').value=c.server;
+  $('#nfOn').checked=!!c.on;$('#nfPromos').checked=c.promos!==false;
+  $('#nfOpen').href=c.topic?safeUrl(ntfyBase())||'#':'#';
+}
+const nfMsg=t=>{$('#nfMsg').textContent=t};
+$('#nfGen').onclick=()=>{
+  const a=new Uint8Array(12);crypto.getRandomValues(a);
+  nf().topic='scos-'+[...a].map(b=>b.toString(36).padStart(2,'0')).join('').slice(0,16);
+  save();renderNtfy();nfMsg('Sujet généré. Abonne-toi-y dans l\'app ntfy avec exactement ce nom.');
+};
+$('#nfCopy').onclick=async()=>{try{await navigator.clipboard.writeText(nf().topic);nfMsg('Sujet copié.')}catch(e){nfMsg('Copie impossible : sélectionne le texte à la main.')}};
+$('#nfTopic').onchange=e=>{nf().topic=e.target.value.trim().replace(/[^A-Za-z0-9_-]/g,'');save();renderNtfy()};
+$('#nfServer').onchange=e=>{const v=e.target.value.trim();nf().server=safeUrl(v)?v:'https://ntfy.sh';save();renderNtfy()};
+$('#nfOn').onchange=e=>{nf().on=e.target.checked;save();if(e.target.checked)ntfySync()};
+$('#nfPromos').onchange=e=>{nf().promos=e.target.checked;save()};
+$('#nfTest').onclick=async()=>{
+  if(!nf().topic)return nfMsg('Génère ou saisis d\'abord un sujet.');
+  nfMsg('Envoi…');
+  const ok=await ntfyPost('',{title:'SC//OS',body:'Test réussi : les alertes arrivent bien sur ce téléphone.',tags:'white_check_mark',priority:3,click:appUrl('')},true);
+  nfMsg(ok?'✔ Test envoyé. Il doit apparaître dans l\'app ntfy (abonnée au même sujet).':'✘ Envoi impossible (réseau, serveur ou sujet invalide).');
+};
+
+/* =====================================================
+   APPLICATION INSTALLABLE (PWA)
+   ===================================================== */
+let deferredInstall=null;
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;renderApp()});
+window.addEventListener('appinstalled',()=>{deferredInstall=null;renderApp()});
+async function installApp(){if(!deferredInstall)return;deferredInstall.prompt();try{await deferredInstall.userChoice}catch(e){}deferredInstall=null;renderApp()}
+$('#installBtn').onclick=installApp;
+function renderNet(){$('#netTag').style.display=navigator.onLine?'none':''}
+window.addEventListener('online',renderNet);window.addEventListener('offline',renderNet);
+function renderApp(){
+  const standalone=isStandalone(),secure=location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  $('#installBtn').style.display=deferredInstall&&!standalone?'':'none';
+  const ready=!!(navigator.serviceWorker&&navigator.serviceWorker.controller);
+  let h;
+  if(standalone)h='<span class="tag ok">Installée</span> L\'application tourne en mode autonome et se met à jour toute seule.';
+  else if(deferredInstall)h='<span class="tag acc">Installable</span> <button class="btn primary sm" id="appInstall">⤓ Installer l\'application</button>';
+  else if(!secure)h='<span class="tag warn">Non installable ici</span> L\'installation exige une page servie en <b>HTTPS</b> (par exemple GitHub Pages). Ouverte depuis un fichier local, elle ne peut pas être installée.';
+  else if(isIOS())h='<span class="tag acc">iPhone / iPad</span> Dans Safari : bouton Partager → « Sur l\'écran d\'accueil ».';
+  else h='Le navigateur ne propose pas l\'installation pour l\'instant. Chrome / Edge : menu ⋮ → « Installer SC//OS ». Firefox desktop ne gère pas l\'installation.';
+  $('#appInfo').innerHTML=h+`<p class="small" style="margin-bottom:0">Hors ligne : ${ready?'<b>prêt</b> (interface en cache, données locales conservées)':'pas encore en cache (se met en place après le premier chargement en HTTPS)'}.</p>`;
+  const b=$('#appInstall');if(b)b.onclick=installApp;
+}
+if('serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){
+  navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(renderApp).catch(()=>{});
+}
+
+
+/* =====================================================
+   PROJETS : OBJECTIFS aUEC
+   ===================================================== */
+function ratePerHour(){
+  const m=num(db.rateManual);if(m>0)return m;
+  /* seulement les sessions dont la vente est saisie : sinon une session non vendue compterait pour 0 aUEC */
+  const sv=db.sessions.filter(x=>x.val>0),ms=sv.reduce((t,x)=>t+x.ms,0);
+  return ms>18e5?sv.reduce((t,x)=>t+x.val,0)/(ms/36e5):0;
+}
+const h1=n=>(Math.round(n*10)/10).toLocaleString('fr-FR');
+$('#gBalance').onchange=e=>{db.balance=Math.max(0,num(e.target.value));save();renderGoals()};
+$('#gHours').onchange=e=>{db.hoursWeek=Math.min(120,Math.max(1,num(e.target.value)||8));save();renderGoals()};
+$('#gRate').onchange=e=>{db.rateManual=Math.max(0,num(e.target.value));save();renderGoals()};
+$('#gAuto').onchange=e=>{db.autoBalance=e.target.checked;save()};
+$('#gPlus').onclick=()=>{const v=num($('#gAdj').value);if(!v)return;db.balance=(db.balance||0)+v;$('#gAdj').value='';save();renderGoals()};
+$('#gMinus').onclick=()=>{const v=num($('#gAdj').value);if(!v)return;db.balance=Math.max(0,(db.balance||0)-v);$('#gAdj').value='';save();renderGoals()};
+$('#gTitle').oninput=()=>{
+  const t=$('#gTitle').value.trim(),m=MODELS.find(x=>x.name.toLowerCase()===t.toLowerCase());
+  if(m&&m.price>0&&!num($('#gTarget').value))$('#gTarget').value=Math.round(m.price);
+};
+$('#gAdd').onclick=()=>{
+  const title=$('#gTitle').value.trim(),target=num($('#gTarget').value);
+  if(!title||!target)return;
+  db.goals.push({id:uid(),title,target,done:false});
+  $('#gTitle').value='';$('#gTarget').value='';save();renderGoals();
+};
+function renderGoals(){
+  const bal=db.balance||0,hw=db.hoursWeek||8,rate=ratePerHour();
+  if(document.activeElement!==$('#gBalance'))$('#gBalance').value=bal||'';
+  if(document.activeElement!==$('#gHours'))$('#gHours').value=hw;
+  if(document.activeElement!==$('#gRate'))$('#gRate').value=db.rateManual||'';
+  $('#gAuto').checked=!!db.autoBalance;
+  const open=db.goals.filter(g=>!g.done),total=open.reduce((t,g)=>t+g.target,0),remaining=Math.max(0,total-bal);
+  const hrs=rate?remaining/rate:null;
+  $('#gKpis').innerHTML=[['Solde',fmt(bal)],['aUEC / heure',rate?fmt(rate):'–'],['Objectifs en cours',open.length],['Reste à gagner',fmt(remaining)],
+    ['Temps estimé',hrs==null?'–':remaining?`${h1(hrs)} h`:'0 h']].map(([l,v])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  let cum=0;
+  $('#gList').innerHTML=db.goals.map((g,i)=>{
+    if(g.done)return`<div class="opp done"><div class="row"><b>${esc(g.title)}</b><span class="tag ok">Atteint</span><span class="sp"></span><button class="btn sm danger" data-g="del" data-id="${g.id}">✕</button></div><div class="small">${fmt(g.target)} aUEC</div></div>`;
+    const before=cum;cum+=g.target;
+    const pct=Math.max(0,Math.min(100,(bal-before)/g.target*100)),rem=Math.max(0,cum-bal);
+    const eta=rem===0?'<span class="tag ok">Finançable maintenant</span>':rate?`≈ ${h1(rem/rate)} h de jeu · ~${h1(rem/rate/hw)} sem.`:'Joue quelques sessions pour estimer la durée';
+    return`<div class="opp"><div class="row"><b>${esc(g.title)}</b><span class="sp"></span><span class="tag acc">${fmt(g.target)} aUEC</span></div>
+      <div class="gauge ${pct>=100?'ok':''}" style="--p:${pct}%"><i></i></div>
+      <div class="small">Financé à ${Math.round(pct)} % · reste ${fmt(rem)} (cumul dans l'ordre)</div>
+      <div class="small">${eta}</div>
+      <div class="row"><button class="btn sm" data-g="up" data-id="${g.id}" ${i===0?'disabled':''}>▲</button><button class="btn sm" data-g="down" data-id="${g.id}" ${i===db.goals.length-1?'disabled':''}>▼</button>
+        <span class="sp"></span><button class="btn sm" data-g="done" data-id="${g.id}">Acheté ✔</button><button class="btn sm danger" data-g="del" data-id="${g.id}">✕</button></div></div>`;
+  }).join('')||'<div class="empty">Aucun objectif. Ajoute le vaisseau ou l\'équipement que tu vises.</div>';
+}
+$('#gList').onclick=e=>{
+  const b=e.target.closest('[data-g]');if(!b)return;
+  const i=db.goals.findIndex(g=>g.id===b.dataset.id);if(i<0)return;
+  const a=b.dataset.g,g=db.goals[i];
+  if(a==='del'){db.goals.splice(i,1)}
+  else if(a==='up'&&i>0){[db.goals[i-1],db.goals[i]]=[db.goals[i],db.goals[i-1]]}
+  else if(a==='down'&&i<db.goals.length-1){[db.goals[i+1],db.goals[i]]=[db.goals[i],db.goals[i+1]]}
+  else if(a==='done'){g.done=true;if(confirm(`Déduire ${fmt(g.target)} aUEC du solde ?`))db.balance=Math.max(0,(db.balance||0)-g.target)}
+  save();renderGoals();
+};
+
+/* =====================================================
+   PROJETS : INVENTAIRE + BESOINS
+   ===================================================== */
+const stockMap=()=>{const m={};db.stock.forEach(i=>{m[nk(i.name)]=(m[nk(i.name)]||0)+i.qty});return m};
+function parseReqs(txt){
+  const out=[];
+  txt.split(/\n/).map(l=>l.trim()).filter(Boolean).forEach(l=>{
+    let m=l.match(/^(\d+(?:[.,]\d+)?)\s*(?:[x×*]\s*)?(.+)$/i),name,qty;
+    if(m){qty=parseFloat(m[1].replace(',','.'));name=m[2]}
+    else if((m=l.match(/^(.+?)\s*[:\-–]?\s*(?:[x×*]\s*)?(\d+(?:[.,]\d+)?)\s*(?:scu|u|pcs)?$/i))){name=m[1];qty=parseFloat(m[2].replace(',','.'))}
+    else{name=l;qty=1}
+    name=name.replace(/[:\-–]\s*$/,'').trim();if(name&&qty>0)out.push({name,qty});
+  });
+  return out;
+}
+let nEditing=null;
+$('#nSave').onclick=()=>{
+  const title=$('#nTitle').value.trim(),reqs=parseReqs($('#nReqs').value);
+  if(!title)return;
+  if(!reqs.length)return alert('Ajoute au moins une ressource (une par ligne : nom + quantité).');
+  const o=nEditing&&db.needs.find(n=>n.id===nEditing);
+  if(o){o.title=title;o.kind=$('#nKind').value;o.reqs=reqs;o.note=$('#nNote').value.trim()}
+  else db.needs.unshift({id:uid(),title,kind:$('#nKind').value,reqs,note:$('#nNote').value.trim(),done:false});
+  nResetForm();save();renderNeeds();
+};
+function nResetForm(){nEditing=null;['#nTitle','#nReqs','#nNote'].forEach(s=>$(s).value='');$('#nFormTitle').textContent='Nouveau projet';$('#nCancel').style.display='none'}
+$('#nCancel').onclick=nResetForm;
+$('#nHide').onchange=renderNeeds;
+$('#nCsv').onclick=()=>CSV.needs();
+function shopList(){
+  const sm=stockMap(),tot={};
+  db.needs.filter(n=>!n.done).forEach(n=>n.reqs.forEach(r=>{const k=nk(r.name);(tot[k]=tot[k]||{name:r.name,need:0}).need+=r.qty}));
+  return Object.entries(tot).map(([k,t])=>({name:t.name,need:t.need,have:sm[k]||0,miss:Math.max(0,t.need-(sm[k]||0))})).sort((a,b)=>b.miss-a.miss||a.name.localeCompare(b.name));
+}
+function renderNeeds(){
+  const sm=stockMap(),shop=shopList();
+  $('#nShop').innerHTML=shop.length?'<table class="cards"><tr class="hd"><th>Ressource</th><th>Requis</th><th>Stock</th><th>Manque</th></tr>'+
+    shop.map(r=>`<tr><td class="t"><b>${esc(r.name)}</b></td><td data-l="Requis">${h1(r.need)}</td><td data-l="Stock">${h1(r.have)}</td><td data-l="Manque">${r.miss?`<span class="tag warn">${h1(r.miss)}</span>`:'<span class="tag ok">OK</span>'}</td></tr>`).join('')+'</table>':
+    '<div class="empty">Aucun projet en cours.</div>';
+  const rows=db.needs.filter(n=>!($('#nHide').checked&&n.done));
+  $('#nList').innerHTML=rows.map(n=>{
+    const all=n.reqs.reduce((t,r)=>t+r.qty,0),got=n.reqs.reduce((t,r)=>t+Math.min(sm[nk(r.name)]||0,r.qty),0),pct=all?got/all*100:0;
+    return`<div class="opp ${n.done?'done':''}"><div class="row"><span class="tag">${esc(n.kind)}</span>${n.done?'<span class="tag ok">Terminé</span>':pct>=100?'<span class="tag ok">Prêt</span>':''}</div>
+      <b>${esc(n.title)}</b>
+      <div class="gauge ${pct>=100?'ok':''}" style="--p:${pct}%"><i></i></div>
+      ${n.reqs.map(r=>{const have=Math.min(sm[nk(r.name)]||0,r.qty),where=stockLocs(r.name);return`<div class="row" style="padding:2px 0"><span>${esc(r.name)}</span><span class="sp"></span>${have>=r.qty?`<span class="tag ok">✔ ${h1(r.qty)}</span>`:`<span class="small">${h1(have)} / ${h1(r.qty)}</span><span class="tag warn">−${h1(r.qty-have)}</span>`}</div>${where?`<div class="small" style="margin:-2px 0 4px">📍 ${esc(where)}</div>`:''}`}).join('')}
+      ${n.note?`<div class="small">${esc(n.note)}</div>`:''}
+      <div class="row" style="margin-top:4px">${n.done?'':`<button class="btn sm" data-n="edit" data-id="${n.id}">Modifier</button>`}<span class="sp"></span>
+        ${n.done?'':`<button class="btn sm" data-n="done" data-id="${n.id}">Terminé ✔</button>`}<button class="btn sm danger" data-n="del" data-id="${n.id}">✕</button></div></div>`}).join('')||'<div class="empty">Aucun projet. Ajoute un contrat ou un craft avec ses ressources.</div>';
+  renderStock();
+}
+$('#nList').onclick=e=>{
+  const b=e.target.closest('[data-n]');if(!b)return;
+  const n=db.needs.find(x=>x.id===b.dataset.id);if(!n)return;
+  const a=b.dataset.n;
+  if(a==='del'){if(confirm('Supprimer ce projet ?'))db.needs=db.needs.filter(x=>x!==n)}
+  else if(a==='edit'){nEditing=n.id;$('#nTitle').value=n.title;$('#nKind').value=n.kind;$('#nReqs').value=n.reqs.map(r=>`${r.name} ${r.qty}`).join('\n');$('#nNote').value=n.note||'';$('#nFormTitle').textContent='Modifier le projet';$('#nCancel').style.display='';window.scrollTo({top:0,behavior:'smooth'});return}
+  else if(a==='done'){
+    n.done=true;
+    if(confirm('Retirer les ressources de ce projet de ton inventaire ?')){
+      n.reqs.forEach(r=>{let left=r.qty;db.stock.filter(i=>nk(i.name)===nk(r.name)).forEach(i=>{const t=Math.min(i.qty,left);i.qty-=t;left-=t})});
+      db.stock=db.stock.filter(i=>i.qty>0);
+    }
+  }
+  save();renderNeeds();
+};
+CSV.needs=()=>downloadCsv('sc-liste-de-courses',['ressource','requis','stock','manque'],shopList().map(r=>[r.name,r.need,r.have,r.miss]));
+/* inventaire : une ligne par couple ressource + lieu de stockage */
+const NO_LOC='__none';
+const COMMON_LOCS=['Area18','Lorville','Orison','New Babbage','Port Tressler','Everus Harbor','Seraphim Station','Ruin Station','Checkmate','Orbituary','Pyro Gateway','Terra Gateway'];
+const sameItem=(a,b)=>nk(a.name)===nk(b.name)&&nk(a.loc||'')===nk(b.loc||'');
+function stockLocs(name){   /* « 35 @ Area18 · 20 @ Prospector » */
+  return db.stock.filter(i=>nk(i.name)===nk(name)&&i.qty>0).map(i=>`${h1(i.qty)} @ ${i.loc||'lieu non précisé'}`).join(' · ');
+}
+$('#sAddStock').onclick=()=>{
+  const name=$('#sName').value.trim(),qty=num($('#sQty').value),loc=$('#sLoc').value.trim();if(!name||!qty)return;
+  const ex=db.stock.find(i=>sameItem(i,{name,loc}));
+  if(ex)ex.qty+=qty;else db.stock.push({id:uid(),name,qty,loc});
+  db.lastLoc=loc;
+  $('#sName').value='';$('#sQty').value='';save();renderNeeds();
+};
+$('#sSearch').oninput=renderStock;$('#sFilterLoc').onchange=renderStock;
+$('#sViewRes').onclick=()=>{db.stockView='res';save();renderStock()};
+$('#sViewLoc').onclick=()=>{db.stockView='loc';save();renderStock()};
+function stockRow(i,need){
+  const nd=need[nk(i.name)]||0,tot=db.stock.filter(x=>nk(x.name)===nk(i.name)).reduce((t,x)=>t+x.qty,0);
+  return`<div class="row" style="padding:9px 0;align-items:flex-start"><div class="t" style="flex:1 1 220px;min-width:0"><b>${esc(i.name)}</b>
+      ${nd?`<div class="small">requis par tes projets : ${h1(nd)} ${nd>tot?`<span class="tag warn">manque ${h1(nd-tot)}</span>`:'<span class="tag ok">couvert</span>'}</div>`:''}
+      <input list="locNames" data-sl="${i.id}" value="${esc(i.loc||'')}" placeholder="📍 Lieu de stockage" title="Change le lieu pour déplacer ce stock" style="width:100%;margin-top:5px;font-size:12px;padding:5px 9px"></div>
+    <div class="row" style="flex:1 1 auto;gap:6px;justify-content:flex-end;min-width:0"><button class="btn sm" data-s="-10" data-id="${i.id}">−10</button><button class="btn sm" data-s="-1" data-id="${i.id}">−1</button>
+      <input type="number" min="0" step="0.1" value="${i.qty}" data-sq="${i.id}" style="width:84px;text-align:center">
+      <button class="btn sm" data-s="1" data-id="${i.id}">+1</button><button class="btn sm" data-s="10" data-id="${i.id}">+10</button>
+      <button class="btn sm danger" data-s="del" data-id="${i.id}">✕</button></div></div>`;
+}
+function renderStock(){
+  const need={};db.needs.filter(n=>!n.done).forEach(n=>n.reqs.forEach(r=>{need[nk(r.name)]=(need[nk(r.name)]||0)+r.qty}));
+  const view=db.stockView==='loc'?'loc':'res';
+  $('#sViewRes').classList.toggle('on',view==='res');$('#sViewLoc').classList.toggle('on',view==='loc');
+  /* lieux connus -> filtre + suggestions */
+  const locs=[...new Set(db.stock.map(i=>i.loc||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const fsel=$('#sFilterLoc'),fcur=fsel.value;
+  fsel.innerHTML='<option value="">Tous les lieux</option>'+locs.map(l=>`<option value="${esc(l)}"${l===fcur?' selected':''}>${esc(l)}</option>`).join('')+
+    (db.stock.some(i=>!i.loc)?`<option value="${NO_LOC}"${fcur===NO_LOC?' selected':''}>Sans lieu précisé</option>`:'');
+  const fv=fsel.value,q=$('#sSearch').value.toLowerCase();
+  const rows=db.stock.filter(i=>(!q||(i.name+' '+(i.loc||'')).toLowerCase().includes(q))&&(!fv||(fv===NO_LOC?!i.loc:i.loc===fv)));
+  let html;
+  if(!rows.length)html='<div class="empty">Inventaire vide. Ajoute ce que tu possèdes.</div>';
+  else if(view==='res')html=rows.sort((a,b)=>a.name.localeCompare(b.name)||(a.loc||'').localeCompare(b.loc||'')).map(i=>stockRow(i,need)).join('');
+  else{
+    const g={};rows.forEach(i=>(g[i.loc||'']=g[i.loc||'']||[]).push(i));
+    html=Object.keys(g).sort((a,b)=>!a?1:!b?-1:a.localeCompare(b)).map(l=>{
+      const its=g[l].sort((a,b)=>a.name.localeCompare(b.name));
+      return`<div style="margin-top:12px"><div class="row" style="border-bottom:1px solid var(--line);padding-bottom:6px"><b>📍 ${l?esc(l):'Sans lieu précisé'}</b><span class="sp"></span><span class="small">${its.length} ressource${its.length>1?'s':''} · ${h1(its.reduce((t,i)=>t+i.qty,0))} au total</span></div>${its.map(i=>stockRow(i,need)).join('')}</div>`;
+    }).join('');
+  }
+  /* ne pas détruire la ligne en cours de saisie (lieu / quantité) */
+  const ae=document.activeElement;
+  if(!(ae&&$('#sList').contains(ae)&&(ae.dataset.sl||ae.dataset.sq)))$('#sList').innerHTML=html;
+  const names=[...new Set([...MATS_MINING,...MATS_SALVAGE,...db.stock.map(i=>i.name),...db.needs.flatMap(n=>n.reqs.map(r=>r.name))])].sort();
+  $('#stockNames').innerHTML=names.map(n=>`<option value="${esc(n)}">`).join('');
+  $('#locNames').innerHTML=[...new Set([...locs,...db.fleet.map(s=>s.model),...COMMON_LOCS])].map(n=>`<option value="${esc(n)}">`).join('');
+  if(!$('#sLoc').value&&document.activeElement!==$('#sLoc'))$('#sLoc').value=db.lastLoc||'';
+}
+$('#sList').onclick=e=>{
+  const b=e.target.closest('[data-s]');if(!b)return;
+  const i=db.stock.find(x=>x.id===b.dataset.id);if(!i)return;
+  if(b.dataset.s==='del'){db.stock=db.stock.filter(x=>x!==i)}else i.qty=Math.max(0,Math.round((i.qty+parseFloat(b.dataset.s))*100)/100);
+  save();renderNeeds();
+};
+$('#sList').onchange=e=>{
+  const q=e.target.closest('[data-sq]');
+  if(q){const i=db.stock.find(x=>x.id===q.dataset.sq);if(!i)return;i.qty=Math.max(0,num(q.value));save();renderNeeds();return}
+  const l=e.target.closest('[data-sl]');
+  if(l){
+    const i=db.stock.find(x=>x.id===l.dataset.sl);if(!i)return;
+    i.loc=l.value.trim();
+    const other=db.stock.find(x=>x!==i&&sameItem(x,i));          /* même ressource déjà présente à ce lieu : fusion */
+    if(other){other.qty+=i.qty;db.stock=db.stock.filter(x=>x!==i)}
+    save();l.blur();renderNeeds();
+  }
+};
+
+/* =====================================================
+   PARTAGE D'ÉQUIPAGE
+   ===================================================== */
+function crewCalc(totalOverride){
+  const cfg=db.crewCfg||{fees:0,shipPct:0};
+  const total=totalOverride!=null?totalOverride:num($('#cwTotal').value);
+  const fees=cfg.fees||0,shipPct=Math.min(100,Math.max(0,cfg.shipPct||0));
+  const net=Math.max(0,total-fees),ship=net*shipPct/100,pool=net-ship,sum=db.crew.reduce((t,c)=>t+c.parts,0);
+  return{total,fees,shipPct,net,ship,pool,sum,pay:db.crew.map(c=>({name:c.name,parts:c.parts,amount:sum?pool*c.parts/sum:0}))};
+}
+$('#cwTotal').oninput=renderCrew;
+$('#cwFees').oninput=()=>{db.crewCfg={...db.crewCfg,fees:Math.max(0,num($('#cwFees').value))};save();renderCrew()};
+$('#cwShip').oninput=()=>{db.crewCfg={...db.crewCfg,shipPct:Math.min(100,Math.max(0,num($('#cwShip').value)))};save();renderCrew()};
+$('#cwFrom').onclick=()=>{
+  const a=db.active&&db.active.type===curType()?db.active:null;
+  const v=a?a.log.reduce((t,l)=>t+l.val,0):((db.sessions.find(x=>x.type===curType())||{}).val||0);
+  $('#cwTotal').value=Math.round(v)||'';renderCrew();
+};
+$('#cwAdd').onclick=()=>{
+  const name=$('#cwName').value.trim(),parts=num($('#cwParts').value);if(!name||!(parts>0))return;
+  db.crew.push({id:uid(),name,parts});$('#cwName').value='';$('#cwParts').value=1;save();renderCrew();
+};
+$('#cwRoster').onclick=e=>{
+  const b=e.target.closest('[data-cw]');if(!b)return;
+  db.crew=db.crew.filter(c=>c.id!==b.dataset.cw);save();renderCrew();
+};
+$('#cwRoster').onchange=e=>{
+  const inp=e.target.closest('[data-cp]');if(!inp)return;
+  const c=db.crew.find(x=>x.id===inp.dataset.cp);if(c){c.parts=Math.max(0,num(inp.value));save();renderCrew()}
+};
+function crewText(){
+  const c=crewCalc();
+  return `Partage ${curType().toLowerCase()} : total ${fmt(c.total)} aUEC, frais ${fmt(c.fees)}, net ${fmt(c.net)}`+(c.ship?`, vaisseau (${c.shipPct} %) ${fmt(c.ship)}`:'')+'\n'+c.pay.map(p=>`- ${p.name} : ${fmt(p.amount)} aUEC (${p.parts} part${p.parts>1?'s':''})`).join('\n');
+}
+$('#cwCopy').onclick=async()=>{
+  try{await navigator.clipboard.writeText(crewText());$('#cwMsg').textContent='Copié.'}catch(e){$('#cwMsg').textContent='Copie impossible.'}
+  setTimeout(()=>{$('#cwMsg').textContent=''},2500);
+};
+function renderCrew(){
+  if(!$('#crewPanel'))return;
+  const cfg=db.crewCfg||{fees:0,shipPct:0};
+  if(document.activeElement!==$('#cwFees'))$('#cwFees').value=cfg.fees||'';
+  if(document.activeElement!==$('#cwShip'))$('#cwShip').value=cfg.shipPct||'';
+  if(!$('#cwRoster').contains(document.activeElement)){
+    $('#cwRoster').innerHTML=db.crew.length?db.crew.map(c=>`<div class="row" style="padding:5px 0"><b style="flex:1">${esc(c.name)}</b><span class="small">parts</span><input type="number" min="0" step="0.5" value="${c.parts}" data-cp="${c.id}" style="width:80px"><button class="btn sm danger" data-cw="${c.id}">✕</button></div>`).join(''):
+      '<div class="small">Ajoute les joueurs de l\'équipage (toi compris) avec leur nombre de parts.</div>';
+  }
+  const c=crewCalc();
+  $('#cwOut').innerHTML=c.total&&c.pay.length?`<table class="cards"><tr class="hd"><th>Joueur</th><th>Parts</th><th>Reçoit (aUEC)</th></tr>`+
+    c.pay.map(p=>`<tr><td class="t"><b>${esc(p.name)}</b></td><td data-l="Parts">${p.parts}</td><td data-l="Reçoit" class="pr" style="color:var(--accent)">${fmt(p.amount)}</td></tr>`).join('')+
+    (c.ship?`<tr><td class="t"><b>Vaisseau (${c.shipPct} %)</b></td><td data-l="Parts">–</td><td data-l="Reçoit" class="pr">${fmt(c.ship)}</td></tr>`:'')+'</table>'+
+    `<div class="small" style="margin-top:6px">Net après frais : ${fmt(c.net)} aUEC${c.sum?'':' · aucune part saisie'}</div>`:
+    '<div class="small">Saisis un total et au moins un joueur pour voir la répartition.</div>';
+}
+
+/* =====================================================
+   ALERTES 24/7 (réglages lus par le robot GitHub)
+   ===================================================== */
+const alc=()=>db.alerts=db.alerts||{promos:true,patches:true,prices:[]};
+$('#alPromos').onchange=e=>{alc().promos=e.target.checked;save()};
+$('#alPatches').onchange=e=>{alc().patches=e.target.checked;save()};
+$('#alAdd').onclick=()=>{
+  const id=+$('#alMat').value,v=num($('#alVal').value),it=UEX&&UEX.items.find(i=>i.id===id);
+  if(!it||!v)return;
+  alc().prices.push({id,name:it.name,dir:$('#alDir').value,value:v});
+  $('#alVal').value='';save();renderAlerts();
+};
+$('#alList').onclick=e=>{
+  const b=e.target.closest('[data-ar]');if(!b)return;
+  alc().prices.splice(+b.dataset.ar,1);save();renderAlerts();
+};
+function repoInfo(){
+  const h=location.hostname;
+  if(/\.github\.io$/.test(h)){const owner=h.split('.')[0],repo=location.pathname.split('/')[1];if(repo)return{owner,repo}}
+  return null;
+}
+function renderAlerts(){
+  if(!$('#alertPanel'))return;
+  const a=db.alerts||{promos:true,patches:true,prices:[]};
+  $('#alPromos').checked=a.promos!==false;$('#alPatches').checked=a.patches!==false;
+  const sel=$('#alMat'),cur=sel.value;
+  const ord={refined:0,salvage:1,hand:2,raw:3};
+  const items=(UEX?UEX.items:[]).filter(i=>i.cat in ord).sort((x,y)=>ord[x.cat]-ord[y.cat]||y.best.price-x.best.price);
+  sel.innerHTML=items.length?items.map(i=>`<option value="${i.id}"${String(i.id)===cur?' selected':''}>${esc(i.name)} · ${fmt(i.best.price)} actuel</option>`).join(''):'<option value="">Prix UEX non chargés</option>';
+  $('#alList').innerHTML=a.prices.length?a.prices.map((r,i)=>{
+    const it=UEX&&UEX.items.find(x=>x.id===r.id),now=it?it.best.price:null;
+    const hit=now!=null&&(r.dir==='above'?now>=r.value:now<=r.value);
+    return`<div class="row"><b>${esc(r.name)}</b><span class="small">${r.dir==='above'?'≥':'≤'} ${fmt(r.value)}</span><span class="sp"></span>${now!=null?`<span class="tag ${hit?'ok':''}">${fmt(now)} ${hit?'· atteint':''}</span>`:''}<button class="btn sm danger" data-ar="${i}">✕</button></div>`}).join(''):
+    '<div class="small">Aucune alerte de prix. Exemple : Quantainium au-dessus de 160 000.</div>';
+  const ri=repoInfo(),raw=sync.rawUrl,nt=db.ntfy;
+  const step=(ok,t)=>`<div style="margin:5px 0">${ok?'<span class="tag ok">✔</span>':'<span class="tag warn">à faire</span>'} ${t}</div>`;
+  $('#alSetup').innerHTML=
+    step(!!(sync.token&&raw),'Synchronisation GitHub connectée (panneau « Synchronisation » plus haut).')+
+    step(!!(nt&&nt.on&&nt.topic),'Notifications téléphone activées (panneau « ntfy »).')+
+    step(false,`Dans le dépôt${ri?` <b>${esc(ri.owner)}/${esc(ri.repo)}</b>`:''} : <i>Settings → Secrets and variables → Actions → Secrets → New repository secret</i>. Nom : <code>SC_DATA_URL</code> (un <b>secret</b>, pas une variable : les journaux sont publics), valeur :`)+
+    (raw?`<div class="row" style="margin:4px 0"><input readonly value="${esc(raw)}" style="flex:1;min-width:0;font-size:11px" id="alRaw" onclick="this.select()"><button class="btn sm" id="alCopyRaw">Copier</button></div>`:'<div class="small">(apparaît une fois la synchronisation connectée)</div>')+
+    step(false,'Le robot ne tourne que depuis la <b>branche par défaut</b> du dépôt : le fichier <code>.github/workflows/sc-alerts.yml</code> doit y être présent (fusionne la branche).')+
+    (ri?`<div style="margin-top:6px"><a target="_blank" rel="noopener noreferrer" href="https://github.com/${esc(ri.owner)}/${esc(ri.repo)}/settings/secrets/actions">Secrets du dépôt ↗</a> · <a target="_blank" rel="noopener noreferrer" href="https://github.com/${esc(ri.owner)}/${esc(ri.repo)}/actions/workflows/sc-alerts.yml">Lancer / voir le robot ↗</a></div>`:'')+
+    '<div style="margin-top:6px">Les notifications sont dédupliquées sur 12 h : une alerte de prix ne se répète pas plus d\'une fois par 12 h.</div>';
+  const cp=$('#alCopyRaw');if(cp)cp.onclick=async()=>{try{await navigator.clipboard.writeText(raw);cp.textContent='Copié'}catch(e){$('#alRaw').select()}};
+}
+
+
+/* =====================================================
+   THÈMES / APPARENCE
+   ===================================================== */
+const UI_KEY='scos-ui';
+const THEMES={
+  terminal:{name:'Terminal ambre',desc:'Le style d\'origine : écran de cockpit.',b:'#0a0907',c:'#1a160d',a:'#ffb000',modern:false,sq:true},
+  bento:{name:'Bento sombre',desc:'Cartes en grille, grands chiffres, un accent.',b:'#09090d',c:'#1c1c26',a:'#6c5ce7',modern:true},
+  glass:{name:'Verre givré',desc:'Cartes translucides sur fond aurore.',b:'radial-gradient(85% 95% at 12% 8%,#5b3df5,transparent 62%),radial-gradient(70% 80% at 96% 22%,#14b8ff,transparent 60%),#080a1c',c:'rgba(255,255,255,.2)',a:'#5eb0ff',modern:true},
+  editorial:{name:'Éditorial clair',desc:'Fond crème, titres en serif, couleurs douces.',b:'#f5efe6',c:'#fffdf8',a:'#bd4a31',modern:true},
+  calm:{name:'Sobre iOS',desc:'Listes groupées, très calme et lisible.',b:'#f2f2f7',c:'#ffffff',a:'#0071e3',modern:true}
+};
+const ACCENTS=[['#6c5ce7','Violet'],['#2563eb','Bleu'],['#10b981','Menthe'],['#f5a524','Ambre'],['#db2777','Rose'],['#f97316','Orange']];
+let ui=Object.assign({theme:'auto',accent:''},lget(UI_KEY,{}));
+const saveUi=()=>lset(UI_KEY,ui);
+const lum=h=>{const n=parseInt(h.slice(1),16),f=c=>{c/=255;return c<=.03928?c/12.92:Math.pow((c+.055)/1.055,2.4)};return .2126*f(n>>16)+.7152*f(n>>8&255)+.0722*f(n&255)};
+function resolveTheme(){
+  if(ui.theme==='auto')return matchMedia('(prefers-color-scheme: light)').matches?'calm':'bento';
+  return THEMES[ui.theme]?ui.theme:'bento';
+}
+function applyTheme(){
+  const t=resolveTheme(),root=document.documentElement;
+  root.dataset.theme=t;
+  if(THEMES[t].modern)root.dataset.modern='1';else delete root.dataset.modern;
+  if(/^#[0-9a-f]{6}$/i.test(ui.accent||'')){root.style.setProperty('--accent',ui.accent);root.style.setProperty('--on',lum(ui.accent)>.3?'#10101a':'#ffffff')}
+  else{root.style.removeProperty('--accent');root.style.removeProperty('--on')}
+  const m=document.querySelector('meta[name=theme-color]');
+  if(m)m.content=getComputedStyle(root).getPropertyValue('--bg').trim()||'#0a0907';   /* lecture synchrone : le style est recalculé à la demande */
+  renderThemeUI();
+}
+function setTheme(id){ui.theme=id;saveUi();applyTheme()}
+function setAccent(hex){ui.accent=hex;saveUi();applyTheme()}
+function cycleTheme(){const o=['auto',...Object.keys(THEMES)];setTheme(o[(o.indexOf(ui.theme)+1)%o.length])}
+matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>{if(ui.theme==='auto')applyTheme()});
+function renderThemeUI(){
+  const g=$('#themeGrid');if(!g)return;
+  const card=(id,t)=>`<button class="tcard ${ui.theme===id?'on':''}" data-t="${id}" aria-pressed="${ui.theme===id}"><span class="tp ${t.sq?'sq':''}" style="--b:${t.b};--c:${t.c};--a:${t.a}"><i class="tpa"></i><i></i><i></i></span><b>${t.name}</b><small>${t.desc}</small></button>`;
+  g.innerHTML=`<button class="tcard ${ui.theme==='auto'?'on':''}" data-t="auto" aria-pressed="${ui.theme==='auto'}"><span class="tp split"><i class="tpa" style="background:#6c5ce7"></i><i></i><i></i></span><b>Automatique</b><small>Sombre (Bento) ou clair (iOS) selon ton appareil.</small></button>`+
+    Object.entries(THEMES).map(([id,t])=>card(id,t)).join('');
+  $('#accentSw').innerHTML=`<button class="def ${ui.accent?'':'on'}" data-c="" title="Couleur propre au thème" aria-label="Couleur du thème"></button>`+
+    ACCENTS.map(([h,n])=>`<button class="${ui.accent===h?'on':''}" data-c="${h}" style="background:${h}" title="${n}" aria-label="${n}"></button>`).join('');
+}
+$('#themeGrid').onclick=e=>{const b=e.target.closest('[data-t]');if(b)setTheme(b.dataset.t)};
+$('#accentSw').onclick=e=>{const b=e.target.closest('[data-c]');if(b)setAccent(b.dataset.c)};
+
+/* =====================================================
+   INIT
+   ===================================================== */
+function renderAllLight(){renderToday();renderSession();renderIndKpis();renderSessions()}
+function renderAll(){
+  renderFleet();renderCcu();renderSession();renderRefining();renderIndKpis();renderSessions();
+  renderProfit();renderAnalysis();renderGoals();renderNeeds();renderCrew();renderOpps();renderFeed();renderToday();renderSync();renderNtfy();renderAlerts();renderApp();alertLabel();checkReady();
+}
+buildNav();applyTheme();
+if(!location.hash)location.replace('#/'+lget(KEY+'.page','today'));
+window.addEventListener('hashchange',()=>lset(KEY+'.page',cur.page));
+route();tick();
+ensureModels().then(()=>{renderFleet();renderCcu()}).catch(()=>{});
+loadFeed(false);
+loadUex(false).then(()=>{renderProfit();renderToday();renderSessions()});
+if(sync.token)syncNow();
+renderNet();
+setTimeout(()=>{if(db.ntfy&&db.ntfy.on)ntfySync()},4000);
+setTimeout(()=>{if(PH.length===0&&UEX)recordSnapshot()},1500);
+</script>
+</body>
+</html>

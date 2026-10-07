@@ -1,0 +1,25 @@
+{
+  "name": "SC//OS – Star Citizen",
+  "short_name": "SC//OS",
+  "description": "Tableau de bord Star Citizen : flotte, CCU, minage, salvage, raffinage, marché et opportunités.",
+  "lang": "fr",
+  "start_url": "./#/today",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0907",
+  "theme_color": "#0a0907",
+  "categories": ["games", "utilities"],
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+    {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+  ],
+  "shortcuts": [
+    {"name": "Session de minage", "short_name": "Minage", "url": "./#/industry/mining", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]},
+    {"name": "Session de salvage", "short_name": "Salvage", "url": "./#/industry/salvage", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]},
+    {"name": "Raffinages", "short_name": "Raffinage", "url": "./#/industry/refining", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]}
+  ]
+}
