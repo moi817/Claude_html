@@ -27,7 +27,7 @@ a{color:inherit}
 .sw span{font-size:12px;color:#9a99ab;margin-right:2px}
 .sw button{width:26px;height:26px;border-radius:50%;border:2px solid #0d0d12;box-shadow:0 0 0 1px #3a3a4a;cursor:pointer;padding:0}
 .sw button.on{box-shadow:0 0 0 2px #ecebf3}
-.sw button.auto{background:conic-gradient(#7c6cff,#3b82f6,#34d399,#ffb000,#f472b6,#7c6cff);}
+.sw button.auto{background:conic-gradient(#6c5ce7,#2563eb,#34d399,#ffb000,#f472b6,#6c5ce7);}
 .desc{color:#8a899b;font-size:13px;margin-top:14px;min-height:20px}
 
 /* ===== scène : cadres de téléphone ===== */
@@ -103,7 +103,7 @@ a{color:inherit}
 .spark{width:54px;height:20px}.spark polyline{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 
 /* ===== 1. BENTO SOMBRE ===== */
-.t-bento{--bg:#09090d;--card:#14141b;--text:#f4f4f8;--muted:#8d8da0;--line:rgba(255,255,255,.07);--accent:var(--user,#7c6cff);--on:var(--user-on,#fff);font-family:Inter,system-ui,sans-serif}
+.t-bento{--bg:#09090d;--card:#14141b;--text:#f4f4f8;--muted:#8d8da0;--line:rgba(255,255,255,.07);--accent:var(--user,#6c5ce7);--on:var(--user-on,#fff);font-family:Inter,system-ui,sans-serif}
 .t-bento .body{padding:26px 16px 112px}
 .t-bento .hd h1{font-size:27px;letter-spacing:-.025em;font-weight:650;margin-top:2px}
 .t-bento .grid{margin-top:20px;grid-template-columns:1fr 1fr;grid-template-areas:"session session" "goal week" "refine refine" "market market" "promos promos"}
@@ -140,7 +140,7 @@ a{color:inherit}
 .t-glass .dock a{color:rgba(255,255,255,.7)}.t-glass .dock a.on{color:#fff;background:rgba(255,255,255,.22);border-radius:99px}
 
 /* ===== 3. ÉDITORIAL CLAIR ===== */
-.t-editorial{--bg:#f5efe6;--card:#fffdf8;--text:#2a2420;--muted:#8c8075;--line:#ebe2d4;--accent:var(--user,#c4553b);--on:var(--user-on,#fff);font-family:Inter,system-ui,sans-serif}
+.t-editorial{--bg:#f5efe6;--card:#fffdf8;--text:#2a2420;--muted:#8c8075;--line:#ebe2d4;--accent:var(--user,#bd4a31);--on:var(--user-on,#fff);font-family:Inter,system-ui,sans-serif}
 .t-editorial .body{padding:30px 20px 100px}
 .t-editorial .hd h1{font:500 36px/1.08 Fraunces,Georgia,serif;letter-spacing:-.02em;margin-top:6px}
 .t-editorial .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px}
@@ -158,10 +158,10 @@ a{color:inherit}
 .t-editorial .mini b{font-family:Fraunces,serif;font-weight:500;font-size:20px}
 .t-editorial .pill{border-radius:99px}
 .t-editorial .dock{border-top:1px solid var(--line);background:rgba(245,239,230,.92);backdrop-filter:blur(12px);padding:6px 6px 14px}
-.t-editorial .up{color:#5e8a63}.t-editorial .down{color:#c4553b}
+.t-editorial .up{color:#5e8a63}.t-editorial .down{color:#bd4a31}
 
 /* ===== 4. SOBRE iOS (listes groupées) ===== */
-.t-calm{--bg:#f2f2f7;--card:#fff;--text:#111114;--muted:#86868b;--line:#e5e5ea;--accent:var(--user,#0a84ff);--on:var(--user-on,#fff);font-family:-apple-system,"SF Pro Text",Inter,system-ui,sans-serif}
+.t-calm{--bg:#f2f2f7;--card:#fff;--text:#111114;--muted:#86868b;--line:#e5e5ea;--accent:var(--user,#0071e3);--on:var(--user-on,#fff);font-family:-apple-system,"SF Pro Text",Inter,system-ui,sans-serif}
 .t-calm .body{padding:28px 16px 90px}
 .t-calm .hd h1{font-size:32px;letter-spacing:-.022em;font-weight:700;margin-top:2px}
 .t-calm .grid{margin-top:18px;grid-template-columns:1fr;gap:20px}
@@ -203,7 +203,7 @@ const THEMES=[
   {id:'editorial',name:'Éditorial clair',desc:'Fond crème, titres et chiffres en serif, couleurs douces. À l\'opposé du look « jeu vidéo ».'},
   {id:'calm',name:'Sobre iOS',desc:'Listes groupées comme dans les Réglages de l\'iPhone : très calme, très rapide à lire.'}
 ];
-const ACCENTS=[['#7c6cff','Violet'],['#3b82f6','Bleu'],['#10b981','Menthe'],['#f5a524','Ambre'],['#ec4899','Rose'],['#f97316','Orange']];
+const ACCENTS=[['#6c5ce7','Violet'],['#2563eb','Bleu'],['#10b981','Menthe'],['#f5a524','Ambre'],['#db2777','Rose'],['#f97316','Orange']];
 const ic={
   home:'<svg viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>',
   ship:'<svg viewBox="0 0 24 24"><path d="M12 3c3 3 4 6 4 9l3 3v3l-4-1-3 3-3-3-4 1v-3l3-3c0-3 1-6 4-9z"/></svg>',
@@ -277,7 +277,7 @@ function pick(id,scroll){
 /* couleur d'accent : choisit aussi la couleur du texte posé dessus selon sa luminance */
 const lum=h=>{const n=parseInt(h.slice(1),16),f=c=>{c/=255;return c<=.03928?c/12.92:Math.pow((c+.055)/1.055,2.4)};return .2126*f(n>>16)+.7152*f(n>>8&255)+.0722*f(n&255)};
 function setAccent(hex){
-  const on=lum(hex)>.4?'#10101a':'#ffffff';
+  const on=lum(hex)>.3?'#10101a':'#ffffff';
   stage.querySelectorAll('.frame').forEach(f=>{
     if(hex){f.style.setProperty('--user',hex);f.style.setProperty('--user-on',on)}
     else{f.style.removeProperty('--user');f.style.removeProperty('--user-on')}});

@@ -39,3 +39,18 @@ Activation (une fois) :
 Limites : le déclenchement peut être retardé de quelques minutes ; GitHub désactive les workflows planifiés d'un dépôt public
 après 60 jours sans activité ; `workflow_dispatch` permet un lancement manuel depuis l'onglet *Actions*.
 Test local sans rien envoyer : `SC_DATA_URL=<url> node .github/scripts/sc-alerts.mjs --dry-run`.
+
+## Thèmes
+Réglages → **Apparence** (ou touche `t`, ou la palette `Ctrl+K`) : 5 thèmes + mode automatique, et 6 couleurs d'accent.
+| Thème | Ambiance |
+|---|---|
+| Automatique | Bento (sombre) ou Sobre iOS (clair) selon le réglage de l'appareil, suivi en direct |
+| Terminal ambre | style d'origine, écran de cockpit |
+| Bento sombre | cartes arrondies, grands chiffres, un accent |
+| Verre givré | cartes translucides sur fond aurore, barre de navigation flottante |
+| Éditorial clair | fond crème, titres en serif |
+| Sobre iOS | listes groupées, très lisible |
+
+Le choix est enregistré **par appareil** (`localStorage`, clé `scos-ui`) et appliqué avant le premier affichage (pas de flash).
+Les couleurs d'accent sont choisies pour garder un texte lisible dessus (contraste ≥ 4,5 : 1). Technique : variables CSS
+(`--bg`, `--panel`, `--accent`, `--on`…) définies par `html[data-theme]` ; `html[data-modern]` regroupe la structure commune des 4 thèmes modernes.
