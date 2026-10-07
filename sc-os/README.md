@@ -54,3 +54,7 @@ Réglages → **Apparence** (ou touche `t`, ou la palette `Ctrl+K`) : 5 thèmes 
 Le choix est enregistré **par appareil** (`localStorage`, clé `scos-ui`) et appliqué avant le premier affichage (pas de flash).
 Les couleurs d'accent sont choisies pour garder un texte lisible dessus (contraste ≥ 4,5 : 1). Technique : variables CSS
 (`--bg`, `--panel`, `--accent`, `--on`…) définies par `html[data-theme]` ; `html[data-modern]` regroupe la structure commune des 4 thèmes modernes.
+
+## Raffinage lié aux sessions, inventaire par lieu
+- **Raffinage ↔ session** : en lançant un ordre, on peut le relier à la session qui a produit la matière (matériau et SCU préremplis). À la récupération, l'application propose de saisir la vente : le montant est ajouté à la session liée (et au solde si le crédit automatique est actif). L'historique de la session liste ses ordres.
+- **Inventaire** : chaque ressource a un **lieu de stockage** ; une même ressource peut être répartie sur plusieurs lieux (une ligne par couple ressource + lieu, fusion automatique). Vues « par ressource » / « par lieu », filtre par lieu, déplacement en changeant le lieu d'une ligne, export CSV. Les projets (Besoins) indiquent où se trouve chaque ressource.

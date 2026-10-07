@@ -628,6 +628,9 @@ html[data-theme="calm"] .tabs{background:#e3e3e8}
       <div data-sub="refining">
         <div class="panel">
           <h2>Lancer un raffinage</h2>
+          <div class="row" style="margin-bottom:8px">
+            <select id="rSess" style="flex:1 1 100%" title="Relie l'ordre à la session qui a produit la matière : la vente pourra ensuite être ajoutée à cette session"></select>
+          </div>
           <div class="row">
             <select id="rPlace" style="flex:1;min-width:170px"></select>
             <input id="rMat" list="mats" placeholder="Minerai" style="flex:1;min-width:120px">
@@ -776,12 +779,20 @@ html[data-theme="calm"] .tabs{background:#e3e3e8}
           <div class="row">
             <input id="sName" list="stockNames" placeholder="Ressource / objet" style="flex:2 1 200px">
             <input id="sQty" type="number" min="0" step="0.1" placeholder="Quantité" style="flex:1 1 110px">
+            <input id="sLoc" list="locNames" placeholder="Lieu de stockage (ex. Area18)" style="flex:2 1 200px">
             <button class="btn primary" id="sAddStock">Ajouter</button>
           </div>
-          <datalist id="stockNames"></datalist>
+          <p class="small" style="margin-bottom:0">La même ressource peut être répartie sur plusieurs lieux : chaque lieu a sa propre ligne. Le lieu saisi est retenu pour l'ajout suivant.</p>
+          <datalist id="stockNames"></datalist><datalist id="locNames"></datalist>
         </div>
         <div class="panel">
-          <div class="sec-head"><h2>Inventaire</h2><input id="sSearch" placeholder="Rechercher…"></div>
+          <div class="sec-head"><h2>Inventaire</h2>
+            <div class="row">
+              <select id="sFilterLoc"><option value="">Tous les lieux</option></select>
+              <button class="btn sm" id="sViewRes">Par ressource</button><button class="btn sm" id="sViewLoc">Par lieu</button>
+              <input id="sSearch" placeholder="Rechercher…">
+              <button class="btn sm" data-csv="stock">⬇ CSV</button>
+            </div></div>
           <div id="sList"></div>
         </div>
       </div>
@@ -885,7 +896,7 @@ html[data-theme="calm"] .tabs{background:#e3e3e8}
           <h3>Exports CSV</h3>
           <div class="row">
             <button class="btn sm" data-csv="sessions">Sessions</button><button class="btn sm" data-csv="refining">Raffinages</button>
-            <button class="btn sm" data-csv="fleet">Flotte</button><button class="btn sm" data-csv="ccus">CCU</button>
+            <button class="btn sm" data-csv="fleet">Flotte</button><button class="btn sm" data-csv="ccus">CCU</button><button class="btn sm" data-csv="stock">Inventaire</button>
             <button class="btn sm" data-csv="prices">Prix actuels</button><button class="btn sm" data-csv="pricehist">Historique des prix</button>
           </div>
           <p class="small">Séparateur « ; », encodage UTF-8 : s'ouvre directement dans Excel ou LibreOffice en français.</p>
@@ -954,7 +965,7 @@ const lset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
    STOCKAGE
    ===================================================== */
 const KEY='scdash.v1';
-const mkDefaults=()=>({fleet:[],sessions:[],refining:[],opps:null,active:null,ccus:[],ntfy:null,alerts:null,goals:[],balance:0,autoBalance:false,hoursWeek:8,rateManual:0,stock:[],needs:[],crew:[],crewCfg:{fees:0,shipPct:0},updatedAt:0});
+const mkDefaults=()=>({fleet:[],sessions:[],refining:[],opps:null,active:null,ccus:[],ntfy:null,alerts:null,goals:[],balance:0,autoBalance:false,hoursWeek:8,rateManual:0,stock:[],lastLoc:'',stockView:'res',needs:[],crew:[],crewCfg:{fees:0,shipPct:0},updatedAt:0});
 let db=Object.assign(mkDefaults(),lget(KEY,{}));
 const persist=()=>lset(KEY,db);
 function save(){db.updatedAt=Date.now();persist();queueSync()}
@@ -1322,11 +1333,11 @@ function renderSessions(){
   const t=curType(),s=db.sessions.filter(x=>x.type===t);
   $('#sessTable').innerHTML=s.length?
     '<tr class="hd"><th>Date</th><th>Lieu</th><th>Vaisseau</th><th>Durée</th><th>SCU</th><th>SCU/h</th><th>Vente (aUEC)</th><th>aUEC/h</th><th>Détail</th><th></th></tr>'+
-    s.map(x=>{const h=x.ms/3600000,sp=splitOf(x);return`<tr><td class="t px">${new Date(x.date).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</td>
+    s.map(x=>{const h=x.ms/3600000,sp=splitOf(x),ords=db.refining.filter(r=>r.sid===x.id);return`<tr><td class="t px">${new Date(x.date).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}</td>
       <td data-l="Lieu">${esc(x.place)||'–'}</td><td data-l="Vaisseau">${esc(x.ship)||'–'}</td><td data-l="Durée">${dur(x.ms)}</td><td data-l="SCU">${h1(x.scu)}</td><td data-l="SCU / h">${h>0.005?h1(x.scu/h):'–'}</td>
       <td data-l="Vente (aUEC)">${x.val>0?`${fmt(x.val)} <button class="btn sm" data-sval="${x.id}" title="Modifier le montant">✎</button>`:`<button class="btn sm" data-sval="${x.id}" title="Saisir le montant réellement obtenu après raffinage et revente">Saisir la vente</button>`}</td>
       <td data-l="aUEC / h">${x.val>0&&h>0.005?fmt(x.val/h):'–'}</td>
-      <td class="small f">${x.log.map(l=>`${esc(l.mat)} ${l.scu}`).join(', ')}${sp?`<br>Partage : ${sp.pay.map(m=>`${esc(m.name)} ${fmt(m.amount)}`).join(' · ')}${sp.ship?` · vaisseau ${fmt(sp.ship)}`:''}`:(x.crew?'<br>Partage : à calculer dès que la vente est saisie':'')}</td>
+      <td class="small f">${x.log.map(l=>`${esc(l.mat)} ${l.scu}`).join(', ')}${sp?`<br>Partage : ${sp.pay.map(m=>`${esc(m.name)} ${fmt(m.amount)}`).join(' · ')}${sp.ship?` · vaisseau ${fmt(sp.ship)}`:''}`:(x.crew?'<br>Partage : à calculer dès que la vente est saisie':'')}${ords.length?`<br>Raffinage : ${ords.map(r=>`${esc(r.mat)} ${h1(r.scu)} SCU ${r.collected?'(récupéré)':'(en cours)'}${r.sale>0?` · vendu ${fmt(r.sale)}`:''}`).join(' · ')}`:''}</td>
       <td class="act x"><button class="btn sm danger" data-sdel="${x.id}">✕</button></td></tr>`}).join(''):'<tr><td class="empty">Aucune session de ce type.</td></tr>';
   $$('[data-sdel]').forEach(b=>b.onclick=()=>{db.sessions=db.sessions.filter(x=>x.id!==b.dataset.sdel);save();renderAll()});
   $$('[data-sval]').forEach(b=>b.onclick=()=>{
@@ -1347,24 +1358,55 @@ function renderSessions(){
 }
 
 /* --- raffinage --- */
+/* lien ordre de raffinage <-> session d'origine */
+const sessLabel=x=>`${new Date(x.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})} · ${x.type} · ${x.place||'lieu ?'} · ${h1(x.scu)} SCU`;
+function renderRefSessSelect(){
+  const sel=$('#rSess'),cur=sel.value,linked=new Set(db.refining.map(r=>r.sid).filter(Boolean));
+  sel.innerHTML='<option value="">Session d\'origine (facultatif) : relie l\'ordre à une session</option>'+
+    db.sessions.slice(0,30).map(x=>`<option value="${x.id}"${x.id===cur?' selected':''}>${esc(sessLabel(x))}${linked.has(x.id)?' · déjà liée à un ordre':''}</option>`).join('');
+}
+$('#rSess').onchange=()=>{
+  const x=db.sessions.find(z=>z.id===$('#rSess').value);if(!x)return;
+  if(!$('#rMat').value&&x.log.length)$('#rMat').value=x.log[0].mat;     /* préremplit matériau et SCU depuis la session */
+  if(!$('#rScu').value&&x.scu)$('#rScu').value=x.scu;
+};
+/* vente d'un ordre : s'ajoute à la session liée (et au solde si le crédit automatique est actif) */
+function orderSale(r){
+  if(!r)return;
+  const v=prompt(`Montant obtenu à la vente de cet ordre (${r.mat}${r.scu?', '+h1(r.scu)+' SCU':''}) en aUEC ?${r.sid?'\nIl sera ajouté à la session liée.':''}\n0 ou vide = effacer.`,r.sale||'');
+  if(v===null)return;
+  const nv=Math.max(0,num(v)),delta=nv-(r.sale||0);
+  r.sale=nv;
+  const s=r.sid&&db.sessions.find(z=>z.id===r.sid);
+  if(s)s.val=Math.max(0,(s.val||0)+delta);
+  if(db.autoBalance)db.balance=Math.max(0,(db.balance||0)+delta);
+  save();renderAll();
+}
 $('#rAdd').onclick=()=>{
   const mat=$('#rMat').value.trim();if(!mat)return;
   const ms=((+$('#rH').value||0)*60+(+$('#rM').value||0))*60000;
-  db.refining.unshift({id:uid(),place:$('#rPlace').value,mat,method:$('#rMethod').value.split(' (')[0],scu:num($('#rScu').value),
+  db.refining.unshift({id:uid(),place:$('#rPlace').value,mat,method:$('#rMethod').value.split(' (')[0],scu:num($('#rScu').value),sid:$('#rSess').value||'',
     cost:num($('#rCost').value),val:num($('#rVal').value),started:Date.now(),ready:Date.now()+ms,collected:false});
+  $('#rSess').value='';
   save();renderRefining();ntfySchedule(db.refining[0]);['#rMat','#rScu','#rCost','#rVal','#rH','#rM'].forEach(s=>$(s).value='');
 };
 $('#rHideDone').onchange=renderRefining;
 function renderRefining(){
+  renderRefSessSelect();
   const rows=db.refining.filter(r=>!($('#rHideDone').checked&&r.collected));
   $('#refTable').innerHTML=rows.length?
-    '<tr class="hd"><th>Lieu</th><th>Matériau</th><th>Méthode</th><th>SCU</th><th>Coût</th><th>Valeur est.</th><th>Statut</th><th></th></tr>'+
-    rows.map(r=>`<tr><td data-l="Lieu" class="f">${esc(r.place)}</td><td class="t"><b>${esc(r.mat)}</b></td><td data-l="Méthode">${esc(r.method)}</td><td data-l="SCU">${r.scu||'–'}</td>
+    '<tr class="hd"><th>Lieu</th><th>Matériau</th><th>Méthode</th><th>SCU</th><th>Coût</th><th>Valeur est.</th><th>Statut</th><th>Vente</th><th></th></tr>'+
+    rows.map(r=>{const s=r.sid&&db.sessions.find(z=>z.id===r.sid);return`<tr><td data-l="Lieu" class="f">${esc(r.place)}${s?`<div class="small">↳ session du ${new Date(s.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})} · ${esc(s.place||s.type)}</div>`:''}</td><td class="t"><b>${esc(r.mat)}</b></td><td data-l="Méthode">${esc(r.method)}</td><td data-l="SCU">${r.scu||'–'}</td>
       <td data-l="Coût">${fmt(r.cost)}</td><td data-l="Valeur est." class="f">${fmt(r.val)}</td>
       <td data-l="Statut">${r.collected?'<span class="tag">Récupéré</span>':`<span data-ready="${r.ready}" class="tag warn">…</span>`}</td>
-      <td class="act">${r.collected?'':`<a class="btn sm" title="Ajouter à Google Agenda (alerte même onglet fermé)" target="_blank" rel="noopener noreferrer" href="${esc(gcalUrl(r))}">📅</a><button class="btn sm" data-col="${r.id}">Récupéré</button>`}<button class="btn sm danger" data-rdel="${r.id}">✕</button></td></tr>`).join('')
+      <td data-l="Vente (aUEC)">${!r.collected?'–':r.sale>0?`${fmt(r.sale)} <button class="btn sm" data-osale="${r.id}" title="Modifier le montant">✎</button>`:`<button class="btn sm" data-osale="${r.id}">Saisir la vente</button>`}</td>
+      <td class="act">${r.collected?'':`<a class="btn sm" title="Ajouter à Google Agenda (alerte même onglet fermé)" target="_blank" rel="noopener noreferrer" href="${esc(gcalUrl(r))}">📅</a><button class="btn sm" data-col="${r.id}">Récupéré</button>`}<button class="btn sm danger" data-rdel="${r.id}">✕</button></td></tr>`}).join('')
     :'<tr><td class="empty">Aucun ordre de raffinage.</td></tr>';
-  $$('[data-col]').forEach(b=>b.onclick=()=>{const r=db.refining.find(r=>r.id===b.dataset.col);r.collected=true;ntfyCancel(r);save();renderAll()});
+  $$('[data-osale]').forEach(b=>b.onclick=()=>orderSale(db.refining.find(r=>r.id===b.dataset.osale)));
+  $$('[data-col]').forEach(b=>b.onclick=()=>{
+    const r=db.refining.find(r=>r.id===b.dataset.col);r.collected=true;ntfyCancel(r);save();renderAll();
+    if(confirm(`Ordre récupéré : ${r.mat}${r.scu?', '+h1(r.scu)+' SCU':''}.\nSaisir maintenant le montant de la vente${r.sid?' (il sera ajouté à la session liée)':''} ?\n(Annuler = plus tard, avec le bouton « Saisir la vente ».)`))orderSale(r);
+  });
   $$('[data-rdel]').forEach(b=>b.onclick=()=>{const r=db.refining.find(r=>r.id===b.dataset.rdel);if(r)ntfyCancel(r);db.refining=db.refining.filter(r=>r.id!==b.dataset.rdel);save();renderAll()});
 }
 
@@ -1765,7 +1807,7 @@ function commands(){
   Object.entries(THEMES).forEach(([k,t])=>c.push({t:'Thème : '+t.name,run:()=>setTheme(k)}));
   c.push({t:'Thème : automatique (clair / sombre)',run:()=>setTheme('auto')});
   c.push({t:'Exporter les données (JSON)',run:()=>$('#exportAll').click()});
-  Object.entries({sessions:'sessions',refining:'raffinages',fleet:'flotte',ccus:'CCU',prices:'prix actuels',pricehist:'historique des prix'}).forEach(([k,l])=>c.push({t:'Exporter en CSV : '+l,run:()=>CSV[k]()}));
+  Object.entries({sessions:'sessions',refining:'raffinages',fleet:'flotte',ccus:'CCU',stock:'inventaire',prices:'prix actuels',pricehist:'historique des prix'}).forEach(([k,l])=>c.push({t:'Exporter en CSV : '+l,run:()=>CSV[k]()}));
   c.push({t:'Notifications téléphone : envoyer un test',run:()=>{go('system');setTimeout(()=>$('#nfTest').click(),80)}});
   if(deferredInstall&&!isStandalone())c.push({t:"Installer l'application",run:installApp});
   c.push({t:'Activer les alertes de raffinage',run:askAlerts});
@@ -1821,8 +1863,10 @@ const isoT=t=>t?new Date(t).toISOString():'';
 const CSV={
   sessions:()=>downloadCsv('sc-sessions',['date','type','lieu','vaisseau','duree_min','scu','scu_par_h','vente_auec','auec_par_h','details'],
     db.sessions.map(x=>[isoT(x.date),x.type,x.place,x.ship,Math.round(x.ms/6e4),x.scu,x.ms>18e3?Math.round(x.scu/(x.ms/36e5)*10)/10:'',x.val||'',x.val>0&&x.ms>18e3?Math.round(x.val/(x.ms/36e5)):'',x.log.map(l=>`${l.mat}:${l.scu}SCU${l.val?':'+l.val:''}`).join(' | ')])),
-  refining:()=>downloadCsv('sc-raffinages',['lieu','materiau','methode','scu','cout_auec','valeur_estimee_auec','lance','pret','recupere'],
-    db.refining.map(r=>[r.place,r.mat,r.method,r.scu,r.cost,r.val,isoT(r.started),isoT(r.ready),r.collected?'oui':'non'])),
+  refining:()=>downloadCsv('sc-raffinages',['lieu','materiau','methode','scu','cout_auec','valeur_estimee_auec','lance','pret','recupere','session_liee','vente_auec'],
+    db.refining.map(r=>{const s=r.sid&&db.sessions.find(z=>z.id===r.sid);return[r.place,r.mat,r.method,r.scu,r.cost,r.val,isoT(r.started),isoT(r.ready),r.collected?'oui':'non',s?sessLabel(s):'',r.sale||'']})),
+  stock:()=>downloadCsv('sc-inventaire',['ressource','lieu_de_stockage','quantite'],
+    [...db.stock].sort((a,b)=>(a.loc||'').localeCompare(b.loc||'')||a.name.localeCompare(b.name)).map(i=>[i.name,i.loc||'',i.qty])),
   fleet:()=>downloadCsv('sc-flotte',['modele','surnom','constructeur','role','cargo_scu','equipage','assurance','valeur_usd','prix_auec'],
     db.fleet.map(s=>[s.model,s.custom,s.maker,s.role,s.cargo,s.crew,s.insurance,s.value,s.price||''])),
   ccus:()=>downloadCsv('sc-ccu',['de','vers','type','paye_usd','date','statut','notes'],
@@ -2192,7 +2236,7 @@ function renderNeeds(){
     return`<div class="opp ${n.done?'done':''}"><div class="row"><span class="tag">${esc(n.kind)}</span>${n.done?'<span class="tag ok">Terminé</span>':pct>=100?'<span class="tag ok">Prêt</span>':''}</div>
       <b>${esc(n.title)}</b>
       <div class="gauge ${pct>=100?'ok':''}" style="--p:${pct}%"><i></i></div>
-      ${n.reqs.map(r=>{const have=Math.min(sm[nk(r.name)]||0,r.qty);return`<div class="row" style="padding:2px 0"><span>${esc(r.name)}</span><span class="sp"></span>${have>=r.qty?`<span class="tag ok">✔ ${h1(r.qty)}</span>`:`<span class="small">${h1(have)} / ${h1(r.qty)}</span><span class="tag warn">−${h1(r.qty-have)}</span>`}</div>`}).join('')}
+      ${n.reqs.map(r=>{const have=Math.min(sm[nk(r.name)]||0,r.qty),where=stockLocs(r.name);return`<div class="row" style="padding:2px 0"><span>${esc(r.name)}</span><span class="sp"></span>${have>=r.qty?`<span class="tag ok">✔ ${h1(r.qty)}</span>`:`<span class="small">${h1(have)} / ${h1(r.qty)}</span><span class="tag warn">−${h1(r.qty-have)}</span>`}</div>${where?`<div class="small" style="margin:-2px 0 4px">📍 ${esc(where)}</div>`:''}`}).join('')}
       ${n.note?`<div class="small">${esc(n.note)}</div>`:''}
       <div class="row" style="margin-top:4px">${n.done?'':`<button class="btn sm" data-n="edit" data-id="${n.id}">Modifier</button>`}<span class="sp"></span>
         ${n.done?'':`<button class="btn sm" data-n="done" data-id="${n.id}">Terminé ✔</button>`}<button class="btn sm danger" data-n="del" data-id="${n.id}">✕</button></div></div>`}).join('')||'<div class="empty">Aucun projet. Ajoute un contrat ou un craft avec ses ressources.</div>';
@@ -2214,25 +2258,61 @@ $('#nList').onclick=e=>{
   save();renderNeeds();
 };
 CSV.needs=()=>downloadCsv('sc-liste-de-courses',['ressource','requis','stock','manque'],shopList().map(r=>[r.name,r.need,r.have,r.miss]));
+/* inventaire : une ligne par couple ressource + lieu de stockage */
+const NO_LOC='__none';
+const COMMON_LOCS=['Area18','Lorville','Orison','New Babbage','Port Tressler','Everus Harbor','Seraphim Station','Ruin Station','Checkmate','Orbituary','Pyro Gateway','Terra Gateway'];
+const sameItem=(a,b)=>nk(a.name)===nk(b.name)&&nk(a.loc||'')===nk(b.loc||'');
+function stockLocs(name){   /* « 35 @ Area18 · 20 @ Prospector » */
+  return db.stock.filter(i=>nk(i.name)===nk(name)&&i.qty>0).map(i=>`${h1(i.qty)} @ ${i.loc||'lieu non précisé'}`).join(' · ');
+}
 $('#sAddStock').onclick=()=>{
-  const name=$('#sName').value.trim(),qty=num($('#sQty').value);if(!name||!qty)return;
-  const ex=db.stock.find(i=>nk(i.name)===nk(name));
-  if(ex)ex.qty+=qty;else db.stock.push({id:uid(),name,qty});
+  const name=$('#sName').value.trim(),qty=num($('#sQty').value),loc=$('#sLoc').value.trim();if(!name||!qty)return;
+  const ex=db.stock.find(i=>sameItem(i,{name,loc}));
+  if(ex)ex.qty+=qty;else db.stock.push({id:uid(),name,qty,loc});
+  db.lastLoc=loc;
   $('#sName').value='';$('#sQty').value='';save();renderNeeds();
 };
-$('#sSearch').oninput=renderStock;
-function renderStock(){
-  const need={};db.needs.filter(n=>!n.done).forEach(n=>n.reqs.forEach(r=>{need[nk(r.name)]=(need[nk(r.name)]||0)+r.qty}));
-  const q=$('#sSearch').value.toLowerCase();
-  const rows=[...db.stock].filter(i=>!q||i.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name));
-  $('#sList').innerHTML=rows.length?rows.map(i=>{const nd=need[nk(i.name)]||0;
-    return`<div class="row" style="padding:9px 0"><div class="t" style="flex:1;min-width:0"><b>${esc(i.name)}</b>${nd?`<div class="small">requis par tes projets : ${h1(nd)} ${nd>i.qty?`<span class="tag warn">manque ${h1(nd-i.qty)}</span>`:'<span class="tag ok">couvert</span>'}</div>`:''}</div>
-      <button class="btn sm" data-s="-10" data-id="${i.id}">−10</button><button class="btn sm" data-s="-1" data-id="${i.id}">−1</button>
+$('#sSearch').oninput=renderStock;$('#sFilterLoc').onchange=renderStock;
+$('#sViewRes').onclick=()=>{db.stockView='res';save();renderStock()};
+$('#sViewLoc').onclick=()=>{db.stockView='loc';save();renderStock()};
+function stockRow(i,need){
+  const nd=need[nk(i.name)]||0,tot=db.stock.filter(x=>nk(x.name)===nk(i.name)).reduce((t,x)=>t+x.qty,0);
+  return`<div class="row" style="padding:9px 0;align-items:flex-start"><div class="t" style="flex:1 1 220px;min-width:0"><b>${esc(i.name)}</b>
+      ${nd?`<div class="small">requis par tes projets : ${h1(nd)} ${nd>tot?`<span class="tag warn">manque ${h1(nd-tot)}</span>`:'<span class="tag ok">couvert</span>'}</div>`:''}
+      <input list="locNames" data-sl="${i.id}" value="${esc(i.loc||'')}" placeholder="📍 Lieu de stockage" title="Change le lieu pour déplacer ce stock" style="width:100%;margin-top:5px;font-size:12px;padding:5px 9px"></div>
+    <div class="row" style="flex:1 1 auto;gap:6px;justify-content:flex-end;min-width:0"><button class="btn sm" data-s="-10" data-id="${i.id}">−10</button><button class="btn sm" data-s="-1" data-id="${i.id}">−1</button>
       <input type="number" min="0" step="0.1" value="${i.qty}" data-sq="${i.id}" style="width:84px;text-align:center">
       <button class="btn sm" data-s="1" data-id="${i.id}">+1</button><button class="btn sm" data-s="10" data-id="${i.id}">+10</button>
-      <button class="btn sm danger" data-s="del" data-id="${i.id}">✕</button></div>`}).join(''):'<div class="empty">Inventaire vide. Ajoute ce que tu possèdes.</div>';
+      <button class="btn sm danger" data-s="del" data-id="${i.id}">✕</button></div></div>`;
+}
+function renderStock(){
+  const need={};db.needs.filter(n=>!n.done).forEach(n=>n.reqs.forEach(r=>{need[nk(r.name)]=(need[nk(r.name)]||0)+r.qty}));
+  const view=db.stockView==='loc'?'loc':'res';
+  $('#sViewRes').classList.toggle('on',view==='res');$('#sViewLoc').classList.toggle('on',view==='loc');
+  /* lieux connus -> filtre + suggestions */
+  const locs=[...new Set(db.stock.map(i=>i.loc||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const fsel=$('#sFilterLoc'),fcur=fsel.value;
+  fsel.innerHTML='<option value="">Tous les lieux</option>'+locs.map(l=>`<option value="${esc(l)}"${l===fcur?' selected':''}>${esc(l)}</option>`).join('')+
+    (db.stock.some(i=>!i.loc)?`<option value="${NO_LOC}"${fcur===NO_LOC?' selected':''}>Sans lieu précisé</option>`:'');
+  const fv=fsel.value,q=$('#sSearch').value.toLowerCase();
+  const rows=db.stock.filter(i=>(!q||(i.name+' '+(i.loc||'')).toLowerCase().includes(q))&&(!fv||(fv===NO_LOC?!i.loc:i.loc===fv)));
+  let html;
+  if(!rows.length)html='<div class="empty">Inventaire vide. Ajoute ce que tu possèdes.</div>';
+  else if(view==='res')html=rows.sort((a,b)=>a.name.localeCompare(b.name)||(a.loc||'').localeCompare(b.loc||'')).map(i=>stockRow(i,need)).join('');
+  else{
+    const g={};rows.forEach(i=>(g[i.loc||'']=g[i.loc||'']||[]).push(i));
+    html=Object.keys(g).sort((a,b)=>!a?1:!b?-1:a.localeCompare(b)).map(l=>{
+      const its=g[l].sort((a,b)=>a.name.localeCompare(b.name));
+      return`<div style="margin-top:12px"><div class="row" style="border-bottom:1px solid var(--line);padding-bottom:6px"><b>📍 ${l?esc(l):'Sans lieu précisé'}</b><span class="sp"></span><span class="small">${its.length} ressource${its.length>1?'s':''} · ${h1(its.reduce((t,i)=>t+i.qty,0))} au total</span></div>${its.map(i=>stockRow(i,need)).join('')}</div>`;
+    }).join('');
+  }
+  /* ne pas détruire la ligne en cours de saisie (lieu / quantité) */
+  const ae=document.activeElement;
+  if(!(ae&&$('#sList').contains(ae)&&(ae.dataset.sl||ae.dataset.sq)))$('#sList').innerHTML=html;
   const names=[...new Set([...MATS_MINING,...MATS_SALVAGE,...db.stock.map(i=>i.name),...db.needs.flatMap(n=>n.reqs.map(r=>r.name))])].sort();
   $('#stockNames').innerHTML=names.map(n=>`<option value="${esc(n)}">`).join('');
+  $('#locNames').innerHTML=[...new Set([...locs,...db.fleet.map(s=>s.model),...COMMON_LOCS])].map(n=>`<option value="${esc(n)}">`).join('');
+  if(!$('#sLoc').value&&document.activeElement!==$('#sLoc'))$('#sLoc').value=db.lastLoc||'';
 }
 $('#sList').onclick=e=>{
   const b=e.target.closest('[data-s]');if(!b)return;
@@ -2241,9 +2321,16 @@ $('#sList').onclick=e=>{
   save();renderNeeds();
 };
 $('#sList').onchange=e=>{
-  const inp=e.target.closest('[data-sq]');if(!inp)return;
-  const i=db.stock.find(x=>x.id===inp.dataset.sq);if(!i)return;
-  i.qty=Math.max(0,num(inp.value));save();renderNeeds();
+  const q=e.target.closest('[data-sq]');
+  if(q){const i=db.stock.find(x=>x.id===q.dataset.sq);if(!i)return;i.qty=Math.max(0,num(q.value));save();renderNeeds();return}
+  const l=e.target.closest('[data-sl]');
+  if(l){
+    const i=db.stock.find(x=>x.id===l.dataset.sl);if(!i)return;
+    i.loc=l.value.trim();
+    const other=db.stock.find(x=>x!==i&&sameItem(x,i));          /* même ressource déjà présente à ce lieu : fusion */
+    if(other){other.qty+=i.qty;db.stock=db.stock.filter(x=>x!==i)}
+    save();l.blur();renderNeeds();
+  }
 };
 
 /* =====================================================
@@ -2375,7 +2462,7 @@ function applyTheme(){
   if(/^#[0-9a-f]{6}$/i.test(ui.accent||'')){root.style.setProperty('--accent',ui.accent);root.style.setProperty('--on',lum(ui.accent)>.3?'#10101a':'#ffffff')}
   else{root.style.removeProperty('--accent');root.style.removeProperty('--on')}
   const m=document.querySelector('meta[name=theme-color]');
-  if(m)requestAnimationFrame(()=>{m.content=getComputedStyle(root).getPropertyValue('--bg').trim()||'#0a0907'});
+  if(m)m.content=getComputedStyle(root).getPropertyValue('--bg').trim()||'#0a0907';   /* lecture synchrone : le style est recalculé à la demande */
   renderThemeUI();
 }
 function setTheme(id){ui.theme=id;saveUi();applyTheme()}
