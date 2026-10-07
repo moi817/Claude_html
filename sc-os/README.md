@@ -16,6 +16,7 @@ synchronisables entre appareils via un Gist GitHub secret.
 |---|---|
 | `index.html` | toute l'application |
 | `manifest.webmanifest` | métadonnées d'installation (nom, icônes, raccourcis Minage / Salvage / Raffinage) |
+| `maquettes.html` | page de comparaison des styles d'interface (aperçus statiques) |
 | `sw.js` | service worker : interface disponible hors ligne (réseau d'abord, cache en secours) |
 | `icon*.svg`, `icon-*.png` | icônes |
 
